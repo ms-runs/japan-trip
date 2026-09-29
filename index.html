@@ -83,10 +83,10 @@ header{display:flex;align-items:center;gap:14px;padding:9px 16px;background:var(
 .tag{font-style:normal;font-size:9.5px;padding:1px 6px;border-radius:4px}
 .places{list-style:none;display:flex;flex-direction:column;gap:8px}
 .places li{background:#fff;border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+.side{font-style:normal;font-size:10px;color:#7c5e10;background:#fbf1d6;border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
 .pl-top{display:flex;align-items:center;gap:6px}
 .pl-top a{flex:1;min-width:0;font-weight:500;color:var(--accent);text-decoration:none;font-size:13px;overflow:hidden;text-overflow:ellipsis}
 .pl-top a:hover{text-decoration:underline}
-.pl-top select{font-size:11px;padding:2px 4px;max-width:118px}
 .x{border:0;background:none;color:var(--muted);width:24px;height:24px;border-radius:4px;flex-shrink:0}
 .x:hover{background:#fde8e6;color:var(--bad)}
 .pl-note{width:100%;margin-top:6px;border:0;border-top:1px dashed var(--line2);border-radius:0;padding:6px 0 0;font-size:12.5px;background:transparent}
@@ -137,6 +137,18 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 .checks small{grid-column:2;color:var(--muted)}
 #toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,16px);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:7px;font-size:12.5px;opacity:0;transition:.2s;pointer-events:none;z-index:50;max-width:90vw}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.undo{pointer-events:auto;display:flex;align-items:center;gap:12px}
+#toast button{border:1px solid rgba(255,255,255,.35);background:none;color:var(--paper);border-radius:5px;padding:3px 10px;font-size:12px}
+.pl-toggle{display:flex;align-items:center;gap:8px;width:100%;margin:14px 0 6px;padding:7px 10px;border:1px solid var(--line2);border-radius:7px;background:#fff;text-align:left}
+.pl-toggle b{font-weight:600;font-size:12.5px}
+.pl-counts{flex:1;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{font-size:10px;color:var(--muted);transition:transform .15s}
+.pl-toggle[aria-expanded=true] .chev{transform:rotate(180deg)}
+.stop-body h5{font:600 11.5px 'DM Sans',sans-serif;color:var(--ink);margin:10px 0 5px}
+.pl-meta{display:flex;gap:6px;margin-top:5px}
+.pl-meta select{font-size:11px;padding:2px 4px;flex:1;min-width:0}
+.things li .x{width:20px;height:20px;font-size:10px;opacity:.55}
+.things li .x:hover{opacity:1}
 
 @media (max-width:860px){
   .app{grid-template-columns:1fr;grid-template-rows:46vh 1fr}
@@ -256,6 +268,7 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
     <p id="place-info" class="muted"></p>
     <label>Name<input id="pl-name" required></label>
     <label>Add to<select id="pl-stop"></select></label>
+    <label>Category<select id="pl-cat"></select></label>
     <label>Note<textarea id="pl-note" rows="2" placeholder="What is it, and why go?"></textarea></label>
     <div class="actions"><button value="cancel" formnovalidate>Cancel</button><button value="add" class="primary">Add place</button></div>
   </form>
@@ -313,6 +326,24 @@ const TAG = {eat:'#fee2e2/#991b1b',ramen:'#fef9c3/#854d0e',beef:'#fce7f3/#9f1239
   bar:'#fed7aa/#9a3412',shop:'#e9d5ff/#6b21a8',culture:'#fae8ff/#86198f',sport:'#dbeafe/#1e40af',nightlife:'#ffe4e6/#be123c',
   watch:'#fed7aa/#9a3412',golf:'#bfdbfe/#1e40af',pool:'#cffafe/#0e7490',rugby:'#dcfce7/#15803d',beach:'#cffafe/#0e7490'};
 const tagStyle = t => { const [bg, fg] = (TAG[t] || '#e5e7eb/#374151').split('/'); return `background:${bg};color:${fg}`; };
+// Place categories, in the order they're listed in a stop. To guess a category, the
+// words are checked in priority order (p); the name is tried first, then the note.
+const CATS = [
+  {id:'stay', p:1, label:'Hotels', icon:'🏨', re:/\b(hotels?|hostels?|ryokan|inn|resorts?|guest ?house|capsule|airbnb|hyatt|hilton|marriott|ritz|westin|sheraton|apartments?|accommodation)\b/},
+  {id:'see', p:7, label:'Attractions', icon:'⛩', re:/\b(temples?|shrines?|castles?|museums?|gallery|tower|memorial|palace|dome|observatory|views?|viewpoint|lookout|district|crossing|jinja|taisha|[a-z]+-ji|dera|pagoda|bridge|building|sky|monument|historic|old town)\b/},
+  {id:'eat', p:5, label:'Restaurants', icon:'🍜', re:/\b(restaurants?|ramen|sushi|sashimi|yakitori|yakiniku|okonomiyaki|takoyaki|udon|soba|tempura|tonkatsu|wagyu|beef|kaiseki|gyoza|curry|teppanyaki|noodles?|halal|champon|food|eat|dinner|lunch|breakfast|brunch|yatai|diner|grill|kitchen|bistro|steak|seafood|market)\b/},
+  {id:'drink', p:2, label:'Bars', icon:'🍸', re:/\b(bars?|pubs?|izakaya|kissa|highball|brewery|brewing|sake|whisk(e)?y|cocktails?|beer|lounge|speakeasy|golden gai|nightclub|club)\b/},
+  {id:'cafe', p:3, label:'Cafés', icon:'☕', re:/\b(caf[eé]s?|coffee|kissaten|tea ?house|matcha|bakery|patisserie|desserts?|sweets|parfait)\b/},
+  {id:'do', p:4, label:'Activities', icon:'🎯', re:/\b(golf|driving range|rugby|stadium|baseball|sumo|aquarium|teamlab|onsen|spa|sento|karaoke|diving|snorkel\w*|tours?|class|workshop|pool|ski|surf\w*|kayak\w*|sauna|round1|bowling|running|camping|cruise|show|concert|theatre|theater)\b/},
+  {id:'shop', p:6, label:'Shopping', icon:'🛍', re:/\b(shops?|shopping|stores?|mall|outlets?|boutique|watch(es)?|kuoe|department|don quijote|donki|uniqlo|shotengai|vintage|cameras?|clothes|clothing|denim|workwear|books?|bookstore|vinyl|antiques?|ceramics|porcelain|homeware|souvenirs?|flea market|free ?market|kitchen town)\b/},
+  {id:'nature', p:8, label:'Nature and parks', icon:'🌿', re:/\b(parks?|gardens?|beach(es)?|falls|waterfall|mountains?|mt\.?|forest|bamboo|islands?|lake|hikes?|hiking|trail|gorge|valley|river)\b/},
+  {id:'other', label:'Other', icon:'📍', re:null},
+];
+const catOf = id => CATS.find(c => c.id === id) || CATS.at(-1);
+const MATCH_ORDER = CATS.filter(c => c.re).sort((a, b) => a.p - b.p);   // e.g. 'Hotel bar' is a hotel; 'ramen bar' is a bar
+const matchCat = text => (MATCH_ORDER.find(c => c.re.test(String(text || '').toLowerCase())) || {}).id;
+const classify = (name, note) => matchCat(name) || matchCat(note) || 'other';
+
 const PALETTE = ['#be3a2a','#3a6e9a','#1a5a38','#4a2888','#896819','#1b4878','#1a6055','#0e7490','#9f1239'];
 
 // ═══ 4. DEFAULT PLAN — edit here to change what "Reset" goes back to ══════════
@@ -348,6 +379,116 @@ const DEFAULT_TRIP = {version:2, startDate:'', stops:[
       it('Shibuya Crossing',['culture']), it('Meiji Shrine and Harajuku',['shrine']), it('Sensō-ji, Asakusa',['temple']), it('Tsukiji Outer Market',['eat'])]}]),
 ]};
 
+// ═══ 4b. GOOGLE MAPS LIST IMPORT ══════════════════════════════════════════════
+// Added once to the shared plan, then never again (so anything you delete stays deleted).
+// Each place: {name, note, cat, lat, lng, url, stop}; side: true marks trips away from the stop;
+// approx: true means the position came from Google's place ID and can be a few km out.
+// Source: the "Japan" Google Maps list (Takeout export); locations decoded from Google's place IDs.
+const SEEDS = {id: 'gmaps-list-japan', places: [
+  {"name":"Amerikamura Free Market B.B GARAGE","note":"","cat":"shop","lat":34.67081,"lng":135.52464,"url":"https://www.google.com/maps/place/Amerikamura+Free+Market+B.B+GARAGE/data=!4m2!3m1!1s0x6000e74cd0a364eb:0xb3e4136d4be6822c","stop":"osaka","approx":true},
+  {"name":"Shinjuku-tei Yotsuya Halal Wagyu Ramen","note":"Ken’s famous ramen shop","cat":"eat","lat":35.72399,"lng":139.7081,"url":"https://www.google.com/maps/place/Shinjuku-tei+Yotsuya+Halal+Wagyu+Ramen/data=!4m2!3m1!1s0x60188d43bb6e5a53:0xde244bba260d25cb","stop":"tokyo2","approx":true},
+  {"name":"Tonkatsu spot (dropped pin, Shibuya)","note":"Tonkatsu good cheap","cat":"eat","lat":35.6596832,"lng":139.6995155,"url":"https://www.google.com/maps/search/35.6596832,139.6995155","stop":"tokyo2"},
+  {"name":"Dropped pin, Wakayama coast","note":"","cat":"other","lat":33.7391623,"lng":135.3723358,"url":"https://www.google.com/maps/search/33.7391623,135.3723358","stop":"osaka","side":true},
+  {"name":"0-second lemon sour Sendai Horumon Yakiniku Barbecue Tokiwatei Shibuya","note":"","cat":"eat","lat":35.6516,"lng":139.72649,"url":"https://www.google.com/maps/place/0-second+lemon+sour+Sendai+Horumon+Yakiniku+Barbecue+Tokiwatei+Shibuya/data=!4m2!3m1!1s0x60188b0cac8a89bd:0x6de5825a474edb6f","stop":"tokyo2","approx":true},
+  {"name":"Agora Kyoto Shijo","note":"Decent hotel and cheap in Kyoto","cat":"stay","lat":35.04787,"lng":135.82037,"url":"https://www.google.com/maps/place/Agora+Kyoto+Shijo/data=!4m2!3m1!1s0x600109837aefba8b:0x10e3d806356bebaf","stop":"kyoto","approx":true},
+  {"name":"Fukuchan","note":"","cat":"other","lat":35.7116,"lng":139.79744,"url":"https://www.google.com/maps/place/Fukuchan/data=!4m2!3m1!1s0x60188ec6b978035d:0xbad21c60b1c239d3","stop":"tokyo2","approx":true},
+  {"name":"Traveler's Factory Nakameguro","note":"Boutique Notebooks shop","cat":"shop","lat":35.64511,"lng":139.69785,"url":"https://www.google.com/maps/place/Traveler's+Factory+Nakameguro/data=!4m2!3m1!1s0x60188b4ecc010001:0xf4a3a9683ea17a82","stop":"tokyo2","approx":true},
+  {"name":"The Old Bus(予約制営業 reservation only)","note":"Overlooking mt Fuji - old bus conversion into a bar","cat":"drink","lat":35.09321,"lng":138.85278,"url":"https://www.google.com/maps/place/The+Old+Bus(%E4%BA%88%E7%B4%84%E5%88%B6%E5%96%B6%E6%A5%AD+reservation+only)/data=!4m2!3m1!1s0x60198f89ae537885:0x772f5ffcab9201f7","stop":"tokyo2","side":true,"approx":true},
+  {"name":"WORDS, SOUNDS, COLORS & SHAPES","note":"Cool design store with fun products","cat":"shop","lat":35.63801,"lng":139.71478,"url":"https://www.google.com/maps/place/WORDS,+SOUNDS,+COLORS+%26+SHAPES/data=!4m2!3m1!1s0x60188b17632997cd:0x9af78b116d8db0e9","stop":"tokyo2","approx":true},
+  {"name":"Runtrip BASE YOYOGI PARK","note":"Running shop/lockers/cafe in yoyogi park Come by, run and shower and go about your day","cat":"do","lat":35.70919,"lng":139.7305,"url":"https://www.google.com/maps/place/Runtrip+BASE+YOYOGI+PARK/data=!4m2!3m1!1s0x60188d003c44e355:0x4f53a3a729034f15","stop":"tokyo2","approx":true},
+  {"name":"A10","note":"Behind secret locker door","cat":"drink","lat":35.67172,"lng":139.7501,"url":"https://www.google.com/maps/place/A10/data=!4m2!3m1!1s0x60188b8d0bbc998d:0xdbdb6eb72400c38f","stop":"tokyo2","approx":true},
+  {"name":"Bar Albatross","note":"","cat":"drink","lat":35.69312,"lng":139.69952,"url":"https://www.google.com/maps/place/Bar+Albatross/data=!4m2!3m1!1s0x60188cd70fdfa4b1:0xb00ebef2dfce1eba","stop":"tokyo2","approx":true},
+  {"name":"bar Albatross Louvre Shinjuku","note":"No clue","cat":"drink","lat":35.66005,"lng":139.65325,"url":"https://www.google.com/maps/place/bar+Albatross+Louvre+Shinjuku/data=!4m2!3m1!1s0x6018f30b2235dc01:0x3fa59e0e4ea844c1","stop":"tokyo2","approx":true},
+  {"name":"Neco Republic Ikebukuro","note":"Cat rescue café","cat":"cafe","lat":35.73054,"lng":139.70721,"url":"https://www.google.com/maps/place/Neco+Republic+Ikebukuro/data=!4m2!3m1!1s0x60188d5c106844e5:0xba66e8a6ecf1f82d","stop":"tokyo2","approx":true},
+  {"name":"New Again Espresso","note":"Cafe with Porsche","cat":"cafe","lat":35.8121,"lng":139.74927,"url":"https://www.google.com/maps/place/New+Again+Espresso/data=!4m2!3m1!1s0x6018939479d03d4b:0x9410d65dadb88e09","stop":"tokyo2","approx":true},
+  {"name":"Bar SORA","note":"Vinyl bar western jazz","cat":"drink","lat":35.72914,"lng":139.71525,"url":"https://www.google.com/maps/place/Bar+SORA/data=!4m2!3m1!1s0x60188d6897a8e725:0xbc3af99a76d75115","stop":"tokyo2","approx":true},
+  {"name":"PENTAXクラブハウス","note":"Pentax clubhouse - cool gear cameras","cat":"shop","lat":35.7381,"lng":139.77118,"url":"https://www.google.com/maps/place/PENTAX%E3%82%AF%E3%83%A9%E3%83%96%E3%83%8F%E3%82%A6%E3%82%B9/data=!4m2!3m1!1s0x60188dd8cee40e53:0x7e7612cb13bc8109","stop":"tokyo2","approx":true},
+  {"name":"4BFC","note":"Footy shirt shop vintage","cat":"shop","lat":35.71878,"lng":139.7439,"url":"https://www.google.com/maps/place/4BFC/data=!4m2!3m1!1s0x60188db18eec42bd:0xe899a99fcc8a097c","stop":"tokyo2","approx":true},
+  {"name":"GOAT. KYOTO","note":"Footy shirt shop vintage","cat":"shop","lat":35.03185,"lng":135.80688,"url":"https://www.google.com/maps/place/GOAT.+KYOTO/data=!4m2!3m1!1s0x6001090cf6ba809f:0x6bff9d93c593b17b","stop":"kyoto","approx":true},
+  {"name":"Ausgang VINTAGE FOOTBALL","note":"Vintage footy shirt shop","cat":"shop","lat":35.58366,"lng":139.68246,"url":"https://www.google.com/maps/place/Ausgang+VINTAGE+FOOTBALL/data=!4m2!3m1!1s0x6018f550cb6d89db:0x45fd8bcc8a0ba04a","stop":"tokyo2","approx":true},
+  {"name":"Yoyogi Park","note":"Great running spot","cat":"nature","lat":35.67115,"lng":139.69411,"url":"https://www.google.com/maps/place/Yoyogi+Park/data=!4m2!3m1!1s0x60188cb479620a33:0x34bcc78ce7f8bf3e","stop":"tokyo2","approx":true},
+  {"name":"SenNichiMae DoguyaSuji cookware Shopping Street","note":"Ceramics street Osaka","cat":"shop","lat":34.66379,"lng":135.50356,"url":"https://www.google.com/maps/place/SenNichiMae+DoguyaSuji+cookware+Shopping+Street/data=!4m2!3m1!1s0x6000e76bcede077d:0xf0cb8551dd9d84cb","stop":"osaka","approx":true},
+  {"name":"Quaro","note":"Coffee shop that has marathon spots each year","cat":"cafe","lat":35.73143,"lng":139.75164,"url":"https://www.google.com/maps/place/Quaro/data=!4m2!3m1!1s0x60188dbf44f780b5:0xf12e01c95c1aedf8","stop":"tokyo2","approx":true},
+  {"name":"Cape Sata Park Observation Deck","note":"Southern most tip","cat":"see","lat":30.99456,"lng":130.66064,"url":"https://www.google.com/maps/place/Cape+Sata+Park+Observation+Deck/data=!4m2!3m1!1s0x353c34ec71f41e6f:0xb9933f59fe6ba78a","stop":"south","side":true,"approx":true},
+  {"name":"Cape Sōya","note":"Northern Tip Japan","cat":"see","lat":45.52243,"lng":141.93635,"url":"https://www.google.com/maps/place/Cape+S%C5%8Dya/data=!4m2!3m1!1s0x5f1041412dc49731:0xfb573b8643d8fb31","stop":"sapporo","side":true,"approx":true},
+  {"name":"KUNGFU CAMERA","note":"Visit for compact cameras. Dope store and very camera has a album showing prints","cat":"shop","lat":35.62868,"lng":139.61116,"url":"https://www.google.com/maps/place/KUNGFU+CAMERA/data=!4m2!3m1!1s0x6018f3fddb930765:0xec6155081b6da180","stop":"tokyo2","approx":true},
+  {"name":"Tokyo City Flea Market","note":"Large flea market every Sunday","cat":"shop","lat":35.56215,"lng":139.73279,"url":"https://www.google.com/maps/place/Tokyo+City+Flea+Market/data=!4m2!3m1!1s0x60186100092777c3:0xfdcb6cb658a5f045","stop":"tokyo2","approx":true},
+  {"name":"record bar 33 1/3rpm","note":"Record bar and cocktails","cat":"drink","lat":35.65791,"lng":139.69914,"url":"https://www.google.com/maps/place/record+bar+33+1%2F3rpm/data=!4m2!3m1!1s0x60188b57b60cf40b:0x7eea6f0b078c57ba","stop":"tokyo2","approx":true},
+  {"name":"La Collina Ōmi-Hachiman","note":"Architecturally interesting site to explore and they make a sponge cake that people love","cat":"see","lat":35.14407,"lng":136.08999,"url":"https://www.google.com/maps/place/La+Collina+%C5%8Cmi-Hachiman/data=!4m2!3m1!1s0x6001799c015a68f7:0xee6919e95d42bbd2","stop":"kyoto","approx":true},
+  {"name":"Kappabashi Dougugai Kitchen Town","note":"Where a lot of chefs apparently come get their knives","cat":"shop","lat":35.7145,"lng":139.78887,"url":"https://www.google.com/maps/place/Kappabashi+Dougugai+Kitchen+Town/data=!4m2!3m1!1s0x60188e95e87e855d:0x214435b365c89bf3","stop":"tokyo2","approx":true},
+  {"name":"RC 重機 CAFE / 重機 ラジコン カフェ なんば","note":"Order a beer and play with diggers in a sand pit","cat":"do","lat":34.64023,"lng":135.46769,"url":"https://www.google.com/maps/place/RC+%E9%87%8D%E6%A9%9F+CAFE+%2F+%E9%87%8D%E6%A9%9F+%E3%83%A9%E3%82%B8%E3%82%B3%E3%83%B3+%E3%82%AB%E3%83%95%E3%82%A7+%E3%81%AA%E3%82%93%E3%81%B0/data=!4m2!3m1!1s0x6000e7f2dc6811c1:0x195e9d48fed97eec","stop":"osaka","approx":true},
+  {"name":"Ginkakudo","note":"Cool shop","cat":"shop","lat":35.07222,"lng":135.81014,"url":"https://www.google.com/maps/place/Ginkakudo/data=!4m2!3m1!1s0x600109e08cba5915:0x23204c7dd4b848b2","stop":"kyoto","approx":true},
+  {"name":"Omen Ginkaku-ji","note":"Noodle shop affordable and amazing","cat":"eat","lat":35.02626,"lng":135.79501,"url":"https://www.google.com/maps/place/Omen+Ginkaku-ji/data=!4m2!3m1!1s0x600109047738bb63:0x5a7998fc89026cce","stop":"kyoto","approx":true},
+  {"name":"ONIBUS COFFEE Yakumo","note":"Very nice looking Onibus coffee","cat":"cafe","lat":35.61045,"lng":139.69059,"url":"https://www.google.com/maps/place/ONIBUS+COFFEE+Yakumo/data=!4m2!3m1!1s0x6018f52d4fbda509:0xcd0c5a9bab047777","stop":"tokyo2","approx":true},
+  {"name":"HOSHINOYA Fuji","note":"Hotel with beautiful views of Mount Fuji","cat":"stay","lat":35.5269,"lng":138.74766,"url":"https://www.google.com/maps/place/HOSHINOYA+Fuji/data=!4m2!3m1!1s0x60195f082728b88b:0x547c78726a109356","stop":"tokyo2","side":true,"approx":true},
+  {"name":"CHILL OUT COFFEE &...RECORDS","note":"Does what it says on the tin","cat":"cafe","lat":35.69492,"lng":139.80074,"url":"https://www.google.com/maps/place/CHILL+OUT+COFFEE+%26...RECORDS/data=!4m2!3m1!1s0x6018893179421105:0x6ce04138031766ac","stop":"tokyo2","approx":true},
+  {"name":"Bourbon Rd","note":"Drinking spot for highball and greasy gyoza","cat":"drink","lat":35.56186,"lng":139.71353,"url":"https://www.google.com/maps/place/Bourbon+Rd/data=!4m2!3m1!1s0x6018605d05e308db:0xfabb5e52517fdf5c","stop":"tokyo2","approx":true},
+  {"name":"FreeLance","note":"Jazz kissa hokkaido","cat":"drink","lat":43.20071,"lng":140.9984,"url":"https://www.google.com/maps/place/FreeLance/data=!4m2!3m1!1s0x5f0ae1b294ce1093:0xec296334382fb651","stop":"sapporo","approx":true},
+  {"name":"Yumoto","note":"Onsen, ski, worth maybe adding to list","cat":"do","lat":36.80703,"lng":139.42347,"url":"https://www.google.com/maps/place/Yumoto/data=!4m2!3m1!1s0x601fb2411f41237d:0xa3bc55a90213701c","stop":"tokyo2","side":true,"approx":true},
+  {"name":"Nikko Kanaya Hotel","note":"150 years ago resort for foreigners- beautiful old hotel","cat":"stay","lat":36.75217,"lng":139.60393,"url":"https://www.google.com/maps/place/Nikko+Kanaya+Hotel/data=!4m2!3m1!1s0x601fa6d672d819e5:0x63c1917b10571502","stop":"tokyo2","side":true,"approx":true},
+  {"name":"レアアイテムスタジオ (Rare Item Studio)","note":"Rare vintage gaming store","cat":"shop","lat":35.775,"lng":139.84437,"url":"https://www.google.com/maps/place/%E3%83%AC%E3%82%A2%E3%82%A2%E3%82%A4%E3%83%86%E3%83%A0%E3%82%B9%E3%82%BF%E3%82%B8%E3%82%AA+(Rare+Item+Studio)/data=!4m2!3m1!1s0x60188fed80d28115:0x87484efc6a8668ab","stop":"tokyo2","approx":true},
+  {"name":"Shizuoka","note":"Stopover for tea tastings","cat":"do","lat":35.27201,"lng":138.35937,"url":"https://www.google.com/maps/place/Shizuoka/data=!4m2!3m1!1s0x601bbf207a58856f:0xadc77626a8878101","stop":"tokyo2","side":true,"approx":true},
+  {"name":"Kamakura Seaside Park","note":"Kamakura for small wave surfing","cat":"do","lat":35.30458,"lng":139.53158,"url":"https://www.google.com/maps/place/Kamakura+Seaside+Park/data=!4m2!3m1!1s0x601845f9a09879af:0xaa16835b22306db8","stop":"tokyo2","approx":true},
+  {"name":"Muji Hotel Ginza","note":"Just a nice hotel","cat":"stay","lat":35.62343,"lng":139.69796,"url":"https://www.google.com/maps/place/Muji+Hotel+Ginza/data=!4m2!3m1!1s0x60188b29bbb7da51:0x9e6617b5ac45b83b","stop":"tokyo2","approx":true},
+  {"name":"Amagiso","note":"Cheap co-ed onsen","cat":"do","lat":34.79323,"lng":138.93682,"url":"https://www.google.com/maps/place/Amagiso/data=!4m2!3m1!1s0x6019e4496b2784d5:0xf2316293cf141315","stop":"tokyo2","side":true,"approx":true},
+  {"name":"Ramen Tsuji","note":"Local spot considered best ramen by some","cat":"eat","lat":34.68282,"lng":135.51585,"url":"https://www.google.com/maps/place/Ramen+Tsuji/data=!4m2!3m1!1s0x6000e72ff6730001:0x15445fd2a0eec1d","stop":"osaka","approx":true},
+  {"name":"Hachimonjiya","note":"Bar run by an amazing street photographer where you sit, chat and look through his archives. Vibes","cat":"drink","lat":35.00515,"lng":135.77067,"url":"https://www.google.com/maps/place/Hachimonjiya/data=!4m2!3m1!1s0x600108952e439883:0x5a421e677537e5e4","stop":"kyoto","approx":true},
+  {"name":"Tokyo Jumbo Golf Center","note":"Massive driving range if we need something to do","cat":"do","lat":35.80895,"lng":139.7532,"url":"https://www.google.com/maps/place/Tokyo+Jumbo+Golf+Center/data=!4m2!3m1!1s0x601893c01b7a1313:0x92a1895a09ff173a","stop":"tokyo2","approx":true},
+  {"name":"Murou Art Forest","note":"Gorgeous quiet visit near Nara","cat":"nature","lat":34.53798,"lng":136.03254,"url":"https://www.google.com/maps/place/Murou+Art+Forest/data=!4m2!3m1!1s0x6006b223ff494b03:0xfb9a109d57c3fb04","stop":"nara","approx":true},
+  {"name":"Mizutani Camera","note":"Cheap place to buy vintage seiko and grand seiko (and camera?)","cat":"shop","lat":35.71003,"lng":139.77543,"url":"https://www.google.com/maps/place/Mizutani+Camera/data=!4m2!3m1!1s0x60188e9f075fefad:0x2d0125ca7434adaf","stop":"tokyo2","approx":true},
+  {"name":"Dotonbori Sauna","note":"Rooftop sauna place! (Bring drinks and snacks if you want)","cat":"do","lat":34.64927,"lng":135.46736,"url":"https://www.google.com/maps/place/Dotonbori+Sauna/data=!4m2!3m1!1s0x6000e7eae84e33d9:0xedebd6cbd6f18d67","stop":"osaka","approx":true},
+  {"name":"yumiko iihoshi porcelain","note":"High end porcelain shop","cat":"shop","lat":35.64506,"lng":139.69472,"url":"https://www.google.com/maps/place/yumiko+iihoshi+porcelain/data=!4m2!3m1!1s0x60188b4c46b8d2a5:0x29a1de198f9c9a19","stop":"tokyo2","approx":true},
+  {"name":"Kappabashi Hondōri Shopping Street","note":"Souvenirs/Ceramics Shopping","cat":"shop","lat":35.71405,"lng":139.79115,"url":"https://www.google.com/maps/place/Kappabashi+Hond%C5%8Dri+Shopping+Street/data=!4m2!3m1!1s0x60188ebfd14153f5:0xaf34af5f45007a8e","stop":"tokyo2","approx":true},
+  {"name":"SKWAT/twelvebooks","note":"Book store and vinyl shop Dope","cat":"shop","lat":35.66335,"lng":139.74978,"url":"https://www.google.com/maps/place/SKWAT%2Ftwelvebooks/data=!4m2!3m1!1s0x60188b95aac8ef61:0x9f7d0af08769b5bb","stop":"tokyo2","approx":true},
+  {"name":"Koyodai Observatory","note":"Mt Fuji deck. Cool phot ops especially in good light within the structure and steps.","cat":"see","lat":35.48428,"lng":138.67935,"url":"https://www.google.com/maps/place/Koyodai+Observatory/data=!4m2!3m1!1s0x601be05f50cf8549:0xe3d71f17a9f4b74f","stop":"tokyo2","side":true,"approx":true},
+  {"name":"BLUE BULLET","note":"Train souvenirs shop. Lol","cat":"shop","lat":35.63652,"lng":139.72997,"url":"https://www.google.com/maps/place/BLUE+BULLET/data=!4m2!3m1!1s0x60188b0050247d37:0xc4618726a6152e73","stop":"tokyo2","approx":true},
+  {"name":"Simose Art Museum","note":"Awarded most beautiful museum by UNESCO","cat":"see","lat":34.2584,"lng":132.17731,"url":"https://www.google.com/maps/place/Simose+Art+Museum/data=!4m2!3m1!1s0x355acb0cac071239:0x9f23334182037283","stop":"hiroshima","approx":true},
+  {"name":"GOOD morning RECORD BAR","note":"Vibes bar. Need to go","cat":"drink","lat":35.07091,"lng":135.80678,"url":"https://www.google.com/maps/place/GOOD+morning+RECORD+BAR/data=!4m2!3m1!1s0x600109de54e3294d:0x3e54bc12c05dec14","stop":"kyoto","approx":true},
+  {"name":"Kanda Jinbocho","note":"Great neighbour for books and apparently ramen","cat":"shop","lat":35.69616,"lng":139.75695,"url":"https://www.google.com/maps/place/Kanda+Jinbocho/data=!4m2!3m1!1s0x60188c1407e905c3:0x9f08e766ea7cd351","stop":"tokyo2","approx":true},
+  {"name":"Hitomebore Kyobashi","note":"Cheap drinking spot and good food served with the drinks (almost like how pintxos are served with drinks in the Basque region)","cat":"drink","lat":34.75004,"lng":135.56719,"url":"https://www.google.com/maps/place/Hitomebore+Kyobashi/data=!4m2!3m1!1s0x6000e180a831d3c9:0x89e1c4bb8667a60e","stop":"osaka","approx":true},
+  {"name":"GINZA TSUTAYA BOOKS","note":"Cool art books shop with a gallery in the middle (6th floor of ginza six)","cat":"shop","lat":35.66954,"lng":139.76399,"url":"https://www.google.com/maps/place/GINZA+TSUTAYA+BOOKS/data=!4m2!3m1!1s0x60188be64830a61f:0x7171afd8b09fb1fc","stop":"tokyo2","approx":true},
+  {"name":"Ikinari Steak","note":"Quick steak place. Chain and apparently worth trying","cat":"eat","lat":35.67314,"lng":139.7606,"url":"https://www.google.com/maps/place/Ikinari+Steak/data=!4m2!3m1!1s0x60188befb0d11c41:0x4300373dac188133","stop":"tokyo2","approx":true},
+  {"name":"KUOE KYOTO","note":"Build custom Watch","cat":"shop","lat":35.02844,"lng":135.80333,"url":"https://www.google.com/maps/place/KUOE+KYOTO/data=!4m2!3m1!1s0x6001090e6b7bce05:0xf60a000b76141935","stop":"kyoto","approx":true},
+  {"name":"BEER STAND SORACHI","note":"Special Hokkaido beer with special stand in the station","cat":"drink","lat":43.06312,"lng":141.34001,"url":"https://www.google.com/maps/place/BEER+STAND+SORACHI/data=!4m2!3m1!1s0x5f0b29988b4acaa1:0xbfe480f87968666d","stop":"sapporo","approx":true},
+  {"name":"D&DEPARTMENT KYOTO","note":"Ceramics store inside a temple","cat":"shop","lat":35.00101,"lng":135.76199,"url":"https://www.google.com/maps/place/D%26DEPARTMENT+KYOTO/data=!4m2!3m1!1s0x600108978f72b26d:0x64426b49eb202197","stop":"kyoto","approx":true},
+  {"name":"Pro Antiques 古夢","note":"Homeware store","cat":"shop","lat":35.00939,"lng":135.76268,"url":"https://www.google.com/maps/place/Pro+Antiques+%E5%8F%A4%E5%A4%A2/data=!4m2!3m1!1s0x6001088fe9bfd7e1:0x29e94c60591aeb9f","stop":"kyoto","approx":true},
+  {"name":"Dengama","note":"Ceramics shop (very nice chopsticks holders)","cat":"shop","lat":35.71049,"lng":139.78847,"url":"https://www.google.com/maps/place/Dengama/data=!4m2!3m1!1s0x60188ebe83463ba1:0x63a8321860f1f363","stop":"tokyo2","approx":true},
+  {"name":"The Harvest Kitchen General Store","note":"Ceramics store","cat":"shop","lat":35.64477,"lng":139.71061,"url":"https://www.google.com/maps/place/The+Harvest+Kitchen+General+Store/data=!4m2!3m1!1s0x60188b3fee0654fd:0xb51c7effb2aa77b4","stop":"tokyo2","approx":true},
+  {"name":"Onibus Coffee","note":"Coffee - multiple This one you can see trains","cat":"cafe","lat":35.64323,"lng":139.69809,"url":"https://www.google.com/maps/place/Onibus+Coffee/data=!4m2!3m1!1s0x60188b49101975bd:0xa4d389d765fd2d94","stop":"tokyo2","approx":true},
+  {"name":"nadoya no katte","note":"Cafe with private garden Tokyo","cat":"cafe","lat":35.655,"lng":139.66059,"url":"https://www.google.com/maps/place/nadoya+no+katte/data=!4m2!3m1!1s0x6018f36fd56d2b7f:0x98ffe56e834f133e","stop":"tokyo2","approx":true},
+  {"name":"Tree Picnic Adventure Ikeda","note":"Suspended tent camping place - beautiful view","cat":"do","lat":35.86232,"lng":136.36722,"url":"https://www.google.com/maps/place/Tree+Picnic+Adventure+Ikeda/data=!4m2!3m1!1s0x6002087e77e90bbd:0xa35f527f973ffef9","stop":"kyoto","side":true,"approx":true},
+  {"name":"#FFFFFFT SENDAGAYA（シロティ千駄ヶ谷)","note":"A shop that sells only white tshirts. Meticulously crated","cat":"shop","lat":35.67539,"lng":139.70867,"url":"https://www.google.com/maps/place/%23FFFFFFT+SENDAGAYA%EF%BC%88%E3%82%B7%E3%83%AD%E3%83%86%E3%82%A3%E5%8D%83%E9%A7%84%E3%83%B6%E8%B0%B7)/data=!4m2!3m1!1s0x60188cbc49633771:0x1ae7182bd35ba156","stop":"tokyo2","approx":true},
+  {"name":"Safari 2 RRL","note":"Vintage clothes - curated collection of RRL","cat":"shop","lat":35.70362,"lng":139.64788,"url":"https://www.google.com/maps/place/Safari+2+RRL/data=!4m2!3m1!1s0x6018f27d20daaaab:0x837f7f3d7f147196","stop":"tokyo2","approx":true},
+  {"name":"Eagle Yotsuya","note":"Underground jazz and cocktail bar","cat":"drink","lat":35.6866,"lng":139.72821,"url":"https://www.google.com/maps/place/Eagle+Yotsuya/data=!4m2!3m1!1s0x60188c8ba1f037e5:0xaca919f4b1f671e7","stop":"tokyo2","approx":true},
+  {"name":"屋台酒場おおきに 梅田東通り店","note":"Cheap drinking (all you can drink) and decent food izakaya","cat":"drink","lat":34.67633,"lng":135.48813,"url":"https://www.google.com/maps/place/%E5%B1%8B%E5%8F%B0%E9%85%92%E5%A0%B4%E3%81%8A%E3%81%8A%E3%81%8D%E3%81%AB+%E6%A2%85%E7%94%B0%E6%9D%B1%E9%80%9A%E3%82%8A%E5%BA%97/data=!4m2!3m1!1s0x6000e70064dca4bf:0xc25913702946240f","stop":"osaka","approx":true},
+  {"name":"Makers Pride of Craft Daikanyama","note":"Custom denim","cat":"shop","lat":35.65142,"lng":139.69334,"url":"https://www.google.com/maps/place/Makers+Pride+of+Craft+Daikanyama/data=!4m2!3m1!1s0x60188b537137164b:0x92ecef156f996d77","stop":"tokyo2","approx":true},
+  {"name":"Workman Plus Higashiosaka Shinke Store","note":"Workman shop sells cheap workwear - check all locations","cat":"shop","lat":34.67314,"lng":135.59724,"url":"https://www.google.com/maps/place/Workman+Plus+Higashiosaka+Shinke+Store/data=!4m2!3m1!1s0x6000df8b0d69fc9b:0x7c411ea50b991434","stop":"osaka","approx":true},
+  {"name":"Gyozaclub Rocklee","note":"Unlimited gyoza for $6 and apparently drinks are decent too","cat":"eat","lat":34.67576,"lng":135.48775,"url":"https://www.google.com/maps/place/Gyozaclub+Rocklee/data=!4m2!3m1!1s0x6000e70080a8e1d9:0x52175e07302bc196","stop":"osaka","approx":true},
+  {"name":"No Room For Squares","note":"Secret bar behind an old coke fridge","cat":"drink","lat":35.66998,"lng":139.67072,"url":"https://www.google.com/maps/place/No+Room+For+Squares/data=!4m2!3m1!1s0x6018f315f7df539f:0xca5f379f1b24d00","stop":"tokyo2","approx":true},
+  {"name":"Saihōji (Kokedera) Temple","note":"Peaceful temple. Photography for gardens. Need advanced reservation to visit temple.","cat":"see","lat":34.99193,"lng":135.68327,"url":"https://www.google.com/maps/place/Saih%C5%8Dji+(Kokedera)+Temple/data=!4m2!3m1!1s0x60010731ac7b7533:0xaeecced5615bb0d5","stop":"kyoto","approx":true},
+  {"name":"Jazz spot Step","note":"Jazz/Vinyl Cocktail bar - chilled vibe","cat":"drink","lat":35.69363,"lng":139.77004,"url":"https://www.google.com/maps/place/Jazz+spot+Step/data=!4m2!3m1!1s0x60188c03b3f00401:0xee23010217329046","stop":"tokyo2","approx":true},
+  {"name":"Bar Otofuke","note":"","cat":"drink","lat":35.67653,"lng":139.79843,"url":"https://www.google.com/maps/place/Bar+Otofuke/data=!4m2!3m1!1s0x6018891402a8f9c9:0xe6673ce8d79a315e","stop":"tokyo2","approx":true},
+  {"name":"Doai Station","note":"","cat":"see","lat":36.83135,"lng":138.96711,"url":"https://www.google.com/maps/place/Doai+Station/data=!4m2!3m1!1s0x601e16c9dc58bb65:0xdf2b955f5c202452","stop":"tokyo2","side":true,"approx":true},
+  {"name":"Grand Seiko Studio Shizukuishi","note":"","cat":"see","lat":39.70821,"lng":141.0049,"url":"https://www.google.com/maps/place/Grand+Seiko+Studio+Shizukuishi/data=!4m2!3m1!1s0x5f85798c0fde233f:0xc92e10f356773997","stop":"tokyo2","side":true,"approx":true},
+  {"name":"Gifu","note":"","cat":"other","lat":35.79935,"lng":136.96486,"url":"https://www.google.com/maps/place/Gifu/data=!4m2!3m1!1s0x6002f1f20a88c38b:0xaf2714adeeccd667","stop":"kyoto","side":true,"approx":true},
+  {"name":"アメリカ村フリーマーケットB.B(American village freemarket B.B)","note":"Vintage watches and cameras","cat":"shop","lat":34.65218,"lng":135.49172,"url":"https://www.google.com/maps/place/%E3%82%A2%E3%83%A1%E3%83%AA%E3%82%AB%E6%9D%91%E3%83%95%E3%83%AA%E3%83%BC%E3%83%9E%E3%83%BC%E3%82%B1%E3%83%83%E3%83%88B.B(American+village+freemarket+B.B)/data=!4m2!3m1!1s0x6000e779f25a474f:0x7b8fc33480fbbdd3","stop":"osaka","approx":true},
+  {"name":"VIN-TIME(ヴィンタイム)","note":"Watches Aidan","cat":"shop","lat":35.67699,"lng":139.74494,"url":"https://www.google.com/maps/place/VIN-TIME(%E3%83%B4%E3%82%A3%E3%83%B3%E3%82%BF%E3%82%A4%E3%83%A0)/data=!4m2!3m1!1s0x60188b89d261779b:0x6536bd9976ae2ffe","stop":"tokyo2","approx":true},
+  {"name":"Whistler","note":"Vintage shop","cat":"shop","lat":35.70412,"lng":139.65129,"url":"https://www.google.com/maps/place/Whistler/data=!4m2!3m1!1s0x6018f287e1fc0001:0x6dd9d6debfe9ad02","stop":"tokyo2","approx":true},
+  {"name":"1-chōme-10-12 Rokukakubashi","note":"More watched - vintage Seikos","cat":"shop","lat":35.48765,"lng":139.62606,"url":"https://www.google.com/maps/place/1-ch%C5%8Dme-10-12+Rokukakubashi/data=!4m2!3m1!1s0x60185ea3e0aea3fd:0x4140e50132e36506","stop":"tokyo2","approx":true},
+  {"name":"Tokyo Camera","note":"","cat":"shop","lat":35.70181,"lng":139.77687,"url":"https://www.google.com/maps/place/Tokyo+Camera/data=!4m2!3m1!1s0x60188ea68a7d7581:0x72e48a9ede7d1d7b","stop":"tokyo2","approx":true},
+  {"name":"FILMCAMERA TOKYO","note":"","cat":"shop","lat":35.70625,"lng":139.71425,"url":"https://www.google.com/maps/place/FILMCAMERA+TOKYO/data=!4m2!3m1!1s0x60188d1ed5cedc5f:0x81d61899b4c5e68c","stop":"tokyo2","approx":true},
+  {"name":"無印良品 コレド室町","note":"","cat":"shop","lat":35.62067,"lng":139.78237,"url":"https://www.google.com/maps/place/%E7%84%A1%E5%8D%B0%E8%89%AF%E5%93%81+%E3%82%B3%E3%83%AC%E3%83%89%E5%AE%A4%E7%94%BA/data=!4m2!3m1!1s0x601889fd3ac1e0b9:0x9e7dca7af65726e3","stop":"tokyo2","approx":true},
+  {"name":"PRIVATE EYE'S","note":"","cat":"shop","lat":35.7441,"lng":139.72423,"url":"https://www.google.com/maps/place/PRIVATE+EYE'S/data=!4m2!3m1!1s0x60189282f66bf0b5:0x4d343266090ebe20","stop":"tokyo2","approx":true},
+  {"name":"Nanamica Daikanyama","note":"Sells cool outdoors clothes and carries North Face Purple Label","cat":"shop","lat":35.64869,"lng":139.70106,"url":"https://www.google.com/maps/place/Nanamica+Daikanyama/data=!4m2!3m1!1s0x60188b4f81524abd:0x77febb23a5295190","stop":"tokyo2","approx":true},
+  {"name":"Alpen Tokyo","note":"","cat":"shop","lat":35.72537,"lng":139.76826,"url":"https://www.google.com/maps/place/Alpen+Tokyo/data=!4m2!3m1!1s0x60188dd4851f56fd:0xdcf3fc757c2c6ea4","stop":"tokyo2","approx":true},
+  {"name":"Wine Bar BLESS","note":"","cat":"drink","lat":36.74271,"lng":139.63082,"url":"https://www.google.com/maps/place/Wine+Bar+BLESS/data=!4m2!3m1!1s0x601fa09569e354a5:0x25da42dbc1169fca","stop":"tokyo2","side":true,"approx":true},
+  {"name":"Unzen Onsen","note":"","cat":"do","lat":32.73851,"lng":130.26169,"url":"https://www.google.com/maps/place/Unzen+Onsen/data=!4m2!3m1!1s0x35400da5ed3fae09:0x684bc48f3550a4bc","stop":"south","side":true,"approx":true},
+  {"name":"Ringer Hut SHINJUKU TOHO BLDG.","note":"","cat":"eat","lat":35.69502,"lng":139.70192,"url":"https://www.google.com/maps/place/Ringer+Hut+SHINJUKU+TOHO+BLDG./data=!4m2!3m1!1s0x60188cd82e3e87ad:0x92d3c58b835c5099","stop":"tokyo2","approx":true},
+  {"name":"Han's kitchen annex(韓の台所 別邸 渋谷店)","note":"","cat":"eat","lat":35.6597,"lng":139.69776,"url":"https://www.google.com/maps/place/Han's+kitchen+annex(%E9%9F%93%E3%81%AE%E5%8F%B0%E6%89%80+%E5%88%A5%E9%82%B8+%E6%B8%8B%E8%B0%B7%E5%BA%97)/data=!4m2!3m1!1s0x60188ca9c09f60b3:0xc6cbf38ac577116e","stop":"tokyo2","approx":true},
+  {"name":"Nakano Broadway","note":"Shops for watches - kame kichi","cat":"shop","lat":35.70914,"lng":139.66554,"url":"https://www.google.com/maps/place/Nakano+Broadway/data=!4m2!3m1!1s0x6018f290b2ddee83:0xe1b67e4ee0eff0be","stop":"tokyo2","approx":true},
+  {"name":"Round1 Stadium Sennichimae","note":"","cat":"do","lat":34.66753,"lng":135.50278,"url":"https://www.google.com/maps/place/Round1+Stadium+Sennichimae/data=!4m2!3m1!1s0x6000e714b7d34da9:0x335cb3d1725ac06c","stop":"osaka","approx":true}
+]};
+
 // ═══ 5. SMALL HELPERS ═════════════════════════════════════════════════════════
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -361,7 +502,19 @@ const fmt = d => d.toLocaleDateString(undefined, {day:'numeric', month:'short'})
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const openDlg = sel => { const d = $(sel); d.returnValue = ''; d.showModal(); };
 const isBooked = L => Boolean(L && (L.carrier || L.number || L.confirmation || L.depTime));
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 3600); }
+function toast(msg, undo) {
+  const t = $('#toast');
+  t.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button type="button">Undo</button>' : ''}`;
+  t.classList.toggle('undo', Boolean(undo)); t.classList.add('on');
+  if (undo) t.querySelector('button').onclick = () => { t.classList.remove('on'); undo(); };
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on', 'undo'), undo ? 7000 : 3600);
+}
+// Makes a change that can be undone from the toast for a few seconds.
+function undoable(msg, change) {
+  const before = JSON.stringify(trip);
+  change(); save(); renderAll();
+  toast(msg, () => { trip = normalize(JSON.parse(before)); save(); renderAll(); toast('Restored.'); });
+}
 function setPath(path, value) { const k = path.split('.'); let o = trip; k.slice(0, -1).forEach(p => o = o[p]); o[k.at(-1)] = value; }
 const prefName = id => document.getElementById(id)?.getAttribute('name') || id;
 function prefAt(x, y, tol = 0) {
@@ -373,6 +526,9 @@ function prefAt(x, y, tol = 0) {
 
 // ═══ 6. STATE AND SAVING ══════════════════════════════════════════════════════
 const LS_KEY = 'japanTripPlanV2', LS_OLD = 'japanTripPlanV1', LS_SYNC = `${LS_KEY}:sync:${TRIP_KEY}`;
+const UI_KEY = 'japanTripView';
+const view = {openPlaces: {}, ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
+const saveView = () => { try { localStorage.setItem(UI_KEY, JSON.stringify(view)); } catch {} };
 const ui = {openStop:null, openLeg:null, edit:false, day:1, showDay:false, playing:null, view:[0,0,MAP_W,MAP_H], pending:null};
 
 // Brings any saved plan (including the older V1 format) into the current shape. Safe to run repeatedly.
@@ -381,15 +537,17 @@ function normalize(t) {
   t.stops.forEach((s, i) => {
     if (s.tabs && !s.sections) s.sections = s.tabs.map(tb => ({label: tb.label, items: tb.items || []}));
     ['tabs','skiPicker','skiOptions','skiChoice','num','days'].forEach(k => delete s[k]);
-    s.id ||= uid(); s.sections ||= []; s.places ||= []; s.notes ??= ''; s.tip ??= ''; s.prefIds ||= [];
+    s.id ||= uid(); s.sections ||= []; s.places ||= [];
+    s.places.forEach(p => { p.id ||= uid(); p.note ??= ''; if (!CATS.some(c => c.id === p.cat)) p.cat = classify(p.name, p.note); });
+    s.sections = s.sections.filter(sec => (sec.items || []).length); s.notes ??= ''; s.tip ??= ''; s.prefIds ||= [];
     s.color ||= PALETTE[i % PALETTE.length];
     s.nights = clamp(parseInt(s.nights) || 1, 1, 30);
     if (i === 0) delete s.leg; else s.leg = {...leg('train'), ...(s.leg || {})};
   });
-  t.version = 2; t.startDate ||= '';
+  t.version = 2; t.startDate ||= ''; t.imports ||= [];
   return t;
 }
-let trip = normalize(readJSON(LS_KEY)) || normalize(readJSON(LS_OLD)) || structuredClone(DEFAULT_TRIP);
+let trip = normalize(readJSON(LS_KEY)) || normalize(readJSON(LS_OLD)) || normalize(structuredClone(DEFAULT_TRIP));
 const sync = {base:null, dirty:false, timer:null, busy:false, again:false, ...(readJSON(LS_SYNC) || {})};
 
 const STATUS = {local:'Saved in this browser', saving:'Saving…', offline:'Offline — saved here, will sync', error:'Could not save — browser storage is blocked'};
@@ -451,6 +609,7 @@ async function initRemote() {
     else if (sync.dirty && sync.base === row.saved_at) await push();         // our offline edits are the newest
     else { if (sync.dirty) toast('Newer shared changes replaced edits made while offline.'); adopt(row); }
   } catch (e) { console.warn(e); setStatus('offline'); }
+  mergeSeeds();
   setInterval(poll, 15000);
   addEventListener('focus', poll);
 }
@@ -510,6 +669,8 @@ async function openPlaceDialog(text) {
   $('#pl-stop').value = has ? ranked[0].s.id : (ui.openStop || trip.stops[0].id);
   $('#pl-name').value = p.name;
   $('#pl-note').value = '';
+  $('#pl-cat').innerHTML = CATS.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
+  $('#pl-cat').value = classify(p.name, ''); $('#pl-cat').dataset.touched = '';
   $('#place-info').textContent =
       has && ranked[0].km > 150 ? `Location found, ${Math.round(ranked[0].km)} km from your nearest stop. Pick a stop, or make it a new one.`
     : has ? `Location found. Filed under your nearest stop, ${ranked[0].s.name} — change it if needed.`
@@ -520,7 +681,7 @@ async function openPlaceDialog(text) {
 }
 function addPlace() {
   const p = ui.pending; if (!p) return;
-  const place = {id: uid(), name: $('#pl-name').value.trim() || 'Unnamed place', note: $('#pl-note').value.trim(),
+  const place = {id: uid(), name: $('#pl-name').value.trim() || 'Unnamed place', note: $('#pl-note').value.trim(), cat: $('#pl-cat').value,
     url: p.url, lat: p.has ? p.lat : null, lng: p.has ? p.lng : null};
   let target = $('#pl-stop').value;
   if (target === '__new') {
@@ -531,7 +692,7 @@ function addPlace() {
     toast(`New stop ${s.name} added before your last stop. Use Edit stops to move it.`);
   } else toast(`Added ${place.name} to ${trip.stops.find(s => s.id === target).name}.`);
   trip.stops.find(s => s.id === target).places.push(place);
-  ui.pending = null; ui.openStop = target;
+  ui.pending = null; ui.openStop = target; view.openPlaces[target] = true; saveView();
   save(); renderAll(); zoomToStop(target);
 }
 
@@ -591,19 +752,34 @@ function stopHTML(s, i) {
 }
 function bodyHTML(s, i) {
   const p = `stops.${i}.`;
-  const sections = s.sections.map(sec => `<h4>${esc(sec.label)}</h4><ul class="things">${(sec.items || []).map(x =>
-      `<li class="${x.hl ? 'hl' : ''}"><span>${esc(x.text)}</span>${(x.tags || []).map(t => `<i class="tag" style="${tagStyle(t)}">${esc(t)}</i>`).join('')}</li>`).join('')}</ul>`).join('');
-  const places = s.places.length ? `<h4>Saved places</h4><ul class="places">${s.places.map((pl, j) => `<li>
+  const sections = s.sections.map((sec, k) => `<h4>${esc(sec.label)}</h4><ul class="things">${sec.items.map((x, m) =>
+      `<li class="${x.hl ? 'hl' : ''}"><span>${esc(x.text)}</span>${(x.tags || []).map(t => `<i class="tag" style="${tagStyle(t)}">${esc(t)}</i>`).join('')}`
+      + `<button class="x" data-action="delete-item" data-id="${s.id}" data-sec="${k}" data-item="${m}" aria-label="Remove ${esc(x.text)}">✕</button></li>`).join('')}</ul>`).join('');
+  return sections + placesHTML(s, i) + (s.tip ? `<p class="tip">${esc(s.tip)}</p>` : '')
+    + `<label class="notes">Notes<textarea data-bind="${p}notes" rows="2" placeholder="Hotel, reminders, ideas…">${esc(s.notes)}</textarea></label>`;
+}
+function placesHTML(s, i) {
+  if (!s.places.length) return '';
+  const open = Boolean(view.openPlaces[s.id]);
+  const groups = CATS.map(c => [c, s.places.filter(pl => pl.cat === c.id).sort((a, b) => a.name.localeCompare(b.name))]).filter(([, list]) => list.length);
+  const head = `<button class="pl-toggle" data-action="toggle-places" data-id="${s.id}" aria-expanded="${open}">
+      <b>Saved places (${s.places.length})</b><span class="pl-counts">${groups.map(([c, l]) => `${c.icon} ${l.length}`).join('  ')}</span><span class="chev">▼</span></button>`;
+  if (!open) return head;
+  return head + groups.map(([c, list]) => `<h5>${c.icon} ${c.label}</h5><ul class="places">${list.map(pl => {
+    const j = s.places.indexOf(pl);
+    return `<li>
       <div class="pl-top">
         <a href="${esc(safeUrl(pl.url))}" target="_blank" rel="noopener">${esc(pl.name)}</a>
-        <select data-action="move-place" data-id="${s.id}" data-pid="${pl.id}" aria-label="Move ${esc(pl.name)} to another stop">${trip.stops.map((o, k) =>
-          `<option value="${o.id}"${o.id === s.id ? ' selected' : ''}>${k + 1}. ${esc(o.name)}</option>`).join('')}</select>
+        ${pl.side && pl.lat != null ? `<em class="side" title="Away from ${esc(s.name)}">Side trip, ${Math.round(km(pl.lat, pl.lng, s.lat, s.lng))} km</em>` : ''}
         <button class="x" data-action="delete-place" data-id="${s.id}" data-pid="${pl.id}" aria-label="Remove ${esc(pl.name)}">✕</button>
       </div>
-      <input class="pl-note" data-bind="${p}places.${j}.note" value="${esc(pl.note)}" placeholder="Add a note" aria-label="Note for ${esc(pl.name)}">
-    </li>`).join('')}</ul>` : '';
-  return sections + places + (s.tip ? `<p class="tip">${esc(s.tip)}</p>` : '')
-    + `<label class="notes">Notes<textarea data-bind="${p}notes" rows="2" placeholder="Hotel, reminders, ideas…">${esc(s.notes)}</textarea></label>`;
+      <div class="pl-meta">
+        <select data-bind="stops.${i}.places.${j}.cat" data-rerender aria-label="Category for ${esc(pl.name)}">${CATS.map(o => `<option value="${o.id}"${o.id === pl.cat ? ' selected' : ''}>${o.icon} ${o.label}</option>`).join('')}</select>
+        <select data-action="move-place" data-id="${s.id}" data-pid="${pl.id}" aria-label="Move ${esc(pl.name)} to another stop">${trip.stops.map((o, k) =>
+          `<option value="${o.id}"${o.id === s.id ? ' selected' : ''}>${k + 1}. ${esc(o.name)}</option>`).join('')}</select>
+      </div>
+      <input class="pl-note" data-bind="stops.${i}.places.${j}.note" value="${esc(pl.note)}" placeholder="Add a note" aria-label="Note for ${esc(pl.name)}">
+    </li>`; }).join('')}</ul>`).join('');
 }
 function renderStops() { $('#stops').innerHTML = trip.stops.map((s, i) => (i ? legHTML(s, i) : '') + stopHTML(s, i)).join(''); }
 
@@ -616,7 +792,7 @@ function renderLand() {
   });
   const used = [...new Set(trip.stops.slice(1).map(s => s.leg.mode))];
   $('#legend').innerHTML = used.map(k => `<span><i style="background:${MODES[k].color}"></i>${MODES[k].icon} ${MODES[k].label}</span>`).join('')
-    + '<span><i class="dot"></i>Saved place</span><span style="color:var(--muted)">Dashed lines: not booked yet</span>';
+    + '<span><i class="dot"></i>Saved place (ring: approximate)</span><span style="color:var(--muted)">Dashed lines: not booked yet</span>';
 }
 // Where each pin is drawn: its true spot, nudged outward if it would cover an earlier pin.
 function pinPositions(k) {
@@ -646,10 +822,17 @@ function renderOverlay() {
   }
   $('#routes').innerHTML = routes;
 
+  // Place dots, then as many labels as fit without overlapping (more appear as you zoom in).
+  const taken = [];
+  const fits = (x, y, w, h) => { if (taken.some(b => x < b[2] && x + w > b[0] && y < b[3] && y + h > b[1])) return false; taken.push([x, y, x + w, y + h]); return true; };
+  pos.forEach(p => fits(p.x - 11*k, p.y - 11*k, 22*k, 22*k));   // keep labels off the stop pins
   $('#places').innerHTML = trip.stops.flatMap(s => s.places.filter(p => p.lat != null).map(p => {
-    const [x, y] = project(p.lat, p.lng);
-    return `<g data-sid="${s.id}" data-tip="${esc(p.name)} (${esc(s.name)})"><circle cx="${x}" cy="${y}" r="${5*k}" fill="${esc(s.color)}" stroke="#fff" stroke-width="${1.5*k}"/>`
-      + (k < 0.5 ? `<text x="${x + 8*k}" y="${y}" font-size="${11*k}" font-weight="500" dominant-baseline="central" fill="#1c1917" stroke="#fff" stroke-width="${3*k}" paint-order="stroke">${esc(p.name)}</text>` : '') + '</g>';
+    const [x, y] = project(p.lat, p.lng), label = `${catOf(p.cat).icon} ${p.name}`;
+    const showLabel = k < 0.12 && fits(x + 7*k, y - 7*k, (label.length*6 + 6)*k, 14*k);
+    return `<g data-sid="${s.id}" data-tip="${esc(label)} (${esc(s.name)})${p.approx ? ', approximate location' : ''}">`
+      + (p.approx ? `<circle cx="${x}" cy="${y}" r="${4.5*k}" fill="#fff" fill-opacity=".85" stroke="${esc(s.color)}" stroke-width="${2*k}"/>`
+                  : `<circle cx="${x}" cy="${y}" r="${5*k}" fill="${esc(s.color)}" stroke="#fff" stroke-width="${1.5*k}"/>`)
+      + (showLabel ? `<text x="${x + 8*k}" y="${y}" font-size="${11*k}" font-weight="500" dominant-baseline="central" fill="#1c1917" stroke="#fff" stroke-width="${3*k}" paint-order="stroke">${esc(label)}</text>` : '') + '</g>';
   })).join('');
 
   const info = ui.showDay ? dayInfo(ui.day) : null;
@@ -676,7 +859,7 @@ function renderMap() { renderLand(); renderOverlay(); }
 
 // Zoom and pan
 function clampView(v) {
-  const w = clamp(v[2], 110, MAP_W), h = w*MAP_H/MAP_W;
+  const w = clamp(v[2], 18, MAP_W), h = w*MAP_H/MAP_W;
   return [clamp(v[0], -w/2, MAP_W - w/2), clamp(v[1], -h/2, MAP_H - h/2), w, h];
 }
 function setView(target) {
@@ -694,10 +877,10 @@ function viewAround(points, minW = 170) {
 const fitAll = () => setView(viewAround(trip.stops.map(s => project(s.lat, s.lng)), MAP_W*.5));
 function zoomToStop(id) {
   const s = trip.stops.find(x => x.id === id); if (!s) return;
-  setView(viewAround([project(s.lat, s.lng), ...s.places.filter(p => p.lat != null).map(p => project(p.lat, p.lng))]));
+  setView(viewAround([project(s.lat, s.lng), ...s.places.filter(p => p.lat != null && !p.side).map(p => project(p.lat, p.lng))], 60));
 }
 function zoomBy(f, [px, py] = [ui.view[0] + ui.view[2]/2, ui.view[1] + ui.view[3]/2]) {
-  const [x, y, w, h] = ui.view, nw = clamp(w*f, 110, MAP_W); f = nw/w;
+  const [x, y, w, h] = ui.view, nw = clamp(w*f, 18, MAP_W); f = nw/w;
   ui.view = clampView([px - (px - x)*f, py - (py - y)*f, w*f, h*f]); renderOverlay();
 }
 function svgPoint(e) { const svg = $('#map'), pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const r = pt.matrixTransform(svg.getScreenCTM().inverse()); return [r.x, r.y]; }
@@ -734,9 +917,11 @@ const ACTIONS = {
   'toggle-leg': d => { ui.openLeg = ui.openLeg === d.id ? null : d.id; renderStops(); },
   'nights': d => { const s = byId(d.id); s.nights = clamp(s.nights + +d.d, 1, 30); save(); renderAll(); },
   'move': d => { const a = trip.stops, i = a.findIndex(s => s.id === d.id), j = i + +d.d; [a[i], a[j]] = [a[j], a[i]]; save(); renderAll(); toast('Moved. Check the travel details either side of it.'); },
-  'delete-stop': d => { const s = byId(d.id); if (trip.stops.length < 2 || !confirm(`Remove ${s.name}${s.places.length ? ` and its ${s.places.length} saved places` : ''}?`)) return; trip.stops = trip.stops.filter(x => x !== s); save(); renderAll(); },
-  'clear-leg': d => { const s = byId(d.id); s.leg = leg(s.leg.mode, s.leg.est); save(); renderStops(); renderMap(); },
-  'delete-place': d => { const s = byId(d.id); s.places = s.places.filter(p => p.id !== d.pid); save(); renderAll(); },
+  'delete-stop': d => { const s = byId(d.id); if (trip.stops.length < 2) return; undoable(`Removed ${s.name}${s.places.length ? ` and its ${s.places.length} saved places` : ''}.`, () => { trip.stops = trip.stops.filter(x => x !== s); }); },
+  'clear-leg': d => { const s = byId(d.id); undoable('Booking details cleared.', () => { s.leg = leg(s.leg.mode, s.leg.est); }); },
+  'delete-place': d => { const s = byId(d.id), pl = s.places.find(p => p.id === d.pid); undoable(`Removed ${pl.name}.`, () => { s.places = s.places.filter(p => p !== pl); }); },
+  'delete-item': d => { const s = byId(d.id), sec = s.sections[+d.sec], x = sec.items[+d.item]; undoable(`Removed ${x.text}.`, () => { sec.items = sec.items.filter(y => y !== x); }); },
+  'toggle-places': d => { view.openPlaces[d.id] = !view.openPlaces[d.id]; saveView(); renderStops(); },
   'toggle-edit': () => { ui.edit = !ui.edit; renderHeader(); renderStops(); },
   'add-stop': () => { $('#paste-in').focus(); toast('Paste a Google Maps link for the new stop, then choose “New stop at this place”.'); },
   'step': d => goToDay((ui.showDay ? ui.day : 0) + +d.d),
@@ -745,7 +930,7 @@ const ACTIONS = {
   'fit': () => fitAll(),
   'copy': () => navigator.clipboard.writeText(JSON.stringify(trip, null, 1)).then(() => toast('Plan copied. Paste it into a chat with Claude to have the file updated.'), () => toast('Copy was blocked by the browser.')),
   'import': () => { $('#import-text').value = ''; openDlg('#import-dlg'); },
-  'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = structuredClone(DEFAULT_TRIP); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
+  'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = normalize(structuredClone(DEFAULT_TRIP)); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
   'checks': () => showChecks(),
 };
 document.addEventListener('click', e => {
@@ -780,7 +965,9 @@ document.addEventListener('paste', e => {
   if (t.id === 'paste-in' || (!t.closest?.('input,textarea') && MAPS_RE.test(text))) { e.preventDefault(); t.id === 'paste-in' && (t.value = ''); openPlaceDialog(text); }
 });
 $('#paste-in').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { openPlaceDialog(e.target.value); e.target.value = ''; } });
-$('#place-dlg').addEventListener('close', e => { if (e.target.returnValue === 'add') addPlace(); ui.pending = null; });
+['#pl-name', '#pl-note'].forEach(sel => $(sel).addEventListener('input', () => { if (!$('#pl-cat').dataset.touched) $('#pl-cat').value = classify($('#pl-name').value, $('#pl-note').value); }));
+$('#pl-cat').addEventListener('change', e => e.target.dataset.touched = '1');
+$('#place-dlg').addEventListener('close', e => { if (e.target.returnValue === 'add') addPlace(); });   // no clean-up here: a new paste may already be open
 $('#import-dlg').addEventListener('close', e => {
   if (e.target.returnValue !== 'load') return;
   let t; try { t = normalize(JSON.parse($('#import-text').value)); } catch {}
@@ -814,6 +1001,21 @@ svgEl.addEventListener('pointermove', e => {
 });
 ['pointerup','pointercancel'].forEach(t => svgEl.addEventListener(t, () => { drag = null; svgEl.classList.remove('dragging'); }));
 
+// Adds the Google Maps list to the plan once. Runs after the shared plan has loaded.
+function mergeSeeds() {
+  if (!SEEDS.places.length || trip.imports.includes(SEEDS.id)) return;
+  const have = new Set(trip.stops.flatMap(s => s.places.map(p => p.name.toLowerCase())));
+  let added = 0;
+  for (const {stop: stopId, ...sp} of SEEDS.places) {
+    const s = byId(stopId) || (sp.lat != null ? rankStops(sp.lat, sp.lng)[0].s : null);
+    if (!s || have.has(sp.name.toLowerCase())) continue;
+    s.places.push({id: uid(), note: '', url: '', lat: null, lng: null, ...sp, cat: sp.cat || classify(sp.name, sp.note)});
+    added++;
+  }
+  trip.imports.push(SEEDS.id); save(); renderAll();
+  if (added) toast(`Added ${added} places from your Google Maps list.`);
+}
+
 // ═══ 13. CHECKS — runs on load; open with the "Checks" button ═════════════════
 async function runChecks() {
   const R = [], add = (state, name, detail = '') => R.push({state, name, detail});
@@ -844,10 +1046,15 @@ async function runChecks() {
   } else add('info', 'Booked travel dates match the plan', 'add a start date to check these');
 
   const places = trip.stops.flatMap(s => s.places.map(p => ({s, p})));
-  const far = places.filter(({s, p}) => p.lat != null && km(p.lat, p.lng, s.lat, s.lng) > 250);
+  const far = places.filter(({s, p}) => !p.side && p.lat != null && km(p.lat, p.lng, s.lat, s.lng) > 250);   // side trips are far on purpose
   add(far.length ? 'warn' : 'pass', 'Saved places are filed near their stop',
     far.length ? far.map(({s, p}) => `${p.name} is ${Math.round(km(p.lat, p.lng, s.lat, s.lng))} km from ${s.name}`).join('; ') : `${places.length} saved places`);
 
+  const uncategorised = places.filter(({p}) => !CATS.some(c => c.id === p.cat));
+  add(uncategorised.length ? 'fail' : 'pass', 'Every saved place has a category', uncategorised.map(({p}) => p.name).join(', '));
+  const CAT_SAMPLES = [['Park Hyatt Tokyo','stay'],['Diggers Bar','drink'],['Ichiran Ramen Dotonbori','eat'],['Kinkaku-ji','see'],['Nara Park','nature'],['Churaumi Aquarium','do'],['Kuoe Kyoto','shop'],['% Arabica coffee','cafe']];
+  const miss = CAT_SAMPLES.filter(([n, c]) => classify(n, '') !== c);
+  add(miss.length ? 'fail' : 'pass', 'Places are sorted into categories correctly', miss.length ? miss.map(([n, c]) => `${n}: got ${classify(n, '')}, expected ${c}`).join('; ') : `${CAT_SAMPLES.length} examples tested`);
   const SAMPLES = [
     ['https://www.google.com/maps/place/Osaka+Castle/@34.6873153,135.5258117,17z/data=!3m1!4b1!4m6!3m5!1s0x6000e0cd5a4ed3e5:0x1!8m2!3d34.6873153!4d135.5262013', 'Osaka Castle', 34.6873, 135.5262],
     ['https://www.google.com/maps/search/?api=1&query=35.0394,135.7292', '', 35.0394, 135.7292],
@@ -890,7 +1097,7 @@ window.runChecks = runChecks;
 renderAll();
 ui.view = clampView(viewAround(trip.stops.map(s => project(s.lat, s.lng)), MAP_W*.5)); renderOverlay();
 setStatus(REMOTE ? 'saving' : 'local', REMOTE ? 'Connecting…' : undefined);
-if (REMOTE) initRemote();
+if (REMOTE) initRemote(); else mergeSeeds();
 runChecks().then(R => $('#checks-btn').dataset.state = checksState(R));
 </script>
 </body>
