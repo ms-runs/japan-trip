@@ -150,6 +150,38 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 .things li .x{width:20px;height:20px;font-size:10px;opacity:.55}
 .things li .x:hover{opacity:1}
 
+.tabs{display:flex;gap:2px;background:rgba(255,255,255,.08);border-radius:7px;padding:3px}
+.tabs button{border:0;background:none;color:rgba(246,241,233,.65);border-radius:5px;padding:4px 11px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--paper);color:var(--ink);font-weight:500}
+.tabs small{opacity:.6;margin-left:4px}
+.ideas{display:none;flex:1;min-height:0;overflow-y:auto;padding:18px clamp(12px,3vw,32px) 40px}
+body[data-page=ideas] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}   /* kept laid out so map checks still work */
+body[data-page=ideas] .ideas{display:block}
+.ideas-bar{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;max-width:1200px}
+.ideas-bar input[type=search]{max-width:360px;font-size:13px;padding:7px 10px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1px solid var(--line2);background:#fff;border-radius:99px;padding:3px 11px;font-size:12px;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip-lbl{font-size:11.5px;color:var(--muted);align-self:center;margin-right:2px;min-width:44px}
+.ideas-sum{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+.idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;max-width:1200px}
+.idea{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 14px;display:flex;flex-direction:column;gap:7px}
+.idea.is-hidden{opacity:.5}
+.idea-tags{display:flex;flex-wrap:wrap;gap:4px}
+.idea-tags span{font-size:10.5px;padding:1px 7px;border-radius:4px;background:var(--paper2);color:var(--muted)}
+.idea-tags .where{background:#e3ecf6;color:var(--accent);font-weight:500}
+.idea h3{font:600 15px/1.3 'Shippori Mincho',serif}
+.idea p{font-size:12.5px;color:#403a35;line-height:1.45}
+.idea-items{list-style:none;display:flex;flex-direction:column;gap:4px;border-top:1px dashed var(--line2);padding-top:7px}
+.idea-items li{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.idea-items li > span{flex:1;min-width:0}
+.plus{width:28px;height:28px;flex-shrink:0;border-radius:50%;border:1px solid var(--accent);background:#fff;color:var(--accent);font-size:17px;line-height:1}
+.plus:hover{background:var(--accent);color:#fff}
+.inplan{font-size:11px;color:var(--ok);font-weight:500;white-space:nowrap}
+.idea footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px;font-size:11.5px;color:var(--muted)}
+.idea footer a{color:var(--accent);text-decoration:none}
+.idea footer a:hover{text-decoration:underline}
+.idea footer .hide{margin-left:auto;border:0;background:none;color:var(--muted);font-size:11.5px;text-decoration:underline}
 @media (max-width:860px){
   .app{grid-template-columns:1fr;grid-template-rows:46vh 1fr}
   .map{order:-1}
@@ -166,6 +198,10 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 <body>
 <header>
   <div class="logo">Japan trip<small>日本の旅</small></div>
+  <nav class="tabs" aria-label="Pages">
+    <button data-action="page" data-v="plan" aria-pressed="true">Plan</button>
+    <button data-action="page" data-v="ideas" aria-pressed="false">Instagram ideas<small id="ideas-count"></small></button>
+  </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
   <div class="tools">
@@ -261,6 +297,16 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
     <div id="tip"></div>
   </main>
 </div>
+
+<section class="ideas" id="ideas" aria-label="Ideas from saved Instagram posts">
+  <div class="ideas-bar">
+    <input type="search" id="idea-q" placeholder="Search ideas" aria-label="Search ideas">
+    <div class="chips" id="idea-where"></div>
+    <div class="chips" id="idea-what"></div>
+  </div>
+  <p class="ideas-sum" id="ideas-sum"></p>
+  <div class="idea-grid" id="idea-grid"></div>
+</section>
 
 <dialog id="place-dlg">
   <form method="dialog">
@@ -489,6 +535,58 @@ const SEEDS = {id: 'gmaps-list-japan', places: [
   {"name":"Round1 Stadium Sennichimae","note":"","cat":"do","lat":34.66753,"lng":135.50278,"url":"https://www.google.com/maps/place/Round1+Stadium+Sennichimae/data=!4m2!3m1!1s0x6000e714b7d34da9:0x335cb3d1725ac06c","stop":"osaka","approx":true}
 ]};
 
+// ═══ 4c. INSTAGRAM IDEAS ═══════════════════════════════════════════════════════
+// From saved Instagram posts about Japan (data export). Summaries are written for this page;
+// the full post is one click away. Each idea: where, what (tags), and items that can be added.
+const WHERE_STOP = {'Tokyo':'tokyo2', 'Kyoto':'kyoto', 'Osaka':'osaka', 'Kyoto–Osaka':'kyoto', 'Hokkaido':'sapporo', 'Mt Fuji':'tokyo2', 'Japanese Alps':'tokyo2', 'Anywhere':'tokyo1'};
+const IDEAS = [
+  {"id":"DXRFtuBEZUa","url":"https://www.instagram.com/reel/DXRFtuBEZUa/","user":"withkj_","date":"May 2026","where":"Tokyo","what":["Food"],"title":"Katsu sando at Tonkatsu Marushichi","summary":"Thick pork-shoulder cutlet sando, plus an egg-cutlet version. The Monzen-nakacho shop queues less than Ginza.","items":[{"name":"Tonkatsu Marushichi, Monzen-nakacho","cat":"eat","note":"Katsu sando ¥1,700, egg cutlet ¥1,300. Open 11–14 and 17–20.","lat":35.6718,"lng":139.7962,"approx":true}]},
+  {"id":"DW80rzsyT3t","url":"https://www.instagram.com/reel/DW80rzsyT3t/","user":"asukunavi.tokyo_food","date":"Apr 2026","where":"Tokyo","what":["Bars","Food"],"title":"¥980 all-you-can-drink in Kabukicho","summary":"Two hours of drinks for ¥980, yakitori from ¥150. Open until 5am on Fridays and Saturdays; book on Tabelog.","items":[{"name":"Kinfuku Sakaba Shinjuku","cat":"drink","note":"2 h all-you-can-drink ¥980. 5F Ricam Bldg 3, Kabukicho. Book on Tabelog.","lat":35.6946,"lng":139.7032,"approx":true}]},
+  {"id":"DQmF5BbCUrR","url":"https://www.instagram.com/p/DQmF5BbCUrR/","user":"jpwithallison","date":"Nov 2025","where":"Tokyo","what":["Bars"],"title":"Jazz bar in Kamata, open since 1975","summary":"A small counter bar with over 2,500 jazz records, run by the founder’s successor since 2015.","items":[{"name":"Pithecanthropus Erectus (Chokuritsu Enjin) jazz bar","cat":"drink","note":"Near Kamata Station. Vinyl, counter seats, casual.","lat":35.5623,"lng":139.7162,"approx":true}]},
+  {"id":"DP25W3UgW4N","url":"https://www.instagram.com/p/DP25W3UgW4N/","user":"phatlifeproject","date":"Oct 2025","where":"Tokyo","what":["Bars","Cafés"],"title":"Seven secret bars in Tokyo","summary":"Speakeasies hidden behind lockers, fridges and bookshelves.","items":[{"name":"A10","cat":"drink","match":["a10"]},{"name":"No Room For Squares","cat":"drink","match":["no room for squares"]},{"name":"Open Book","cat":"drink"},{"name":"SG Low","cat":"drink"},{"name":"Janai Hotel Bar","cat":"drink"},{"name":"Wall Aoyama","cat":"drink"},{"name":"Janai Coffee","cat":"cafe"}]},
+  {"id":"CzdQulbMWLx","url":"https://www.instagram.com/p/CzdQulbMWLx/","user":"roadbook","date":"Nov 2023","where":"Tokyo","what":["Bars"],"title":"Guide to Tokyo’s best cocktail bars","summary":"ROADBOOK’s pick of master-mixologist, standing and vinyl listening bars. The list is on their site.","items":[],"cat":"drink"},
+  {"id":"DTAfbV5j1nM","url":"https://www.instagram.com/reel/DTAfbV5j1nM/","user":"thattravelguyjp","date":"Jan 2026","where":"Tokyo","what":["Shopping","Food","Cafés"],"title":"Koenji, a local’s neighbourhood near Shinjuku","summary":"Thrift stores, cafés and small eateries in a walkable area one stop from Shinjuku.","items":[{"name":"Koenji Pal Shopping Street","cat":"shop","note":"Covered street of thrift and vintage shops.","lat":35.7045,"lng":139.6496,"approx":true},{"name":"Tensuke Tempura","cat":"eat","note":"Koenji local favourite.","lat":35.7066,"lng":139.6503,"approx":true},{"name":"Koenji Temple","cat":"see","lat":35.7031,"lng":139.6474,"approx":true},{"name":"INCredible Coffee","cat":"cafe","lat":35.705,"lng":139.649,"approx":true}]},
+  {"id":"DMq_yJJJJ-k","url":"https://www.instagram.com/reel/DMq_yJJJJ-k/","user":"jeffyamazaki","date":"Aug 2025","where":"Tokyo","what":["Shopping","Watches"],"title":"Vintage Seikos at Fire Kids","summary":"Wide range of vintage Seiko, Grand Seiko and King Seiko. Two shops with different stock.","items":[{"name":"Fire Kids, Nakano Broadway","cat":"shop","note":"Vintage Seiko. Inside Nakano Broadway.","lat":35.7093,"lng":139.6657,"approx":true},{"name":"Fire Kids, Ginza","cat":"shop","note":"Vintage Seiko. Different stock from Nakano."}]},
+  {"id":"DFY-fmwy87w","url":"https://www.instagram.com/reel/DFY-fmwy87w/","user":"jeffyamazaki","date":"Feb 2025","where":"Tokyo","what":["Shopping"],"title":"BEAMS JAPAN flagship, Shinjuku","summary":"Seven floors of Japanese-made fashion, homeware and gifts to take home.","items":[{"name":"BEAMS JAPAN Shinjuku","cat":"shop","note":"7-floor flagship, good for gifts.","lat":35.6914,"lng":139.7049,"approx":true}]},
+  {"id":"C7wTv6iy4ZK","url":"https://www.instagram.com/reel/C7wTv6iy4ZK/","user":"itsjeffandmel","date":"Jun 2024","where":"Tokyo","what":["Denim","Experiences"],"title":"Make your own jeans at Betty Smith","summary":"Customise a pair of Japanese selvedge jeans. Bookable online; the post places it in Ebisu.","items":[{"name":"Betty Smith: make your own jeans","cat":"do","note":"Custom-jeans workshop, book ahead (Klook)."}]},
+  {"id":"C1zrzixBKwh","url":"https://www.instagram.com/reel/C1zrzixBKwh/","user":"andrewpolo_","date":"Jan 2024","where":"Tokyo","what":["Shopping"],"title":"North Face Purple Label, designed by nanamica","summary":"Japan-only pieces designed by nanamica.","items":[{"name":"nanamica (North Face Purple Label)","cat":"shop","match":["nanamica"]}]},
+  {"id":"DZhuGvbJh6o","url":"https://www.instagram.com/reel/DZhuGvbJh6o/","user":"darumajeans","date":"Aug 2026","where":"Tokyo","what":["Denim"],"title":"Denim from Daruma Jeans","summary":"A denim shop reel; details are in the video.","items":[],"cat":"shop"},
+  {"id":"DQxniK7AZZv","url":"https://www.instagram.com/reel/DQxniK7AZZv/","user":"cnn","date":"Nov 2025","where":"Tokyo","what":["Food"],"title":"Try taiyaki, the fish-shaped cake","summary":"Street-food pick from CNN’s “Tony and Ten Bucks”.","items":[],"cat":"eat"},
+  {"id":"DPzkZSskiDt","url":"https://www.instagram.com/reel/DPzkZSskiDt/","user":"mr.jodigo","date":"Nov 2025","where":"Tokyo","what":["Homeware","Shopping"],"title":"Top 4 homeware stores in Tokyo and Kyoto","summary":"Ceramics and home-goods shops; the store names are in the video.","items":[],"cat":"shop","also":"https://www.instagram.com/reel/DHldK5jprw2/"},
+  {"id":"DaLXPKigImB","url":"https://www.instagram.com/reel/DaLXPKigImB/","user":"nottravelguide","date":"Aug 2026","where":"Tokyo","what":["Arrival","Trains and passes"],"title":"Tokyo airport arrival checklist","summary":"Visit Japan Web, eSIM, Suica or PASMO, cash, and which train or bus into town from Narita or Haneda.","items":[],"cat":"other"},
+  {"id":"DaBwQ7wvB6w","url":"https://www.instagram.com/reel/DaBwQ7wvB6w/","user":"nomadminh","date":"Aug 2026","where":"Tokyo","what":["Trains and passes"],"title":"Tokyo Subway 24-hour ticket (¥800)","summary":"Only worth it on days with four or more subway rides.","items":[],"cat":"other"},
+  {"id":"DavgoK-z_FM","url":"https://www.instagram.com/reel/DavgoK-z_FM/","user":"japan_of_japan_","date":"Sep 2026","where":"Osaka","what":["Hotels"],"title":"Minn aparthotels in Namba","summary":"Apartment-style stays in Nipponbashi and Namba South.","items":[{"name":"Minn Namba Nipponbashi","cat":"stay","lat":34.6627,"lng":135.5068,"approx":true},{"name":"Minn Namba South","cat":"stay"}]},
+  {"id":"DOa8Y_iAYD3","url":"https://www.instagram.com/reel/DOa8Y_iAYD3/","user":"asukunavi.osaka_food","date":"Oct 2025","where":"Osaka","what":["Food"],"title":"Best gyoza in Osaka, Gyozaclub Rocklee","summary":"Unlimited-gyoza option if you reserve on Tabelog. Three minutes from Tenma Station.","items":[{"name":"Gyozaclub Rocklee","cat":"eat","match":["rocklee"]}]},
+  {"id":"DQMQuGsErh4","url":"https://www.instagram.com/reel/DQMQuGsErh4/","user":"asukunavi.osaka_food","date":"Oct 2025","where":"Osaka","what":["Bars","Food"],"title":"Cheap drinking at Yatai Sakaba Ookini, Umeda","summary":"All-you-can-eat and drink from about ¥2,500; reserve on Tabelog.","items":[{"name":"Yatai Sakaba Ookini, Umeda","cat":"drink","match":["おおきに","ookini"]}]},
+  {"id":"DM-hcnZv11v","url":"https://www.instagram.com/reel/DM-hcnZv11v/","user":"thejapanesefactory","date":"Aug 2025","where":"Osaka","what":["Shopping","Watches"],"title":"Vintage watches at B.B American Village Free Market","summary":"Hidden vintage-watch shop in Amerikamura.","items":[{"name":"B.B American Village Free Market","cat":"shop","match":["free market b.b","フリーマーケットb.b","freemarket b.b"]}]},
+  {"id":"DT-ehc4CerZ","url":"https://www.instagram.com/reel/DT-ehc4CerZ/","user":"sugalenin","date":"Jan 2026","where":"Osaka","what":["Experiences"],"title":"Traditional stencil-dyeing (nassen) workshop","summary":"Make a tote bag and coaster at a 100-year-old dye studio, 30 minutes from Namba. English-guided, a few times a month.","items":[{"name":"Nassen dye-studio workshop","cat":"do","note":"Via @sugalenin. 30 min from Namba, 15 from Tennoji."}]},
+  {"id":"DcRvwvNRWFS","url":"https://www.instagram.com/reel/DcRvwvNRWFS/","user":"2chasingtime","date":"Aug 2026","where":"Kyoto–Osaka","what":["Trains and passes","Experiences"],"title":"Ride the Kyo-train Garaku","summary":"A Hankyu train with tatami, bamboo and rock gardens, between Osaka-umeda and Kyoto-kawaramachi. Normal fare, weekends and holidays only.","items":[{"name":"Kyo-train Garaku (Hankyu)","cat":"do","note":"45 min, standard fare, about 4 runs a day on weekends and holidays."}]},
+  {"id":"DZfY_VjTrzj","url":"https://www.instagram.com/reel/DZfY_VjTrzj/","user":"japanwithmekyoto","date":"Aug 2026","where":"Kyoto–Osaka","what":["Trains and passes"],"title":"Kyoto to Osaka: JR Special Rapid, not the Shinkansen","summary":"28 minutes for ¥580 versus 15 minutes for ¥1,450. Runs every 15 minutes from Kyoto Station.","items":[],"cat":"other"},
+  {"id":"DPwP69ujFUo","url":"https://www.instagram.com/reel/DPwP69ujFUo/","user":"imanujduttaa","date":"Nov 2025","where":"Kyoto","what":["Watches","Experiences"],"title":"Build a custom KUOE watch","summary":"Kyoto micro-brand; get a vintage-style watch custom-made and engraved.","items":[{"name":"KUOE KYOTO","cat":"shop","match":["kuoe"]}]},
+  {"id":"C_XnJoyyrgf","url":"https://www.instagram.com/reel/C_XnJoyyrgf/","user":"yamatrips","date":"Sep 2024","where":"Hokkaido","what":["Food"],"title":"Top 5 Hokkaido food spots","summary":"Two are in Sapporo; the rest are in eastern Hokkaido.","items":[{"name":"Ame ha Yasashiku 2 (ramen), Sapporo","cat":"eat"},{"name":"Soup Curry Beyond Age, Sapporo","cat":"eat"},{"name":"Kaniya, Shiretoko","cat":"eat","side":true},{"name":"Milk and Cheese and Surprise, near Obihiro","cat":"cafe","side":true},{"name":"Tsuki sushi, Abashiri","cat":"eat","side":true}]},
+  {"id":"DVvfiVFEqOq","url":"https://www.instagram.com/reel/DVvfiVFEqOq/","user":"ryosumita","date":"Mar 2026","where":"Mt Fuji","what":["Nature and views","Experiences"],"title":"Mt Fuji over the ocean from Satta Pass","summary":"An uncrowded Fuji viewpoint in Shizuoka; the creator camped there in a rooftop-tent Jimny from Overland Japan.","items":[{"name":"Satta Pass viewpoint, Shizuoka","cat":"see","note":"Fuji-and-sea view without the crowds.","side":true},{"name":"Overland Japan (Jimny with rooftop tent)","cat":"do","note":"Camper rental.","side":true}]},
+  {"id":"DPDzaKGEro2","url":"https://www.instagram.com/p/DPDzaKGEro2/","user":"tourjapanofficial","date":"Oct 2025","where":"Japanese Alps","what":["Nature and views"],"title":"The Japanese Alps","summary":"Snow monkeys, old post towns and the Nakasendo trail.","items":[],"cat":"nature"},
+  {"id":"DVRHUZGiQlM","url":"https://www.instagram.com/reel/DVRHUZGiQlM/","user":"luismangubat_","date":"Mar 2026","where":"Anywhere","what":["Nature and views"],"title":"Favourite photo spots in Japan","summary":"The spots are in the video.","items":[],"cat":"see"},
+  {"id":"DZxL3eHvw5i","url":"https://www.instagram.com/reel/DZxL3eHvw5i/","user":"thattravelguyjp","date":"Aug 2026","where":"Anywhere","what":["Trains and passes"],"title":"Skip the national JR Pass; buy regional passes","summary":"E.g. the Kansai–Hiroshima Area Pass (5 days, ¥17,000) pays for itself with one Osaka or Kyoto ↔ Hiroshima round trip — which your route has.","items":[],"cat":"other"},
+  {"id":"DagwKD3AfWT","url":"https://www.instagram.com/reel/DagwKD3AfWT/","user":"only_injapan","date":"Aug 2026","where":"Anywhere","what":["Trains and passes"],"title":"Use station numbers in Google Maps","summary":"Follow the station numbers, not the names, and watch for express trains that skip stops.","items":[],"cat":"other"},
+  {"id":"DZLxQ0Cg7c4","url":"https://www.instagram.com/reel/DZLxQ0Cg7c4/","user":"only_injapan","date":"Aug 2026","where":"Anywhere","what":["Apps and money","Trains and passes"],"title":"Which Suica card to get","summary":"Welcome Suica (28 days, no refund), Welcome Suica Mobile (180 days), or regular Suica (refundable).","items":[],"cat":"other"},
+  {"id":"DPtWTIYElOg","url":"https://www.instagram.com/p/DPtWTIYElOg/","user":"itsjustinjapan","date":"Oct 2025","where":"Anywhere","what":["Apps and money"],"title":"Add Suica to Apple Wallet","summary":"Wallet, then + and Transit card, then Suica.","items":[],"cat":"other"},
+  {"id":"DbDjthgv8G-","url":"https://www.instagram.com/reel/DbDjthgv8G-/","user":"nihongo_cafeteria","date":"Aug 2026","where":"Anywhere","what":["Apps and money"],"title":"Six apps to download before landing","summary":"GO (taxis), LUUP (scooters), Suica, Tabelog (restaurants), UNIQLO (stock), a language app.","items":[],"cat":"other"},
+  {"id":"DPNAuOWAU56","url":"https://www.instagram.com/reel/DPNAuOWAU56/","user":"phatlifeproject","date":"Dec 2025","where":"Anywhere","what":["Apps and money"],"title":"Seven must-have apps","summary":"Google Maps, Kuli Kuli, IC card balance check, Klook and more.","items":[],"cat":"other"},
+  {"id":"DdoefNQpY5T","url":"https://www.instagram.com/reel/DdoefNQpY5T/","user":"japanquest81","date":"Sep 2026","where":"Anywhere","what":["Apps and money","Shopping"],"title":"The new tax-free shopping process","summary":"Three steps from purchase to refund.","items":[],"cat":"other"},
+  {"id":"DY7C8NTzeho","url":"https://www.instagram.com/reel/DY7C8NTzeho/","user":"daddy.xj","date":"Aug 2026","where":"Anywhere","what":["Shopping"],"title":"Ship your shopping home with Japan Post","summary":"Post purchases home instead of carrying them.","items":[],"cat":"other"},
+  {"id":"Db3pT2jOkoH","url":"https://www.instagram.com/reel/Db3pT2jOkoH/","user":"nottravelguide","date":"Aug 2026","where":"Anywhere","what":["Denim","Shopping"],"title":"Seven Japanese denim brands","summary":"Fullcount, Momotaro, ONI Denim, Japan Blue, Studio D’Artisan, Samurai and Iron Heart.","items":[],"cat":"shop"},
+  {"id":"DSulPZTEis3","url":"https://www.instagram.com/p/DSulPZTEis3/","user":"itsjustinjapan","date":"Dec 2025","where":"Anywhere","what":["Shopping"],"title":"Japanese brands to know before you go","summary":"The brands are in the post.","items":[],"cat":"shop"},
+  {"id":"DY5uzCsA9Ek","url":"https://www.instagram.com/reel/DY5uzCsA9Ek/","user":"only_injapan","date":"May 2026","where":"Anywhere","what":["Arrival"],"title":"Four things to do before you land","summary":"Visit Japan Web QR code, eSIM, forward luggage to the hotel, plan the airport train.","items":[],"cat":"other"},
+  {"id":"DZWG3g1ArrJ","url":"https://www.instagram.com/reel/DZWG3g1ArrJ/","user":"only_injapan","date":"Aug 2026","where":"Anywhere","what":["Food"],"title":"Convenience-store drinks for big nights","summary":"Ukon no Chikara before drinking, Liquid Cabbage after overeating, Chelate Lemon, Oronamin C.","items":[],"cat":"other"},
+  {"id":"DZHt1XlPpJ4","url":"https://www.instagram.com/reel/DZHt1XlPpJ4/","user":"kai_travels.jp","date":"Aug 2026","where":"Anywhere","what":["Phrases and etiquette","Food"],"title":"Convenience-store tips","summary":"Busy-area stores rarely have public toilets; try department-store food halls too.","items":[],"cat":"other"},
+  {"id":"DaiJ6E_iPLg","url":"https://www.instagram.com/reel/DaiJ6E_iPLg/","user":"japaneat.gram","date":"Aug 2026","where":"Anywhere","what":["Food"],"title":"A favourite $2 breakfast","summary":"Details in the video.","items":[],"cat":"eat"},
+  {"id":"DcnTiN8JgL7","url":"https://www.instagram.com/reel/DcnTiN8JgL7/","user":"kannas.slowjapanese","date":"Aug 2026","where":"Anywhere","what":["Phrases and etiquette"],"title":"Say “gochisousama deshita” when leaving","summary":"Thanks staff for the meal.","items":[],"cat":"other"},
+  {"id":"Db8H6Z7B9yJ","url":"https://www.instagram.com/reel/Db8H6Z7B9yJ/","user":"japanese_okaka_","date":"Aug 2026","where":"Anywhere","what":["Phrases and etiquette","Bars"],"title":"Izakaya phrases","summary":"Ordering, recommendations, the bill.","items":[],"cat":"other"},
+  {"id":"DTpq-GlE-qO","url":"https://www.instagram.com/reel/DTpq-GlE-qO/","user":"maya_japantips","date":"Jan 2026","where":"Anywhere","what":["Phrases and etiquette"],"title":"First-timer vs smart-traveller tips","summary":"Travelling smarter, in examples.","items":[],"cat":"other"},
+  {"id":"DJUWmKlp5pl","url":"https://www.instagram.com/p/DJUWmKlp5pl/","user":"laura_studarus","date":"May 2025","where":"Anywhere","what":["Phrases and etiquette"],"title":"Japan tips that get progressively unhinged","summary":"Tips, for fun.","items":[],"cat":"other"}
+];
+
 // ═══ 5. SMALL HELPERS ═════════════════════════════════════════════════════════
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -527,7 +625,7 @@ function prefAt(x, y, tol = 0) {
 // ═══ 6. STATE AND SAVING ══════════════════════════════════════════════════════
 const LS_KEY = 'japanTripPlanV2', LS_OLD = 'japanTripPlanV1', LS_SYNC = `${LS_KEY}:sync:${TRIP_KEY}`;
 const UI_KEY = 'japanTripView';
-const view = {openPlaces: {}, ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
+const view = {openPlaces: {}, page: 'plan', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
 const saveView = () => { try { localStorage.setItem(UI_KEY, JSON.stringify(view)); } catch {} };
 const ui = {openStop:null, openLeg:null, edit:false, day:1, showDay:false, playing:null, view:[0,0,MAP_W,MAP_H], pending:null};
 
@@ -544,7 +642,7 @@ function normalize(t) {
     s.nights = clamp(parseInt(s.nights) || 1, 1, 30);
     if (i === 0) delete s.leg; else s.leg = {...leg('train'), ...(s.leg || {})};
   });
-  t.version = 2; t.startDate ||= ''; t.imports ||= [];
+  t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= [];
   return t;
 }
 let trip = normalize(readJSON(LS_KEY)) || normalize(readJSON(LS_OLD)) || normalize(structuredClone(DEFAULT_TRIP));
@@ -660,29 +758,32 @@ const rankStops = (lat, lng) => trip.stops.map(s => ({s, km: km(lat, lng, s.lat,
 async function openPlaceDialog(text) {
   let p = parseMapsText(text);
   if (!p.url) return toast('That isn’t a link. In Google Maps, tap Share, copy the link and paste it here.');
-  p = await expandShort(p);
+  fillPlaceDialog(await expandShort(p));
+}
+// Opens the add-place dialog for p ({name, url, lat, lng, short?, approx?, side?}); opts can preset stop, cat, note.
+function fillPlaceDialog(p, opts = {}) {
   const has = p.lat != null && inJapan(p.lat, p.lng), ranked = has ? rankStops(p.lat, p.lng) : [];
   ui.pending = {...p, has};
   $('#pl-stop').innerHTML = trip.stops.map((s, i) =>
       `<option value="${s.id}">${i + 1}. ${esc(s.name)}${has ? ` — ${Math.round(km(p.lat, p.lng, s.lat, s.lng))} km` : ''}</option>`).join('')
-    + (has ? '<option value="__new">New stop at this place</option>' : '');
-  $('#pl-stop').value = has ? ranked[0].s.id : (ui.openStop || trip.stops[0].id);
+    + (has && !opts.stop ? '<option value="__new">New stop at this place</option>' : '');
+  $('#pl-stop').value = byId(opts.stop) ? opts.stop : has ? ranked[0].s.id : (ui.openStop || trip.stops[0].id);
   $('#pl-name').value = p.name;
-  $('#pl-note').value = '';
+  $('#pl-note').value = opts.note || '';
   $('#pl-cat').innerHTML = CATS.map(c => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join('');
-  $('#pl-cat').value = classify(p.name, ''); $('#pl-cat').dataset.touched = '';
-  $('#place-info').textContent =
-      has && ranked[0].km > 150 ? `Location found, ${Math.round(ranked[0].km)} km from your nearest stop. Pick a stop, or make it a new one.`
+  $('#pl-cat').value = opts.cat || classify(p.name, ''); $('#pl-cat').dataset.touched = opts.cat ? '1' : '';
+  $('#place-info').textContent = opts.info ||
+    ( has && ranked[0].km > 150 ? `Location found, ${Math.round(ranked[0].km)} km from your nearest stop. Pick a stop, or make it a new one.`
     : has ? `Location found. Filed under your nearest stop, ${ranked[0].s.name} — change it if needed.`
     : p.short ? 'Short share links hide the location. Open the link, copy the full address from the browser bar and paste that — or just pick a stop below.'
     : p.lat != null ? 'That location is outside Japan. Pick a stop to file it under.'
-    : 'No location in this link. Pick a stop to file it under.';
+    : 'No location in this link. Pick a stop to file it under.');
   openDlg('#place-dlg');
 }
 function addPlace() {
   const p = ui.pending; if (!p) return;
   const place = {id: uid(), name: $('#pl-name').value.trim() || 'Unnamed place', note: $('#pl-note').value.trim(), cat: $('#pl-cat').value,
-    url: p.url, lat: p.has ? p.lat : null, lng: p.has ? p.lng : null};
+    url: p.url, lat: p.has ? p.lat : null, lng: p.has ? p.lng : null, ...(p.approx ? {approx: true} : {}), ...(p.side ? {side: true} : {})};
   let target = $('#pl-stop').value;
   if (target === '__new') {
     const hit = prefAt(...project(place.lat, place.lng), 6);
@@ -782,6 +883,55 @@ function placesHTML(s, i) {
     </li>`; }).join('')}</ul>`).join('');
 }
 function renderStops() { $('#stops').innerHTML = trip.stops.map((s, i) => (i ? legHTML(s, i) : '') + stopHTML(s, i)).join(''); }
+
+// ═══ 9b. INSTAGRAM IDEAS PAGE ═════════════════════════════════════════════════
+const normName = t => String(t || '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '');
+const ideaItems = d => d.items.length ? d.items : [{name: d.title, cat: d.cat || 'other', note: d.summary}];
+function inPlan(d, it) {
+  const n = normName(it.name), m = (it.match || []).map(normName);
+  return trip.stops.some(s => s.places.some(p => {
+    const pn = normName(p.name);
+    return pn === n || (p.url === d.url && normName(p.name) === n) || m.some(x => x && pn.includes(x));
+  }));
+}
+function renderIdeas() {
+  const hidden = new Set(trip.hiddenIdeas);
+  if (view.ideaWhat === '__hidden' && !hidden.size) view.ideaWhat = '';   // nothing left to show under Hidden
+  const showHidden = view.ideaWhat === '__hidden';
+  $('#ideas-count').textContent = ` ${IDEAS.filter(d => !hidden.has(d.id)).length}`;
+  if (view.page !== 'ideas') return;
+  const wheres = [...new Set(IDEAS.map(d => d.where))], whats = [...new Set(IDEAS.flatMap(d => d.what))].sort();
+  const chip = (group, v, label, on) => `<button class="chip" data-action="idea-filter" data-g="${group}" data-v="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
+  $('#idea-where').innerHTML = '<span class="chip-lbl">Where</span>' + chip('where', '', 'All', !view.ideaWhere) + wheres.map(w => chip('where', w, w === 'Anywhere' ? 'Anywhere in Japan' : w, view.ideaWhere === w)).join('');
+  $('#idea-what').innerHTML = '<span class="chip-lbl">What</span>' + chip('what', '', 'All', !view.ideaWhat) + whats.map(w => chip('what', w, w, view.ideaWhat === w)).join('')
+    + (hidden.size ? chip('what', '__hidden', `Hidden (${hidden.size})`, showHidden) : '');
+  const q = normName($('#idea-q').value);
+  const list = IDEAS.filter(d => (showHidden ? hidden.has(d.id) : !hidden.has(d.id))
+    && (!view.ideaWhere || d.where === view.ideaWhere)
+    && (!view.ideaWhat || showHidden || d.what.includes(view.ideaWhat))
+    && (!q || normName([d.title, d.summary, d.user, d.where, ...d.what, ...d.items.map(i => i.name)].join(' ')).includes(q)));
+  const added = list.reduce((n, d) => n + ideaItems(d).filter(it => inPlan(d, it)).length, 0);
+  $('#ideas-sum').textContent = list.length
+    ? `${list.length} idea${list.length > 1 ? 's' : ''} from saved Instagram posts${added ? `, ${added} already in the plan` : ''}. Press + to add one to a stop.`
+    : showHidden ? 'No hidden ideas.' : 'No ideas match. Try another filter.';
+  $('#idea-grid').innerHTML = list.map(d => `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">
+      <div class="idea-tags"><span class="where">📍 ${esc(d.where === 'Anywhere' ? 'Anywhere in Japan' : d.where)}</span>${d.what.map(w => `<span>${esc(w)}</span>`).join('')}</div>
+      <h3>${esc(d.title)}</h3>
+      <p>${esc(d.summary)}</p>
+      <ul class="idea-items">${ideaItems(d).map((it, j) => `<li>
+        <span>${catOf(it.cat).icon} ${esc(it.name)}${it.side ? ' <em class="side">Side trip</em>' : ''}</span>
+        ${inPlan(d, it) ? '<span class="inplan">In plan ✓</span>'
+          : `<button class="plus" data-action="idea-add" data-id="${d.id}" data-j="${j}" aria-label="Add ${esc(it.name)} to the plan">+</button>`}</li>`).join('')}</ul>
+      <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">@${esc(d.user)} on Instagram</a>${d.also ? `<a href="${esc(safeUrl(d.also))}" target="_blank" rel="noopener">repost</a>` : ''}<span>${esc(d.date)}</span>
+        <button class="hide" data-action="idea-hide" data-id="${d.id}">${hidden.has(d.id) ? 'Unhide' : 'Hide'}</button></footer>
+    </article>`).join('');
+}
+function setPage(page) {
+  view.page = page; saveView();
+  document.body.dataset.page = page;
+  $$('.tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === page));
+  if (page === 'plan') renderMap(); else renderIdeas();
+}
 
 // ═══ 10. MAP ══════════════════════════════════════════════════════════════════
 function renderLand() {
@@ -909,7 +1059,7 @@ function togglePlay() {
 }
 
 // ═══ 12. ACTIONS AND EVENTS ═══════════════════════════════════════════════════
-function renderAll() { renderHeader(); renderStops(); renderMap(); renderPlayback(); }
+function renderAll() { renderHeader(); renderStops(); renderMap(); renderPlayback(); renderIdeas(); }
 const byId = id => trip.stops.find(s => s.id === id);
 
 const ACTIONS = {
@@ -932,6 +1082,18 @@ const ACTIONS = {
   'import': () => { $('#import-text').value = ''; openDlg('#import-dlg'); },
   'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = normalize(structuredClone(DEFAULT_TRIP)); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
   'checks': () => showChecks(),
+  'page': d => setPage(d.v),
+  'idea-filter': d => { view[d.g === 'where' ? 'ideaWhere' : 'ideaWhat'] = d.v; saveView(); renderIdeas(); },
+  'idea-add': d => {
+    const idea = IDEAS.find(x => x.id === d.id), it = ideaItems(idea)[+d.j];
+    fillPlaceDialog({name: it.name, url: idea.url, lat: it.lat ?? null, lng: it.lng ?? null, approx: it.approx, side: it.side},
+      {stop: WHERE_STOP[it.where || idea.where], cat: it.cat, note: `${it.note || idea.summary} (via @${idea.user})`,
+       info: `From @${idea.user}. Filed under ${byId(WHERE_STOP[it.where || idea.where])?.name || 'your first stop'} — change the stop if needed.`});
+  },
+  'idea-hide': d => {
+    const idea = IDEAS.find(x => x.id === d.id), was = trip.hiddenIdeas.includes(d.id);
+    undoable(was ? `Showing ${idea.title} again.` : `Hid ${idea.title}.`, () => { trip.hiddenIdeas = was ? trip.hiddenIdeas.filter(x => x !== d.id) : [...trip.hiddenIdeas, d.id]; });
+  },
 };
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
@@ -975,6 +1137,7 @@ $('#import-dlg').addEventListener('close', e => {
   trip = t; ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); toast('Plan loaded.');
 });
 $('#day').addEventListener('input', e => goToDay(+e.target.value));
+$('#idea-q').addEventListener('input', renderIdeas);
 
 // Map: hover, click, wheel zoom, drag to pan
 const svgEl = $('#map'), tipEl = $('#tip');
@@ -1055,6 +1218,10 @@ async function runChecks() {
   const CAT_SAMPLES = [['Park Hyatt Tokyo','stay'],['Diggers Bar','drink'],['Ichiran Ramen Dotonbori','eat'],['Kinkaku-ji','see'],['Nara Park','nature'],['Churaumi Aquarium','do'],['Kuoe Kyoto','shop'],['% Arabica coffee','cafe']];
   const miss = CAT_SAMPLES.filter(([n, c]) => classify(n, '') !== c);
   add(miss.length ? 'fail' : 'pass', 'Places are sorted into categories correctly', miss.length ? miss.map(([n, c]) => `${n}: got ${classify(n, '')}, expected ${c}`).join('; ') : `${CAT_SAMPLES.length} examples tested`);
+  const badIdeas = IDEAS.filter(d => !WHERE_STOP[d.where] || ideaItems(d).some(it => !CATS.some(c => c.id === it.cat)));
+  add(badIdeas.length ? 'fail' : 'pass', 'Instagram ideas are tagged and filed', badIdeas.length ? badIdeas.map(d => d.title).join(', ') : `${IDEAS.length} ideas`);
+  const missing = [...new Set(Object.values(WHERE_STOP))].filter(id => !byId(id));
+  add(missing.length ? 'warn' : 'pass', 'Instagram ideas have a stop to go to', missing.length ? `no stop called ${missing.join(', ')} — those ideas will default to the first stop` : '');
   const SAMPLES = [
     ['https://www.google.com/maps/place/Osaka+Castle/@34.6873153,135.5258117,17z/data=!3m1!4b1!4m6!3m5!1s0x6000e0cd5a4ed3e5:0x1!8m2!3d34.6873153!4d135.5262013', 'Osaka Castle', 34.6873, 135.5262],
     ['https://www.google.com/maps/search/?api=1&query=35.0394,135.7292', '', 35.0394, 135.7292],
@@ -1098,6 +1265,7 @@ renderAll();
 ui.view = clampView(viewAround(trip.stops.map(s => project(s.lat, s.lng)), MAP_W*.5)); renderOverlay();
 setStatus(REMOTE ? 'saving' : 'local', REMOTE ? 'Connecting…' : undefined);
 if (REMOTE) initRemote(); else mergeSeeds();
+setPage(view.page === 'ideas' ? 'ideas' : 'plan');
 runChecks().then(R => $('#checks-btn').dataset.state = checksState(R));
 </script>
 </body>
