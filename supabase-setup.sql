@@ -39,3 +39,43 @@ end $$;
 
 revoke all on function get_trip(text), save_trip(text, jsonb, timestamptz) from public;
 grant execute on function get_trip(text), save_trip(text, jsonb, timestamptz) to anon, authenticated;
+
+-- ── Booking PDFs (added later; safe to run this whole file again) ────────────
+-- Files live beside the plan and need the same trip code. A file can only be
+-- added to a plan that already exists, and each is capped at about 5 MB.
+create table if not exists trip_files (
+  key        text not null references trips (key) on delete cascade,
+  id         text not null check (length(id) between 4 and 40),
+  name       text,
+  type       text,
+  data       text not null check (length(data) < 7200000),   -- base64, ≈ 5 MB file
+  created_at timestamptz not null default now(),
+  primary key (key, id)
+);
+alter table trip_files enable row level security;
+
+create or replace function save_file(p_key text, p_id text, p_name text, p_type text, p_data text)
+returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from trips where key = p_key) then return false; end if;
+  insert into trip_files (key, id, name, type, data) values (p_key, p_id, p_name, p_type, p_data)
+  on conflict (key, id) do update set name = excluded.name, type = excluded.type, data = excluded.data;
+  return true;
+end $$;
+
+create or replace function get_file(p_key text, p_id text)
+returns table (name text, type text, data text)
+language sql security definer set search_path = public as $$
+  select name, type, data from trip_files where key = p_key and id = p_id;
+$$;
+
+create or replace function delete_file(p_key text, p_id text)
+returns boolean
+language sql security definer set search_path = public as $$
+  with gone as (delete from trip_files where key = p_key and id = p_id returning 1)
+  select exists (select 1 from gone);
+$$;
+
+revoke all on function save_file(text, text, text, text, text), get_file(text, text), delete_file(text, text) from public;
+grant execute on function save_file(text, text, text, text, text), get_file(text, text), delete_file(text, text) to anon, authenticated;
