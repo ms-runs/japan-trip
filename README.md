@@ -77,11 +77,20 @@ Three options, simplest first:
 - **Checks:** the header button runs the built-in checks (map placement, dates vs bookings, saving, sync). It turns amber or red if something needs a look.
 - **Getting Claude to change it:** press **Copy plan** and paste the text into a chat with Claude, then ask for the change. You'll get back an updated `index.html` to upload over the old one. **Load plan** pastes plan text back in.
 
+## Booking PDFs
+
+Upload a booking PDF (or drop several onto the page) and the planner reads it in your browser: provider, booking reference, names, dates and times, flight or train number, price and address. It suggests where it belongs — flights and trains on the matching travel leg (which then shows as booked), hotels and activities on the stop — and shows everything for you to check before saving. Each booking then has **Open PDF**, **Copy ref**, **Open in <provider>** (opens their app on phones where it's installed) and, for stays, **Directions**.
+
+When the plan is shared, PDFs are stored in your Supabase project behind the trip code (up to 5 MB each), so everyone in the group can open them; they're never put in this repository. **After updating to this version, run `supabase-setup.sql` in Supabase once more** — it adds the file storage and is safe to re-run. The **Checks** button tells you if it's missing.
+
+Scanned PDFs with no text layer can still be attached; fill their details in by hand.
+
 ## Running the full test (optional)
 
 ```bash
-pip install playwright && playwright install chromium
-python verify.py
+pip install playwright reportlab && playwright install chromium
+npm pack pdfjs-dist@3.11.174 && tar xzf pdfjs-dist-3.11.174.tgz   # verify.py serves this copy of pdf.js
+PDFJS_DIR=package/build python verify.py
 ```
 
 It drives the page in a headless browser — map placement, pasting links, saving and reloading, editing, playback, upgrading older saved plans, and two people syncing against a stand-in database — and saves three screenshots to review.
