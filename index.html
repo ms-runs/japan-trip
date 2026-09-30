@@ -182,6 +182,23 @@ body[data-page=ideas] .ideas{display:block}
 .idea footer a{color:var(--accent);text-decoration:none}
 .idea footer a:hover{text-decoration:underline}
 .idea footer .hide{margin-left:auto;border:0;background:none;color:var(--muted);font-size:11.5px;text-decoration:underline}
+.bookings{display:flex;flex-direction:column;gap:7px;margin:10px 0 4px}
+.bk{background:#fff;border:1px solid var(--line);border-left:3px solid var(--c, var(--accent));border-radius:7px;padding:8px 10px;font-size:12.5px}
+.bk-top{display:flex;align-items:center;gap:7px}
+.bk-top b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-meta{color:#4b453f;margin-top:4px;line-height:1.5}
+.bk-meta code{font:600 12px ui-monospace,monospace;background:var(--paper2);padding:1px 5px;border-radius:4px;letter-spacing:.03em}
+.bk-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.bk-actions a,.bk-actions button{font-size:11.5px;padding:3px 9px;border:1px solid var(--line2);border-radius:5px;background:var(--paper);color:var(--ink);text-decoration:none}
+.bk-actions a:hover,.bk-actions button:hover{background:var(--paper2)}
+.leg .bookings{grid-column:1/-1;margin:0}
+.clip{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.bar.upload label.btn{border:1px solid var(--line2);background:#fff;border-radius:6px;padding:6px 10px;font-size:12.5px;color:var(--ink);cursor:pointer;font-weight:500}
+.bar.upload label.btn:hover{border-color:var(--accent);color:var(--accent)}
+#drop-hint{position:fixed;inset:0;z-index:40;background:rgba(27,72,120,.18);border:3px dashed var(--accent);display:none;align-items:center;justify-content:center;font:600 20px 'DM Sans',sans-serif;color:var(--accent);pointer-events:none}
+#drop-hint.on{display:flex}
+#bk-dlg .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#bk-dlg .grid .full{grid-column:1/-1}
 @media (max-width:860px){
   .app{grid-template-columns:1fr;grid-template-rows:46vh 1fr}
   .map{order:-1}
@@ -219,6 +236,12 @@ body[data-page=ideas] .ideas{display:block}
       <span>Start date</span>
       <input type="date" id="start-date" data-bind="startDate" data-rerender style="flex:0 1 auto">
       <span id="end-date"></span>
+    </div>
+    <div class="bar upload">
+      <span>Add a booking</span>
+      <label class="btn" for="bk-file">Upload PDF</label>
+      <input type="file" id="bk-file" accept="application/pdf,.pdf" multiple hidden>
+      <span>or drop PDFs on the page</span>
     </div>
     <div class="bar paste">
       <label for="paste-in">Add a place</label>
@@ -307,6 +330,28 @@ body[data-page=ideas] .ideas{display:block}
   <p class="ideas-sum" id="ideas-sum"></p>
   <div class="idea-grid" id="idea-grid"></div>
 </section>
+
+<dialog id="bk-dlg">
+  <form method="dialog">
+    <h3>Add a booking</h3>
+    <p id="bk-info" class="muted"></p>
+    <div class="grid">
+      <label class="full">Title<input id="bk-title" required></label>
+      <label>Type<select id="bk-kind"></select></label>
+      <label>Provider<input id="bk-provider" placeholder="Booking.com, ANA…"></label>
+      <label>Booking reference<input id="bk-ref"></label>
+      <label>Names<input id="bk-names" placeholder="Who it's for"></label>
+      <label>Dates<input id="bk-dates" placeholder="2026-11-15"></label>
+      <label>Times<input id="bk-times" placeholder="07:30 → 09:05"></label>
+      <label>Flight or train no.<input id="bk-number"></label>
+      <label>Price<input id="bk-price"></label>
+      <label class="full">Address<input id="bk-address"></label>
+      <label class="full">Attach to<select id="bk-attach"></select></label>
+    </div>
+    <div class="actions"><button value="cancel" formnovalidate>Cancel</button><button value="save" class="primary">Save booking</button></div>
+  </form>
+</dialog>
+<div id="drop-hint">Drop booking PDFs to add them</div>
 
 <dialog id="place-dlg">
   <form method="dialog">
@@ -642,7 +687,9 @@ function normalize(t) {
     s.nights = clamp(parseInt(s.nights) || 1, 1, 30);
     if (i === 0) delete s.leg; else s.leg = {...leg('train'), ...(s.leg || {})};
   });
-  t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= [];
+  t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= []; t.bookings ||= [];
+  const targets = new Set(t.stops.flatMap((s, i) => [`stop:${s.id}`, ...(i ? [`leg:${s.id}`] : [])]));
+  t.bookings.forEach(b => { if (!targets.has(b.attach)) b.attach = `stop:${t.stops[0].id}`; });   // its stop was removed
   return t;
 }
 let trip = normalize(readJSON(LS_KEY)) || normalize(readJSON(LS_OLD)) || normalize(structuredClone(DEFAULT_TRIP));
@@ -814,6 +861,7 @@ function legHTML(s, i) {
     <button class="leg-head" data-action="toggle-leg" data-id="${s.id}" aria-expanded="${open}">
       <span class="leg-icon">${m.icon}</span>
       <span class="leg-text"><b>${esc(trip.stops[i - 1].name)} to ${esc(s.name)}</b><span>${esc(summary)}</span></span>
+      ${trip.bookings.some(b => b.attach === `leg:${s.id}`) ? `<span class="clip" title="Booking PDFs">📎 ${trip.bookings.filter(b => b.attach === `leg:${s.id}`).length}</span>` : ''}
       <span class="badge${booked ? ' on' : ''}">${booked ? 'Booked' : 'Not booked'}</span>
     </button>
     ${open ? `<div class="leg-form">
@@ -824,6 +872,7 @@ function legHTML(s, i) {
       ${f('arrDate', 'Arrives', 'date')}${f('arrTime', 'Arrival time', 'time')}
       ${f('confirmation', 'Booking reference')}
       <label class="full">Notes<input data-bind="${p}notes" value="${esc(L.notes)}" placeholder="Transfers, seats, luggage…"></label>
+      ${bookingsHTML(`leg:${s.id}`, m.color)}
       <button class="link" data-action="clear-leg" data-id="${s.id}">Clear booking details</button>
     </div>` : ''}
   </div>`;
@@ -832,7 +881,7 @@ function stopHTML(s, i) {
   const open = ui.openStop === s.id, start = dateAt(nightsBefore(i)), end = dateAt(nightsBefore(i) + s.nights), p = `stops.${i}.`;
   const title = ui.edit
     ? `<input class="name-in" data-bind="${p}name" data-rerender value="${esc(s.name)}" aria-label="Stop name"><input class="region-in" data-bind="${p}region" value="${esc(s.region)}" aria-label="Region">`
-    : `<span class="s-name">${esc(s.name)}</span><span class="s-sub">${esc(s.region)}${start ? `<em>${fmt(start)} – ${fmt(end)}</em>` : ''}${s.places.length ? `<em>${s.places.length} saved</em>` : ''}</span>`;
+    : `<span class="s-name">${esc(s.name)}</span><span class="s-sub">${esc(s.region)}${start ? `<em>${fmt(start)} – ${fmt(end)}</em>` : ''}${s.places.length ? `<em>${s.places.length} saved</em>` : ''}${trip.bookings.some(b => b.attach === `stop:${s.id}`) ? `<em>📎 ${trip.bookings.filter(b => b.attach === `stop:${s.id}`).length}</em>` : ''}</span>`;
   const editCtl = ui.edit ? `<span class="edit-ctl">
       <button data-action="move" data-id="${s.id}" data-d="-1" aria-label="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
       <button data-action="move" data-id="${s.id}" data-d="1" aria-label="Move down"${i === trip.stops.length - 1 ? ' disabled' : ''}>▼</button>
@@ -856,7 +905,7 @@ function bodyHTML(s, i) {
   const sections = s.sections.map((sec, k) => `<h4>${esc(sec.label)}</h4><ul class="things">${sec.items.map((x, m) =>
       `<li class="${x.hl ? 'hl' : ''}"><span>${esc(x.text)}</span>${(x.tags || []).map(t => `<i class="tag" style="${tagStyle(t)}">${esc(t)}</i>`).join('')}`
       + `<button class="x" data-action="delete-item" data-id="${s.id}" data-sec="${k}" data-item="${m}" aria-label="Remove ${esc(x.text)}">✕</button></li>`).join('')}</ul>`).join('');
-  return sections + placesHTML(s, i) + (s.tip ? `<p class="tip">${esc(s.tip)}</p>` : '')
+  return bookingsHTML(`stop:${s.id}`, s.color) + sections + placesHTML(s, i) + (s.tip ? `<p class="tip">${esc(s.tip)}</p>` : '')
     + `<label class="notes">Notes<textarea data-bind="${p}notes" rows="2" placeholder="Hotel, reminders, ideas…">${esc(s.notes)}</textarea></label>`;
 }
 function placesHTML(s, i) {
@@ -883,6 +932,230 @@ function placesHTML(s, i) {
     </li>`; }).join('')}</ul>`).join('');
 }
 function renderStops() { $('#stops').innerHTML = trip.stops.map((s, i) => (i ? legHTML(s, i) : '') + stopHTML(s, i)).join(''); }
+
+// ═══ 9a. BOOKINGS (PDF upload) ════════════════════════════════════════════════
+// PDFs are read in the browser with pdf.js. Files are stored beside the plan: in this
+// browser (IndexedDB) when not shared, or in Supabase behind the trip code when shared.
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const BK_KINDS = {stay:{icon:'🏨', label:'Hotel or stay'}, flight:{icon:'✈', label:'Flight'}, train:{icon:'🚅', label:'Train'}, activity:{icon:'🎟', label:'Activity or ticket'}, other:{icon:'📄', label:'Other'}};
+// Known providers: how to spot them, and a web page that opens their app on phones where it's installed.
+const PROVIDERS = [
+  {re:/booking\.com/i, label:'Booking.com', kind:'stay', url:'https://secure.booking.com/myreservations.html'},
+  {re:/airbnb/i, label:'Airbnb', kind:'stay', url:'https://www.airbnb.com/trips'},
+  {re:/agoda/i, label:'Agoda', kind:'stay', url:'https://www.agoda.com/account/bookings.html'},
+  {re:/expedia/i, label:'Expedia', kind:'stay', url:'https://www.expedia.com/trips'},
+  {re:/hotels\.com/i, label:'Hotels.com', kind:'stay', url:'https://www.hotels.com/trips'},
+  {re:/trip\.com/i, label:'Trip.com', kind:null, url:'https://www.trip.com/order/all'},
+  {re:/klook/i, label:'Klook', kind:'activity', url:'https://www.klook.com/'},
+  {re:/\bANA\b|all nippon airways/i, label:'ANA', kind:'flight', url:'https://www.ana.co.jp/en/'},
+  {re:/\bJAL\b|japan airlines/i, label:'JAL', kind:'flight', url:'https://www.jal.co.jp/'},
+  {re:/peach aviation|flypeach/i, label:'Peach', kind:'flight', url:'https://www.flypeach.com/'},
+  {re:/jetstar/i, label:'Jetstar', kind:'flight', url:'https://www.jetstar.com/'},
+  {re:/skymark/i, label:'Skymark', kind:'flight', url:'https://www.skymark.co.jp/en/'},
+  {re:/qantas/i, label:'Qantas', kind:'flight', url:'https://www.qantas.com/'},
+  {re:/smart ?ex|tokaido shinkansen|\bJR (?:central|west|east|kyushu)\b|shinkansen/i, label:'JR', kind:'train', url:'https://smart-ex.jp/en/'},
+];
+const AIRPORTS = {HND:'tokyo', NRT:'tokyo', CTS:'sapporo', OKD:'sapporo', FUK:'fukuoka', NGS:'nagasaki', HIJ:'hiroshima', KIX:'osaka', ITM:'osaka', UKB:'kobe', OKA:'okinawa', NGO:'nagoya'};
+const CARRIERS = 'NH|JL|MM|GK|BC|JQ|QF|NZ|CX|SQ|UA|AA|DL|BA|EK|JX|7G|IJ|6J|HD|NU|VA|TR|KE|OZ';
+const MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise((ok, fail) => {
+    const sc = document.createElement('script'); sc.src = PDFJS;
+    sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS.replace('pdf.min.js', 'pdf.worker.min.js'); ok(pdfjsLib); };
+    sc.onerror = () => fail(new Error('Couldn’t load the PDF reader — check your connection.'));
+    document.head.appendChild(sc);
+  });
+}
+// Text of the first pages, rebuilt into lines by vertical position.
+async function pdfText(buf) {
+  const doc = await (await loadPdfJs()).getDocument({data: buf}).promise, lines = [];
+  for (let n = 1; n <= Math.min(doc.numPages, 6); n++) {
+    const items = (await (await doc.getPage(n)).getTextContent()).items.filter(x => x.str.trim());
+    let y = null, line = [];
+    for (const x of items) {
+      const iy = Math.round(x.transform[5]);
+      if (y !== null && Math.abs(iy - y) > 3) { lines.push(line.join(' ')); line = []; }
+      line.push(x.str); y = iy;
+    }
+    if (line.length) lines.push(line.join(' '));
+  }
+  return lines.map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
+}
+function isoDates(text) {
+  const out = [], push = (y, m, d) => { if (y > 2000 && m >= 1 && m <= 12 && d >= 1 && d <= 31) out.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`); };
+  // month names are spelled out so that e.g. "number 2468 Date 2026/11/19" can't be misread as a day and month
+  const re = new RegExp(String.raw`(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})|(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日|\b(\d{1,2})(?:st|nd|rd|th)?\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?,?\s+(\d{4})|\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})|\b(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{4}|\d{2})\b`, 'gi');
+  for (const m of text.matchAll(re)) {
+    if (m[1]) push(+m[1], +m[2], +m[3]);
+    else if (m[4]) push(+m[4], +m[5], +m[6]);
+    else if (m[7]) { const mo = MONTHS[m[8].slice(0, 3).toLowerCase()]; if (mo) push(+m[9], mo, +m[7]); }
+    else if (m[10]) { const mo = MONTHS[m[10].slice(0, 3).toLowerCase()]; if (mo) push(+m[12], mo, +m[11]); }
+    else if (m[13]) push(m[15].length === 2 ? 2000 + +m[15] : +m[15], MONTHS[m[14].toLowerCase()], +m[13]);   // airline style: 15NOV26
+  }
+  return out;
+}
+// Pulls the useful facts out of a booking's text. Every field is a best guess shown for checking.
+function extractBooking(text, fileName = '') {
+  const t = text, one = re => (t.match(re) || [])[1]?.trim() || '';
+  const prov = PROVIDERS.find(p => p.re.test(t)) || null;
+  const ref = one(/(?:booking reference|booking ref\.?|reservation (?:number|code|no\.?)|confirmation (?:number|code|no\.?)|booking (?:number|id|no\.?|code)|order (?:number|id|no\.?)|PNR|record locator|itinerary (?:number|no\.?)|予約番号|確認番号)\s*[:#.]?\s*([A-Z0-9][A-Z0-9.\-]{3,24})/i);
+  const flights = [...new Set([...t.matchAll(new RegExp(`\\b(${CARRIERS})\\s?(\\d{1,4})\\b`, 'g'))].map(m => `${m[1]} ${m[2]}`))];
+  const trains = [...new Set([...t.matchAll(/\b(Nozomi|Hikari|Kodama|Mizuho|Sakura|Tsubame|Hayabusa|Komachi|Kagayaki|Hakutaka)\s*(?:No\.?\s*)?(\d{1,4})\b/gi)].map(m => `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()} ${m[2]}`))];
+  const airports = [...new Set([...t.matchAll(/\(([A-Z]{3})\)|\b([A-Z]{3})\s*(?:→|->|–|—|to)\s*([A-Z]{3})\b/g)].flatMap(m => [m[1], m[2], m[3]]).filter(c => c && AIRPORTS[c]))];
+  const times = [...t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g)].map(m => `${m[1].padStart(2, '0')}:${m[2]}`);
+  const labelled = label => { const i = t.search(new RegExp(label, 'i')); return i < 0 ? '' : isoDates(t.slice(i, i + 120))[0] || ''; };
+  const checkIn = labelled('check-?in'), checkOut = labelled('check-?out'), all = isoDates(t);
+  // a stay's own dates beat any others in the text (cancellation deadlines, booking date…)
+  const dates = checkIn ? [...new Set([checkIn, checkOut].filter(Boolean))].sort() : [...new Set(all)].sort();
+  let names = one(/(?:passenger(?: name)?s?|guest(?: name)?s?|lead (?:guest|traveller|traveler)|traveller(?: name)?|traveler(?: name)?|name of guest|customer name|booked by|participant(?: name)?s?)\s*[:\n]\s*([A-Za-z][A-Za-z'\-\/]+(?:[ \/][A-Za-z][A-Za-z'\-]+){0,3})/i);
+  names = names.split(' ').filter((w, i, a) => !a.slice(0, i + 1).some(x => /^(rooms?|class|status|ticket|seat|date|booking|check|total|adults?|guests?|number|pin|email|phone|nights?|flight|car)$/i.test(x))).join(' ');   // stop at the next label
+  if (!names) names = one(/\b([A-Z]{2,}\/[A-Z]{2,}(?:\s(?:MR|MRS|MS|MISS|DR))?)\b/);
+  const price = one(/(?:total(?: price| amount| paid| cost)?|amount paid|grand total|price)\s*[:\n]?\s*((?:¥|JPY|US\$|A\$|AU\$|\$|€|£|AUD|USD)\s?[\d,]+(?:\.\d{2})?|[\d,]+(?:\.\d{2})?\s?(?:JPY|円|yen|AUD|USD))/i);
+  const address = one(/(?:address|住所)\s*[:\n]\s*([^\n]{8,120})/i);
+  const hotel = one(/(?:property|hotel|accommodation|where you(?:'|’)re staying)\s*(?:name)?\s*[:\n]\s*([^\n]{3,80})/i)
+    || (t.split('\n').find(l => /\b(hotel|inn|ryokan|hostel|resort|apartment|suites?|stay)\b/i.test(l) && l.length < 70 && !/check|policy|address|booking|confirm/i.test(l)) || '');
+  const activity = one(/(?:activity|product|ticket|experience|tour|package)\s*(?:name)?\s*[:\n]\s*([^\n]{3,80})/i);
+  const kind = prov?.kind || (flights.length || airports.length >= 2 ? 'flight' : trains.length || /shinkansen|train|platform|car no/i.test(t) ? 'train'
+    : checkIn || /check-?in|nights?\b|room/i.test(t) ? 'stay' : /ticket|admission|tour|activity|voucher|entry/i.test(t) ? 'activity' : 'other');
+  const route = airports.length >= 2 ? `${airports[0]} → ${airports[1]}` : '';
+  const title = kind === 'flight' ? [prov?.label, flights[0], route].filter(Boolean).join(' ')
+    : kind === 'train' ? [trains[0] || 'Train', route].filter(Boolean).join(' ')
+    : kind === 'stay' ? hotel || prov?.label || 'Stay'
+    : activity || fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ') || 'Booking';
+  return {kind, provider: prov?.label || '', providerUrl: prov?.url || '', title: title.trim(), ref, names, dates, times: times.slice(0, 4),
+    number: (kind === 'train' ? trains[0] : flights[0]) || '', airports, price, address: address || '', empty: t.trim().length < 20};
+}
+// Which stop or leg a booking belongs to: airports/cities in the text, then dates, then the open stop.
+const CITY_WORDS = {tokyo:['tokyo','shinjuku','shibuya','ginza','haneda','narita','asakusa'], sapporo:['sapporo','hokkaido','chitose','niseko'], fukuoka:['fukuoka','hakata','nagasaki'],
+  nagasaki:['nagasaki'], hiroshima:['hiroshima','miyajima'], osaka:['osaka','namba','umeda','kobe','kansai'], kobe:['kobe'], kyoto:['kyoto','gion','arashiyama'], nara:['nara'], okinawa:['okinawa','naha']};
+const stopCity = s => Object.keys(CITY_WORDS).filter(c => CITY_WORDS[c].some(w => `${s.name} ${s.region}`.toLowerCase().includes(w)));
+function suggestAttach(b, text) {
+  const lc = text.toLowerCase();
+  if (b.kind === 'flight' || b.kind === 'train') {
+    // origin and destination: airport codes, or else city names in the order they appear (e.g. "Hiroshima … Shin-Osaka")
+    const seq = Object.keys(CITY_WORDS).map(c => [c, Math.min(...CITY_WORDS[c].map(w => { const k = lc.indexOf(w); return k < 0 ? Infinity : k; }))])
+      .filter(([, k]) => k < Infinity).sort((x, y) => x[1] - y[1]).map(([c]) => c);
+    const [a, z] = b.airports.length >= 2 ? b.airports.map(c => AIRPORTS[c]) : seq;
+    const legs = trip.stops.map((s, i) => ({s, i})).slice(1);
+    const hit = (a && z && legs.find(({s, i}) => stopCity(trip.stops[i - 1]).includes(a) && stopCity(s).includes(z)))
+      || (trip.startDate && b.dates[0] && legs.find(({i}) => ymd(dateAt(nightsBefore(i))) === b.dates[0]))
+      || (z && legs.find(({s}) => stopCity(s).includes(z)));
+    if (hit) return `leg:${hit.s.id}`;
+  }
+  if (trip.startDate && b.dates[0]) {
+    const i = trip.stops.findIndex((s, k) => b.dates[0] >= ymd(dateAt(nightsBefore(k))) && b.dates[0] < ymd(dateAt(nightsBefore(k) + s.nights)));
+    if (i >= 0) return `stop:${trip.stops[i].id}`;
+  }
+  const score = s => stopCity(s).reduce((n, c) => n + CITY_WORDS[c].reduce((m, w) => m + (lc.split(w).length - 1), 0), 0);
+  const best = [...trip.stops].sort((x, y) => score(y) - score(x) || y.nights - x.nights)[0];
+  return score(best) ? `stop:${best.id}` : `stop:${ui.openStop || trip.stops[0].id}`;
+}
+
+// File storage
+const idb = () => new Promise((ok, fail) => { const r = indexedDB.open('japanTripFiles', 1); r.onupgradeneeded = () => r.result.createObjectStore('files'); r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error); });
+const idbDo = (mode, fn) => idb().then(db => new Promise((ok, fail) => { const tx = db.transaction('files', mode), req = fn(tx.objectStore('files')); tx.oncomplete = () => ok(req?.result); tx.onerror = () => fail(tx.error); }));
+const toB64 = buf => { let s = '', a = new Uint8Array(buf); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+const FILES = {
+  async put(id, name, buf) {
+    if (!REMOTE) return idbDo('readwrite', st => st.put({name, data: buf}, id));
+    const ok = await rpc('save_file', {p_key: TRIP_KEY, p_id: id, p_name: name, p_type: 'application/pdf', p_data: toB64(buf)});
+    if (ok !== true) throw new Error('The shared plan must be saved before files can be added.');
+  },
+  async get(id) {
+    if (!REMOTE) { const r = await idbDo('readonly', st => st.get(id)); return r ? new Blob([r.data], {type: 'application/pdf'}) : null; }
+    const [r] = await rpc('get_file', {p_key: TRIP_KEY, p_id: id}); return r ? new Blob([fromB64(r.data)], {type: 'application/pdf'}) : null;
+  },
+  async del(id) { if (!REMOTE) return idbDo('readwrite', st => st.delete(id)); await rpc('delete_file', {p_key: TRIP_KEY, p_id: id}); },
+};
+
+// Upload queue → read → review dialog → save
+const MAX_PDF = 5 * 1024 * 1024, bkQueue = [];
+function queuePdfs(list) {
+  const pdfs = [...list].filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
+  if (!pdfs.length) return toast('Only PDF files can be added as bookings.');
+  bkQueue.push(...pdfs); if (!$('#bk-dlg').open && !ui.bkBusy) nextPdf();
+}
+async function nextPdf() {
+  const f = bkQueue.shift(); if (!f) return;
+  if (f.size > MAX_PDF) { toast(`${f.name} is over 5 MB — too big to store.`); return nextPdf(); }
+  ui.bkBusy = true; setStatus('saving', `Reading ${f.name}…`);
+  try {
+    const buf = await f.arrayBuffer(); let text = '';
+    try { text = await pdfText(buf.slice(0)); } catch (e) { console.warn(e); }
+    const b = extractBooking(text, f.name);
+    fillBookingDialog({...b, id: uid(), fileId: uid(), fileName: f.name, size: f.size, attach: suggestAttach(b, text)}, {buf,
+      info: !text ? 'Couldn’t read any text in this PDF (it may be a scan), so fill the details in by hand.' : `Read from ${f.name}. Check the details, then save.`});
+  } catch (e) { toast(`Couldn’t open ${f.name}: ${e.message}`); ui.bkBusy = false; nextPdf(); }
+  setStatus(REMOTE ? (sync.dirty ? 'saving' : 'synced') : 'local');
+}
+function attachOptions(sel) {
+  return trip.stops.map((s, i) => (i ? `<option value="leg:${s.id}"${sel === `leg:${s.id}` ? ' selected' : ''}>${MODES[s.leg.mode]?.icon || '→'} Travel: ${esc(trip.stops[i - 1].name)} to ${esc(s.name)}</option>` : '')
+    + `<option value="stop:${s.id}"${sel === `stop:${s.id}` ? ' selected' : ''}>${i + 1}. ${esc(s.name)}</option>`).join('');
+}
+function fillBookingDialog(b, opts = {}) {
+  ui.bkPending = {b, buf: opts.buf || null};
+  $('#bk-kind').innerHTML = Object.entries(BK_KINDS).map(([k, v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('');
+  $('#bk-attach').innerHTML = attachOptions(b.attach);
+  const set = {title: b.title, kind: b.kind, provider: b.provider, ref: b.ref, names: b.names, dates: (b.dates || []).join(', '), times: (b.times || []).join(' → '), number: b.number, price: b.price, address: b.address};
+  Object.entries(set).forEach(([k, v]) => $(`#bk-${k}`).value = v || '');
+  $('#bk-info').textContent = opts.info || 'Edit the booking details.';
+  openDlg('#bk-dlg');
+}
+async function saveBooking() {
+  const {b, buf} = ui.bkPending || {}; if (!b) return;
+  const v = k => $(`#bk-${k}`).value.trim();
+  const rec = {...b, title: v('title') || 'Booking', kind: v('kind'), provider: v('provider'), ref: v('ref'), names: v('names'), price: v('price'), address: v('address'), number: v('number'),
+    dates: v('dates').split(/[,;]\s*/).filter(Boolean), times: v('times').split(/\s*(?:→|->|,)\s*/).filter(Boolean), attach: $('#bk-attach').value};
+  rec.providerUrl = PROVIDERS.find(p => p.label.toLowerCase() === rec.provider.toLowerCase())?.url || (rec.provider === b.provider ? b.providerUrl : '');
+  delete rec.empty; delete rec.airports;
+  if (buf) {
+    try { await FILES.put(rec.fileId, rec.fileName, buf); }
+    catch (e) { toast(`The PDF couldn’t be stored: ${e.message}`); console.warn(e); return; }
+  }
+  const i = trip.bookings.findIndex(x => x.id === rec.id);
+  if (i >= 0) trip.bookings[i] = rec; else trip.bookings.push(rec);
+  // A flight or train fills in its travel leg, so the leg shows as booked.
+  const [type, sid] = rec.attach.split(':'), s = byId(sid);
+  if (type === 'leg' && s?.leg && (rec.kind === 'flight' || rec.kind === 'train')) {
+    const L = s.leg, fill = (k, val) => { if (!L[k] && val) L[k] = val; };
+    if (!isBooked(L)) L.mode = rec.kind === 'flight' ? 'flight' : 'shinkansen';
+    fill('carrier', rec.provider); fill('number', rec.number); fill('confirmation', rec.ref); fill('depDate', rec.dates[0]);
+    fill('depTime', rec.times[0]); fill('arrTime', rec.times[1]); fill('arrDate', rec.times[1] ? rec.dates[0] : '');
+  }
+  if (type === 'leg') ui.openLeg = sid; else ui.openStop = sid;
+  save(); renderAll(); toast(`${i >= 0 ? 'Updated' : 'Added'} ${rec.title}.`);
+}
+async function openBookingFile(id) {
+  const b = trip.bookings.find(x => x.id === id), w = window.open('', '_blank');   // open now, so pop-up blockers allow it
+  try {
+    const blob = await FILES.get(b.fileId);
+    if (!blob) { w?.close(); return toast('That PDF isn’t stored here. It may have been added in another browser before sharing was set up.'); }
+    const url = URL.createObjectURL(blob);
+    if (w) w.location = url; else location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) { w?.close(); toast(`Couldn’t open the PDF: ${e.message}`); }
+}
+function bookingsHTML(target, color) {
+  const list = trip.bookings.filter(b => b.attach === target);
+  if (!list.length) return '';
+  return `<div class="bookings">${list.map(b => {
+    const k = BK_KINDS[b.kind] || BK_KINDS.other, when = [b.dates.join(' – '), b.times.join(' → ')].filter(Boolean).join(', ');
+    const maps = b.kind === 'stay' ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.title, b.address].filter(Boolean).join(' '))}` : '';
+    return `<div class="bk" style="--c:${esc(color)}">
+      <div class="bk-top"><span>${k.icon}</span><b title="${esc(b.title)}">${esc(b.title)}</b>
+        <button class="x" data-action="bk-delete" data-id="${b.id}" aria-label="Remove booking ${esc(b.title)}">✕</button></div>
+      <div class="bk-meta">${b.ref ? `Ref <code>${esc(b.ref)}</code>` : 'No reference found'}${b.names ? ` · ${esc(b.names)}` : ''}${when ? `<br>${esc(when)}` : ''}${b.price ? ` · ${esc(b.price)}` : ''}${b.address ? `<br>${esc(b.address)}` : ''}</div>
+      <div class="bk-actions">
+        <button data-action="bk-open" data-id="${b.id}">Open PDF</button>
+        ${b.ref ? `<button data-action="bk-copy" data-id="${b.id}">Copy ref</button>` : ''}
+        ${b.providerUrl ? `<a href="${esc(safeUrl(b.providerUrl))}" target="_blank" rel="noopener">Open in ${esc(b.provider)}</a>` : ''}
+        ${maps ? `<a href="${esc(maps)}" target="_blank" rel="noopener">Directions</a>` : ''}
+        <button data-action="bk-edit" data-id="${b.id}">Edit</button>
+      </div></div>`; }).join('')}</div>`;
+}
 
 // ═══ 9b. INSTAGRAM IDEAS PAGE ═════════════════════════════════════════════════
 const normName = t => String(t || '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '');
@@ -1083,6 +1356,15 @@ const ACTIONS = {
   'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = normalize(structuredClone(DEFAULT_TRIP)); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
   'checks': () => showChecks(),
   'page': d => setPage(d.v),
+  'bk-open': d => openBookingFile(d.id),
+  'bk-copy': d => { const b = trip.bookings.find(x => x.id === d.id); navigator.clipboard.writeText(b.ref).then(() => toast(`Copied ${b.ref}.`), () => toast(`Reference: ${b.ref}`)); },
+  'bk-edit': d => fillBookingDialog(structuredClone(trip.bookings.find(x => x.id === d.id))),
+  'bk-delete': d => {
+    const b = trip.bookings.find(x => x.id === d.id);
+    undoable(`Removed ${b.title}.`, () => { trip.bookings = trip.bookings.filter(x => x !== b); });
+    // the PDF itself goes once the undo window has passed, unless the booking came back
+    setTimeout(() => { if (!trip.bookings.some(x => x.fileId === b.fileId)) FILES.del(b.fileId).catch(e => console.warn(e)); }, 9000);
+  },
   'idea-filter': d => { view[d.g === 'where' ? 'ideaWhere' : 'ideaWhat'] = d.v; saveView(); renderIdeas(); },
   'idea-add': d => {
     const idea = IDEAS.find(x => x.id === d.id), it = ideaItems(idea)[+d.j];
@@ -1122,6 +1404,17 @@ document.addEventListener('change', e => {
   if ('rerender' in t.dataset) renderAll();
 });
 // Pasting: a Maps link pasted anywhere (outside a text field) opens the add-place dialog.
+$('#bk-file').addEventListener('change', e => { queuePdfs(e.target.files); e.target.value = ''; });
+let dragDepth = 0;
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+document.addEventListener('dragenter', e => { if (!hasFiles(e)) return; dragDepth++; $('#drop-hint').classList.add('on'); });
+document.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#drop-hint').classList.remove('on'); } });
+document.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+document.addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('#drop-hint').classList.remove('on'); queuePdfs(e.dataTransfer.files); });
+$('#bk-dlg').addEventListener('close', async e => {
+  if (e.target.returnValue === 'save') await saveBooking();
+  ui.bkBusy = false; nextPdf();
+});
 document.addEventListener('paste', e => {
   const text = e.clipboardData.getData('text'), t = e.target;
   if (t.id === 'paste-in' || (!t.closest?.('input,textarea') && MAPS_RE.test(text))) { e.preventDefault(); t.id === 'paste-in' && (t.value = ''); openPlaceDialog(text); }
@@ -1222,6 +1515,19 @@ async function runChecks() {
   add(badIdeas.length ? 'fail' : 'pass', 'Instagram ideas are tagged and filed', badIdeas.length ? badIdeas.map(d => d.title).join(', ') : `${IDEAS.length} ideas`);
   const missing = [...new Set(Object.values(WHERE_STOP))].filter(id => !byId(id));
   add(missing.length ? 'warn' : 'pass', 'Instagram ideas have a stop to go to', missing.length ? `no stop called ${missing.join(', ')} — those ideas will default to the first stop` : '');
+  const targets = new Set(trip.stops.flatMap((s, i) => [`stop:${s.id}`, ...(i ? [`leg:${s.id}`] : [])]));
+  const loose = trip.bookings.filter(b => !targets.has(b.attach));
+  add(loose.length ? 'fail' : 'pass', 'Bookings are attached to the trip', loose.length ? loose.map(b => b.title).join(', ') : `${trip.bookings.length} booking${trip.bookings.length === 1 ? '' : 's'}`);
+  const BK_SAMPLE = extractBooking('ANA e-ticket\nBooking reference: K7QX2M\nPassenger: SMITH/ALEX MR\nNH 55 Tokyo Haneda (HND) → Sapporo New Chitose (CTS)\n15 Nov 2026 07:30 09:05');
+  add(BK_SAMPLE.ref === 'K7QX2M' && BK_SAMPLE.number === 'NH 55' && BK_SAMPLE.dates[0] === '2026-11-15' && BK_SAMPLE.kind === 'flight' ? 'pass' : 'fail',
+    'Booking PDFs are read correctly', `sample e-ticket read as ${BK_SAMPLE.kind}, ${BK_SAMPLE.ref || 'no ref'}, ${BK_SAMPLE.number || 'no flight'}, ${BK_SAMPLE.dates[0] || 'no date'}`);
+  if (REMOTE) {
+    try { await rpc('get_file', {p_key: TRIP_KEY, p_id: '__check'}); add('pass', 'Booking PDFs can be shared'); }
+    catch (e) { add('fail', 'Booking PDFs can be shared', /get_file|function|404|PGRST/.test(e.message) ? 'run the updated supabase-setup.sql once in Supabase' : e.message.slice(0, 80)); }
+  } else {
+    try { await idbDo('readonly', st => st.count()); add('pass', 'Booking PDFs can be stored in this browser'); }
+    catch (e) { add('fail', 'Booking PDFs can be stored in this browser', 'this browser blocks file storage'); }
+  }
   const SAMPLES = [
     ['https://www.google.com/maps/place/Osaka+Castle/@34.6873153,135.5258117,17z/data=!3m1!4b1!4m6!3m5!1s0x6000e0cd5a4ed3e5:0x1!8m2!3d34.6873153!4d135.5262013', 'Osaka Castle', 34.6873, 135.5262],
     ['https://www.google.com/maps/search/?api=1&query=35.0394,135.7292', '', 35.0394, 135.7292],
