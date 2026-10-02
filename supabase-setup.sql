@@ -18,8 +18,9 @@ language sql security definer set search_path = public as $$
   select data, updated_at from trips where key = p_key;
 $$;
 
--- Saves only if nobody else has saved since you last loaded (p_base).
--- If someone has, nothing is written and their version is returned instead.
+-- Saves only if nobody else has saved since you last loaded (p_base), and only if the
+-- plan belongs to the same planner (tripId) as the one already stored under this code.
+-- Otherwise nothing is written and the stored version is returned instead.
 create or replace function save_trip(p_key text, p_data jsonb, p_base timestamptz)
 returns table (ok boolean, trip jsonb, saved_at timestamptz)
 language plpgsql security definer set search_path = public as $$
@@ -29,7 +30,8 @@ begin
   if not found then
     insert into trips (key, data) values (p_key, p_data) returning * into cur;
     return query select true, cur.data, cur.updated_at;
-  elsif p_base is null or cur.updated_at > p_base then
+  elsif (cur.data->>'tripId') is distinct from (p_data->>'tripId')
+        or p_base is null or cur.updated_at > p_base then
     return query select false, cur.data, cur.updated_at;
   else
     update trips set data = p_data, updated_at = now() where key = p_key returning * into cur;

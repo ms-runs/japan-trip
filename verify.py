@@ -49,6 +49,7 @@ store = {}
 files_store = {}
 PDFJS_DIR = pathlib.Path(__import__("os").environ.get("PDFJS_DIR", "/home/claude/pdfjs/package/build"))
 PDFS = HERE / "testpdfs"
+HAVE_PDFS = (PDFS / "ANA-eticket.pdf").exists() and (PDFJS_DIR / "pdf.min.js").exists()   # test files and a local pdf.js; skipped if absent
 CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST, OPTIONS"}
 def fake_supabase(route):
     req = route.request
@@ -67,7 +68,7 @@ def fake_supabase(route):
     elif fn == "delete_file":
         out = files_store.pop((body["p_key"], body["p_id"]), None) is not None
     else:
-        if row and (body["p_base"] is None or body["p_base"] != row["saved_at"]):
+        if row and ((row["trip"].get("tripId") != body["p_data"].get("tripId")) or body["p_base"] is None or body["p_base"] != row["saved_at"]):
             out = [{"ok": False, **row}]
         else:
             time.sleep(0.002)
@@ -338,70 +339,73 @@ with sync_playwright() as p:
     check("no script errors on the ideas page", not errors, "; ".join(errors[:3]))
     mob.close(); ctx.close()
 
-    print("\n11. Booking PDFs")
-    ctx = browser.new_context(viewport={"width": 1400, "height": 900}); pg = new_page(ctx, errors)
-    pg.goto(f"{BASE}/_local_test.html"); T(pg, "localStorage.clear()"); pg.reload(); pg.wait_for_timeout(400)
-    pg.set_input_files("#bk-file", str(PDFS / "ANA-eticket.pdf")); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
-    got = {k: pg.input_value(f"#bk-{k}") for k in ("kind", "provider", "ref", "names", "dates", "times", "number", "attach", "title")}
-    check("e-ticket read: flight, ANA, K7QX2M, NH 55, 15 Nov", got["kind"] == "flight" and got["provider"] == "ANA" and got["ref"] == "K7QX2M" and got["number"] == "NH 55" and got["dates"] == "2026-11-15", str(got))
-    check("passenger and times read", got["names"].startswith("SMITH/ALEX") and got["times"] == "07:30 → 09:05", str(got))
-    check("HND → CTS flight attached to the Tokyo → Sapporo leg", got["attach"] == "leg:sapporo", got["attach"])
-    pg.click("#bk-dlg button[value=save]"); pg.wait_for_timeout(500)
-    L = T(pg, "trip.stops.find(s => s.id === 'sapporo').leg")
-    check("the leg is filled in and shows as booked", L["confirmation"] == "K7QX2M" and L["number"] == "NH 55" and L["depTime"] == "07:30" and L["mode"] == "flight"
-          and "Booked" in pg.locator("[data-action=toggle-leg][data-id=sapporo]").inner_text(), str(L)[:150])
-    check("booking card shown on the leg with the reference", "K7QX2M" in pg.locator(".leg.open .bk").inner_text())
-    T(pg, "window.__opened = null; window.open = () => ({close() {}, set location(u) { window.__opened = u; }})")   # headless Chrome can't display PDFs, so capture where the tab is sent
-    pg.locator(".leg.open [data-action=bk-open]").click(); pg.wait_for_function("window.__opened", timeout=10000)
-    check("Open PDF sends the tab to the stored file", T(pg, "fetch(window.__opened).then(r => r.blob()).then(b => b.type === 'application/pdf' && b.size === %d)" % (PDFS / "ANA-eticket.pdf").stat().st_size))
-    check("Open in ANA link present", pg.locator(".leg.open .bk a", has_text="Open in ANA").count() == 1)
-    pg.set_input_files("#bk-file", [str(PDFS / "booking-com-osaka.pdf"), str(PDFS / "smartex-hiroshima-osaka.pdf")])
-    pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
-    got = {k: pg.input_value(f"#bk-{k}") for k in ("kind", "provider", "ref", "title", "dates", "price", "address", "attach", "names")}
-    check("hotel confirmation read: Booking.com, stay, ref, both dates, price, address", got["kind"] == "stay" and got["provider"] == "Booking.com" and got["ref"] == "4123.567.890"
-          and got["dates"] == "2026-11-20, 2026-11-24" and "98,400" in got["price"] and "Shinsaibashisuji" in got["address"] and got["title"] == "Cross Hotel Osaka" and got["names"] == "Alex Smith", str(got))
-    check("hotel attached to the Osaka stop", got["attach"] == "stop:osaka", got["attach"])
-    pg.click("#bk-dlg button[value=save]"); pg.wait_for_function("document.querySelector('#bk-dlg').open && document.querySelector('#bk-kind').value === 'train'", timeout=15000)
-    got = {k: pg.input_value(f"#bk-{k}") for k in ("kind", "ref", "number", "attach", "dates")}
-    check("second PDF in the batch opens next: shinkansen on the Hiroshima → Osaka leg, dated 19 Nov", got == {"kind": "train", "ref": "2468", "number": "Nozomi 32", "attach": "leg:osaka", "dates": "2026-11-19"}, str(got))
-    pg.click("#bk-dlg button[value=save]"); pg.wait_for_timeout(500)
-    L = T(pg, "trip.stops.find(s => s.id === 'osaka').leg")
-    check("the train leg gets its date and times", (L["depDate"], L["depTime"], L["arrTime"]) == ("2026-11-19", "10:12", "11:40"), str((L["depDate"], L["depTime"], L["arrTime"])))
-    check("three bookings saved", T(pg, "trip.bookings.length") == 3)
-    if not pg.locator(".stop[data-sid=osaka].open").count(): pg.locator(".stop[data-sid=osaka] .stop-head").click(); pg.wait_for_timeout(300)
-    check("hotel card on the stop, with Directions and Open in Booking.com", pg.locator(".stop.open .bk a", has_text="Directions").count() == 1 and pg.locator(".stop.open .bk a", has_text="Booking.com").count() == 1)
-    pg.screenshot(path=str(HERE / "shot-bookings.png"))
-    pg.set_input_files("#bk-file", str(PDFS / "scanned-ticket.pdf")); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
-    check("a scan with no text says to fill it in by hand", "fill the details in by hand" in pg.inner_text("#bk-info"))
-    pg.keyboard.press("Escape"); pg.wait_for_function("!document.querySelector('#bk-dlg').open")
-    check("cancelling adds nothing", T(pg, "trip.bookings.length") == 3)
-    b64 = __import__("base64").b64encode((PDFS / "ANA-eticket.pdf").read_bytes()).decode()
-    dt = pg.evaluate_handle("""b64 => { const dt = new DataTransfer(); dt.items.add(new File([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], 'dropped.pdf', {type: 'application/pdf'})); return dt; }""", b64)
-    pg.dispatch_event("body", "drop", {"dataTransfer": dt}); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
-    check("dropping a PDF on the page opens the booking box", pg.input_value("#bk-ref") == "K7QX2M")
-    pg.keyboard.press("Escape"); pg.wait_for_function("!document.querySelector('#bk-dlg').open")
-    pg.set_input_files("#bk-file", {"name": "photo.png", "mimeType": "image/png", "buffer": b"\x89PNG...."}); pg.wait_for_timeout(200)
-    check("non-PDF files are turned away", "Only PDF" in pg.inner_text("#toast") and not T(pg, "document.querySelector('#bk-dlg').open"))
-    pg.reload(); pg.wait_for_timeout(500)
-    check("bookings survive a reload", T(pg, "trip.bookings.length") == 3)
-    pg.locator(".stop[data-sid=osaka] .stop-head").click(); pg.wait_for_timeout(200)
-    T(pg, "window.__opened = null; window.open = () => ({close() {}, set location(u) { window.__opened = u; }})")   # headless Chrome can't display PDFs, so capture where the tab is sent
-    pg.locator(".stop.open [data-action=bk-open]").click(); pg.wait_for_function("window.__opened", timeout=10000)
-    check("stored PDF still opens after reload, byte for byte", T(pg, "fetch(window.__opened).then(r => r.blob()).then(b => b.size === %d)" % (PDFS / "booking-com-osaka.pdf").stat().st_size))
-    pg.locator(".stop.open [data-action=bk-edit]").click(); pg.wait_for_selector("#bk-dlg[open]")
-    pg.fill("#bk-title", "Cross Hotel Osaka (twin room)"); pg.click("#bk-dlg button[value=save]"); pg.wait_for_timeout(300)
-    check("editing updates the booking without duplicating it", T(pg, "trip.bookings.length") == 3 and "twin room" in pg.locator(".stop.open .bk").inner_text())
-    fid = T(pg, "trip.bookings.find(b => b.kind === 'stay').fileId")
-    pg.locator(".stop.open [data-action=bk-delete]").click()
-    check("removing a booking offers undo", T(pg, "trip.bookings.length") == 2 and pg.locator("#toast button").count() == 1)
-    pg.locator("#toast button").click(); pg.wait_for_timeout(200)
-    check("undo restores it", T(pg, "trip.bookings.length") == 3)
-    pg.locator(".stop.open [data-action=bk-delete]").click(); pg.wait_for_timeout(9800)
-    check("once the undo window passes, the PDF itself is deleted", T(pg, "id => FILES.get(id).then(b => b === null)", fid))
-    R = T(pg, "runChecks()")
-    check("in-app checks clean with bookings", not [r for r in R if r["state"] == "fail"], "; ".join(f"{r['name']}: {r['detail']}" for r in R if r["state"] == "fail"))
-    check("no script errors with bookings", not errors, "; ".join(errors[:3]))
-    ctx.close()
+    if not HAVE_PDFS:
+        print("\n11. Booking PDFs: skipped (needs testpdfs/ and a local pdf.js; set PDFJS_DIR)")
+    else:
+        print("\n11. Booking PDFs")
+        ctx = browser.new_context(viewport={"width": 1400, "height": 900}); pg = new_page(ctx, errors)
+        pg.goto(f"{BASE}/_local_test.html"); T(pg, "localStorage.clear()"); pg.reload(); pg.wait_for_timeout(400)
+        pg.set_input_files("#bk-file", str(PDFS / "ANA-eticket.pdf")); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
+        got = {k: pg.input_value(f"#bk-{k}") for k in ("kind", "provider", "ref", "names", "dates", "times", "number", "attach", "title")}
+        check("e-ticket read: flight, ANA, K7QX2M, NH 55, 15 Nov", got["kind"] == "flight" and got["provider"] == "ANA" and got["ref"] == "K7QX2M" and got["number"] == "NH 55" and got["dates"] == "2026-11-15", str(got))
+        check("passenger and times read", got["names"].startswith("SMITH/ALEX") and got["times"] == "07:30 → 09:05", str(got))
+        check("HND → CTS flight attached to the Tokyo → Sapporo leg", got["attach"] == "leg:sapporo", got["attach"])
+        pg.click("#bk-dlg button[value=save]"); pg.wait_for_timeout(500)
+        L = T(pg, "trip.stops.find(s => s.id === 'sapporo').leg")
+        check("the leg is filled in and shows as booked", L["confirmation"] == "K7QX2M" and L["number"] == "NH 55" and L["depTime"] == "07:30" and L["mode"] == "flight"
+              and "Booked" in pg.locator("[data-action=toggle-leg][data-id=sapporo]").inner_text(), str(L)[:150])
+        check("booking card shown on the leg with the reference", "K7QX2M" in pg.locator(".leg.open .bk").inner_text())
+        T(pg, "window.__opened = null; window.open = () => ({close() {}, set location(u) { window.__opened = u; }})")   # headless Chrome can't display PDFs, so capture where the tab is sent
+        pg.locator(".leg.open [data-action=bk-open]").click(); pg.wait_for_function("window.__opened", timeout=10000)
+        check("Open PDF sends the tab to the stored file", T(pg, "fetch(window.__opened).then(r => r.blob()).then(b => b.type === 'application/pdf' && b.size === %d)" % (PDFS / "ANA-eticket.pdf").stat().st_size))
+        check("Open in ANA link present", pg.locator(".leg.open .bk a", has_text="Open in ANA").count() == 1)
+        pg.set_input_files("#bk-file", [str(PDFS / "booking-com-osaka.pdf"), str(PDFS / "smartex-hiroshima-osaka.pdf")])
+        pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
+        got = {k: pg.input_value(f"#bk-{k}") for k in ("kind", "provider", "ref", "title", "dates", "price", "address", "attach", "names")}
+        check("hotel confirmation read: Booking.com, stay, ref, both dates, price, address", got["kind"] == "stay" and got["provider"] == "Booking.com" and got["ref"] == "4123.567.890"
+              and got["dates"] == "2026-11-20, 2026-11-24" and "98,400" in got["price"] and "Shinsaibashisuji" in got["address"] and got["title"] == "Cross Hotel Osaka" and got["names"] == "Alex Smith", str(got))
+        check("hotel attached to the Osaka stop", got["attach"] == "stop:osaka", got["attach"])
+        pg.click("#bk-dlg button[value=save]"); pg.wait_for_function("document.querySelector('#bk-dlg').open && document.querySelector('#bk-kind').value === 'train'", timeout=15000)
+        got = {k: pg.input_value(f"#bk-{k}") for k in ("kind", "ref", "number", "attach", "dates")}
+        check("second PDF in the batch opens next: shinkansen on the Hiroshima → Osaka leg, dated 19 Nov", got == {"kind": "train", "ref": "2468", "number": "Nozomi 32", "attach": "leg:osaka", "dates": "2026-11-19"}, str(got))
+        pg.click("#bk-dlg button[value=save]"); pg.wait_for_timeout(500)
+        L = T(pg, "trip.stops.find(s => s.id === 'osaka').leg")
+        check("the train leg gets its date and times", (L["depDate"], L["depTime"], L["arrTime"]) == ("2026-11-19", "10:12", "11:40"), str((L["depDate"], L["depTime"], L["arrTime"])))
+        check("three bookings saved", T(pg, "trip.bookings.length") == 3)
+        if not pg.locator(".stop[data-sid=osaka].open").count(): pg.locator(".stop[data-sid=osaka] .stop-head").click(); pg.wait_for_timeout(300)
+        check("hotel card on the stop, with Directions and Open in Booking.com", pg.locator(".stop.open .bk a", has_text="Directions").count() == 1 and pg.locator(".stop.open .bk a", has_text="Booking.com").count() == 1)
+        pg.screenshot(path=str(HERE / "shot-bookings.png"))
+        pg.set_input_files("#bk-file", str(PDFS / "scanned-ticket.pdf")); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
+        check("a scan with no text says to fill it in by hand", "fill the details in by hand" in pg.inner_text("#bk-info"))
+        pg.keyboard.press("Escape"); pg.wait_for_function("!document.querySelector('#bk-dlg').open")
+        check("cancelling adds nothing", T(pg, "trip.bookings.length") == 3)
+        b64 = __import__("base64").b64encode((PDFS / "ANA-eticket.pdf").read_bytes()).decode()
+        dt = pg.evaluate_handle("""b64 => { const dt = new DataTransfer(); dt.items.add(new File([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], 'dropped.pdf', {type: 'application/pdf'})); return dt; }""", b64)
+        pg.dispatch_event("body", "drop", {"dataTransfer": dt}); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
+        check("dropping a PDF on the page opens the booking box", pg.input_value("#bk-ref") == "K7QX2M")
+        pg.keyboard.press("Escape"); pg.wait_for_function("!document.querySelector('#bk-dlg').open")
+        pg.set_input_files("#bk-file", {"name": "photo.png", "mimeType": "image/png", "buffer": b"\x89PNG...."}); pg.wait_for_timeout(200)
+        check("non-PDF files are turned away", "Only PDF" in pg.inner_text("#toast") and not T(pg, "document.querySelector('#bk-dlg').open"))
+        pg.reload(); pg.wait_for_timeout(500)
+        check("bookings survive a reload", T(pg, "trip.bookings.length") == 3)
+        pg.locator(".stop[data-sid=osaka] .stop-head").click(); pg.wait_for_timeout(200)
+        T(pg, "window.__opened = null; window.open = () => ({close() {}, set location(u) { window.__opened = u; }})")   # headless Chrome can't display PDFs, so capture where the tab is sent
+        pg.locator(".stop.open [data-action=bk-open]").click(); pg.wait_for_function("window.__opened", timeout=10000)
+        check("stored PDF still opens after reload, byte for byte", T(pg, "fetch(window.__opened).then(r => r.blob()).then(b => b.size === %d)" % (PDFS / "booking-com-osaka.pdf").stat().st_size))
+        pg.locator(".stop.open [data-action=bk-edit]").click(); pg.wait_for_selector("#bk-dlg[open]")
+        pg.fill("#bk-title", "Cross Hotel Osaka (twin room)"); pg.click("#bk-dlg button[value=save]"); pg.wait_for_timeout(300)
+        check("editing updates the booking without duplicating it", T(pg, "trip.bookings.length") == 3 and "twin room" in pg.locator(".stop.open .bk").inner_text())
+        fid = T(pg, "trip.bookings.find(b => b.kind === 'stay').fileId")
+        pg.locator(".stop.open [data-action=bk-delete]").click()
+        check("removing a booking offers undo", T(pg, "trip.bookings.length") == 2 and pg.locator("#toast button").count() == 1)
+        pg.locator("#toast button").click(); pg.wait_for_timeout(200)
+        check("undo restores it", T(pg, "trip.bookings.length") == 3)
+        pg.locator(".stop.open [data-action=bk-delete]").click(); pg.wait_for_timeout(9800)
+        check("once the undo window passes, the PDF itself is deleted", T(pg, "id => FILES.get(id).then(b => b === null)", fid))
+        R = T(pg, "runChecks()")
+        check("in-app checks clean with bookings", not [r for r in R if r["state"] == "fail"], "; ".join(f"{r['name']}: {r['detail']}" for r in R if r["state"] == "fail"))
+        check("no script errors with bookings", not errors, "; ".join(errors[:3]))
+        ctx.close()
 
     print("\n12. Sharing: two people editing the same plan")
     errA, errB = [], []
@@ -427,17 +431,34 @@ with sync_playwright() as p:
     B.wait_for_selector("#place-dlg[open]")
     check("short links are expanded when the link expander is set up", B.input_value("#pl-name") == "Himeji Castle" and B.input_value("#pl-stop") == "osaka")
     B.keyboard.press("Escape")
-    A.set_input_files("#bk-file", str(PDFS / "ANA-eticket.pdf")); A.wait_for_selector("#bk-dlg[open]", timeout=15000)
-    A.click("#bk-dlg button[value=save]"); A.wait_for_timeout(1500)
-    check("a shared upload stores the PDF behind the trip code", len(files_store) == 1 and next(iter(files_store))[0] == "lads-trip-2026-okinawa")
-    T(B, "poll()"); B.wait_for_timeout(500)
-    check("the other person sees the booking", T(B, "trip.bookings.length") == 1)
-    blob_ok = T(B, "FILES.get(trip.bookings[0].fileId).then(b => b && b.size > 1000 && b.type === 'application/pdf')")
-    check("and can open the same PDF", blob_ok)
+    if HAVE_PDFS:
+        A.set_input_files("#bk-file", str(PDFS / "ANA-eticket.pdf")); A.wait_for_selector("#bk-dlg[open]", timeout=15000)
+        A.click("#bk-dlg button[value=save]"); A.wait_for_timeout(1500)
+        check("a shared upload stores the PDF behind the trip code", len(files_store) == 1 and next(iter(files_store))[0] == "lads-trip-2026-okinawa")
+        T(B, "poll()"); B.wait_for_timeout(500)
+        check("the other person sees the booking", T(B, "trip.bookings.length") == 1)
+        blob_ok = T(B, "FILES.get(trip.bookings[0].fileId).then(b => b && b.size > 1000 && b.type === 'application/pdf')")
+        check("and can open the same PDF", blob_ok)
     R = T(B, "runChecks()")
     check("in-app checks pass on the shared, mobile copy", not [r for r in R if r["state"] == "fail"], "; ".join(f"{r['name']}: {r['detail']}" for r in R if r["state"] == "fail"))
     B.screenshot(path=str(HERE / "shot-mobile.png"))
     check("no script errors for either person", not (errA or errB), "; ".join((errA + errB)[:3]))
+
+    print("\n13. Enter key, and share codes used by the multi-trip planner")
+    errC = []
+    C = new_page(browser.new_context(viewport={"width": 1400, "height": 900}), errC); C.goto(f"{BASE}/_local_test.html"); C.wait_for_timeout(400)
+    C.fill("#paste-in", HIMEJI); C.press("#paste-in", "Enter"); C.wait_for_timeout(300)
+    check("Enter in 'Add a place' opens the dialog and keeps it open", T(C, "$('#place-dlg').open"))
+    C.keyboard.press("Escape")
+    store["tetons-code-in-use-1"] = {"trip": {"tripId": "tetons-yellowstone", "version": 3, "stops": [{"id": "jackson", "name": "Jackson", "lat": 43.48, "lng": -110.76, "nights": 2}]},
+                                     "saved_at": "2026-01-01T00:00:00+00:00"}
+    before = json.dumps(store["tetons-code-in-use-1"])
+    D = new_page(browser.new_context(viewport={"width": 1400, "height": 900}), errC); D.goto(f"{BASE}/_shared_test.html#trip=tetons-code-in-use-1"); D.wait_for_timeout(900)
+    D.locator('.stop [data-action=nights][data-d="1"]').first.click(); D.wait_for_timeout(1300)
+    check("another planner's plan isn't loaded", T(D, "trip.stops[0].id") != "jackson")
+    check("another planner's plan isn't overwritten", json.dumps(store["tetons-code-in-use-1"]) == before)
+    check("the page says why", "another trip" in D.inner_text("#status"), D.inner_text("#status"))
+    check("no script errors", not errC, "; ".join(errC[:3]))
     browser.close()
 
 server.shutdown()
