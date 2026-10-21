@@ -158,6 +158,12 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 body[data-page=ideas] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}   /* kept laid out so map checks still work */
 body[data-page=ideas] .ideas{display:block}
 .ideas-bar{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;max-width:1200px}
+.src-switch{display:flex;gap:6px;flex-wrap:wrap}
+.src-switch button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 14px;min-width:170px;text-align:left}
+.src-switch button b{font:600 14px 'Shippori Mincho',serif}
+.src-switch button small{font-size:11.5px;color:var(--muted)}
+.src-switch button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.idea .near{font-size:12px;color:var(--muted)}
 .ideas-bar input[type=search]{max-width:360px;font-size:13px;padding:7px 10px}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chip{border:1px solid var(--line2);background:#fff;border-radius:99px;padding:3px 11px;font-size:12px;color:var(--ink)}
@@ -217,7 +223,7 @@ body[data-page=ideas] .ideas{display:block}
   <div class="logo">Japan trip<small>日本の旅</small></div>
   <nav class="tabs" aria-label="Pages">
     <button data-action="page" data-v="plan" aria-pressed="true">Plan</button>
-    <button data-action="page" data-v="ideas" aria-pressed="false">Instagram ideas<small id="ideas-count"></small></button>
+    <button data-action="page" data-v="ideas" aria-pressed="false">Ideas<small id="ideas-count"></small></button>
   </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
@@ -321,8 +327,9 @@ body[data-page=ideas] .ideas{display:block}
   </main>
 </div>
 
-<section class="ideas" id="ideas" aria-label="Ideas from saved Instagram posts">
+<section class="ideas" id="ideas" aria-label="Ideas to add to the trip">
   <div class="ideas-bar">
+    <div class="src-switch" id="idea-src" role="group" aria-label="Whose ideas"></div>
     <input type="search" id="idea-q" placeholder="Search ideas" aria-label="Search ideas">
     <div class="chips" id="idea-where"></div>
     <div class="chips" id="idea-what"></div>
@@ -583,7 +590,10 @@ const SEEDS = {id: 'gmaps-list-japan', places: [
 // ═══ 4c. INSTAGRAM IDEAS ═══════════════════════════════════════════════════════
 // From saved Instagram posts about Japan (data export). Summaries are written for this page;
 // the full post is one click away. Each idea: where, what (tags), and items that can be added.
-const WHERE_STOP = {'Tokyo':'tokyo2', 'Kyoto':'kyoto', 'Osaka':'osaka', 'Kyoto–Osaka':'kyoto', 'Hokkaido':'sapporo', 'Mt Fuji':'tokyo2', 'Japanese Alps':'tokyo2', 'Anywhere':'tokyo1'};
+// Where an Instagram tip (no map position) is filed: the first of these stops that exists in the plan.
+const WHERE_STOP = {'Tokyo':['tokyo2','tokyo1'], 'Kyoto':['kyoto'], 'Osaka':['osaka'], 'Kyoto–Osaka':['kyoto','osaka'], 'Hokkaido':['sapporo'],
+  'Mt Fuji':['tokyo2','tokyo1'], 'Japanese Alps':['chubu','tokyo2'], 'Tohoku':['tohoku'], 'Chubu':['chubu'], 'Anywhere':['tokyo1']};
+const stopForWhere = w => (WHERE_STOP[w] || []).find(id => byId(id)) || '';
 const IDEAS = [
   {"id":"DXRFtuBEZUa","url":"https://www.instagram.com/reel/DXRFtuBEZUa/","user":"withkj_","date":"May 2026","where":"Tokyo","what":["Food"],"title":"Katsu sando at Tonkatsu Marushichi","summary":"Thick pork-shoulder cutlet sando, plus an egg-cutlet version. The Monzen-nakacho shop queues less than Ginza.","items":[{"name":"Tonkatsu Marushichi, Monzen-nakacho","cat":"eat","note":"Katsu sando ¥1,700, egg cutlet ¥1,300. Open 11–14 and 17–20.","lat":35.6718,"lng":139.7962,"approx":true}]},
   {"id":"DW80rzsyT3t","url":"https://www.instagram.com/reel/DW80rzsyT3t/","user":"asukunavi.tokyo_food","date":"Apr 2026","where":"Tokyo","what":["Bars","Food"],"title":"¥980 all-you-can-drink in Kabukicho","summary":"Two hours of drinks for ¥980, yakitori from ¥150. Open until 5am on Fridays and Saturdays; book on Tabelog.","items":[{"name":"Kinfuku Sakaba Shinjuku","cat":"drink","note":"2 h all-you-can-drink ¥980. 5F Ricam Bldg 3, Kabukicho. Book on Tabelog.","lat":35.6946,"lng":139.7032,"approx":true}]},
@@ -632,6 +642,227 @@ const IDEAS = [
   {"id":"DJUWmKlp5pl","url":"https://www.instagram.com/p/DJUWmKlp5pl/","user":"laura_studarus","date":"May 2025","where":"Anywhere","what":["Phrases and etiquette"],"title":"Japan tips that get progressively unhinged","summary":"Tips, for fun.","items":[],"cat":"other"}
 ];
 
+// From Vid's shared Google Maps list ("The World Is A Marvellous Place Full Of Magic And Wonder"),
+// Japan places only (214 of 771), read 2026-10-21. Exact positions; categories set from the names.
+const VID_IDEAS = [
+  {"id":"vid-50c48a90117d668a","src":"vid","url":"https://maps.google.com/?cid=5819928969842878090","where":"Kansai","what":["Attractions"],"title":"Mikimoto Pearl Island","summary":"Mie","items":[{"name":"Mikimoto Pearl Island","cat":"see","lat":34.48331,"lng":136.84678}]},
+  {"id":"vid-f009663753f60ca7","src":"vid","url":"https://maps.google.com/?cid=17296468231710968999","where":"Kansai","what":["Attractions"],"title":"Kotai Jingu","summary":"Mie","items":[{"name":"Kotai Jingu","cat":"see","lat":34.45502,"lng":136.72519}]},
+  {"id":"vid-e01084d591202382","src":"vid","url":"https://maps.google.com/?cid=16145550716920931202","where":"Hiroshima","what":["Nature and parks"],"title":"Hyokkori Observation Platform","summary":"Hiroshima","items":[{"name":"Hyokkori Observation Platform","cat":"nature","lat":34.30971,"lng":132.99312}]},
+  {"id":"vid-ba61cef3b2e46c81","src":"vid","url":"https://maps.google.com/?cid=13430243109869218945","where":"Kyoto","what":["Nature and parks"],"title":"Amanohashidate","summary":"Kyōto","items":[{"name":"Amanohashidate","cat":"nature","lat":35.5698,"lng":135.19182}]},
+  {"id":"vid-258aca1ce888abc9","src":"vid","url":"https://maps.google.com/?cid=2705196751698570185","where":"Kyoto","what":["Attractions"],"title":"Ginkaku-ji","summary":"Kyōto","items":[{"name":"Ginkaku-ji","cat":"see","lat":35.02702,"lng":135.79821}]},
+  {"id":"vid-9bba6e81c2248ac5","src":"vid","url":"https://maps.google.com/?cid=11221402925134023365","where":"Kyoto","what":["Nature and parks"],"title":"Kyoto Botanical Gardens","summary":"Kyōto","items":[{"name":"Kyoto Botanical Gardens","cat":"nature","lat":35.04862,"lng":135.76304}]},
+  {"id":"vid-38b339a4c7e7004d","src":"vid","url":"https://maps.google.com/?cid=4085672666846396493","where":"Kyoto","what":["Attractions"],"title":"Nanzen-ji","summary":"Kyōto","items":[{"name":"Nanzen-ji","cat":"see","lat":35.01141,"lng":135.79448}]},
+  {"id":"vid-ea07b0dc8b67dbaf","src":"vid","url":"https://maps.google.com/?cid=16863641790990244783","where":"Chubu","what":["Activities"],"title":"Taraibune Tub-Boat Riding Experience","summary":"Niigata","items":[{"name":"Taraibune Tub-Boat Riding Experience","cat":"do","lat":37.80878,"lng":138.26638}]},
+  {"id":"vid-7ed8a21834ade91d","src":"vid","url":"https://maps.google.com/?cid=9140233668595149085","where":"Chubu","what":["Attractions"],"title":"Gero Hometown History Museum","summary":"Gifu","items":[{"name":"Gero Hometown History Museum","cat":"see","lat":35.80246,"lng":137.25335}]},
+  {"id":"vid-15ceb1c533f5a12a","src":"vid","url":"https://maps.google.com/?cid=1571388780537291050","where":"Chubu","what":["Attractions"],"title":"Gero Onsen Gassho-mura","summary":"Gifu","items":[{"name":"Gero Onsen Gassho-mura","cat":"see","lat":35.80833,"lng":137.24969}]},
+  {"id":"vid-ddf878695f63ef6f","src":"vid","url":"https://maps.google.com/?cid=15994666470573600623","where":"Chubu","what":["Activities"],"title":"Gero Onsen Funsenchi (Footbath)","summary":"Gifu","items":[{"name":"Gero Onsen Funsenchi (Footbath)","cat":"do","lat":35.80762,"lng":137.2409}]},
+  {"id":"vid-7fcc7788f914b88e","src":"vid","url":"https://maps.google.com/?cid=9208866768243964046","where":"Chubu","what":["Attractions"],"title":"Sanmachi Suji","summary":"Gifu","items":[{"name":"Sanmachi Suji","cat":"see","lat":36.14132,"lng":137.25962}]},
+  {"id":"vid-c7ce80b39564208e","src":"vid","url":"https://maps.google.com/?cid=14397586567543922830","where":"Around Tokyo","what":["Towns and areas"],"title":"Atami","summary":"Shizuoka","items":[{"name":"Atami","cat":"other","lat":35.09639,"lng":139.07178}]},
+  {"id":"vid-1b03350b0ab77ba3","src":"vid","url":"https://maps.google.com/?cid=1946457785494895523","where":"Chubu","what":["Nature and parks"],"title":"Tokugawaen Garden","summary":"Aichi","items":[{"name":"Tokugawaen Garden","cat":"nature","lat":35.18429,"lng":136.93218}]},
+  {"id":"vid-b9d3e9789275a677","src":"vid","url":"https://maps.google.com/?cid=13390302821165147767","where":"Chubu","what":["Attractions"],"title":"Nagoya Castle","summary":"Aichi","items":[{"name":"Nagoya Castle","cat":"see","lat":35.18475,"lng":136.89969}]},
+  {"id":"vid-bff4287c6ca534a5","src":"vid","url":"https://maps.google.com/?cid=13831724870425457829","where":"Chubu","what":["Restaurants"],"title":"Omicho Market","summary":"Ishikawa","items":[{"name":"Omicho Market","cat":"eat","lat":36.57173,"lng":136.65587}]},
+  {"id":"vid-f1ad02239e54f174","src":"vid","url":"https://maps.google.com/?cid=17414577686115053940","where":"Tohoku","what":["Nature and parks"],"title":"Naruko Gorge","summary":"Miyagi","items":[{"name":"Naruko Gorge","cat":"nature","lat":38.72912,"lng":140.69096}]},
+  {"id":"vid-b3061434d0e9e76b","src":"vid","url":"https://maps.google.com/?cid=12900020399725209451","where":"Chubu","what":["Nature and parks"],"title":"Hoshitoge Terraced Rice Fields","summary":"Niigata","items":[{"name":"Hoshitoge Terraced Rice Fields","cat":"nature","lat":37.12617,"lng":138.52813}]},
+  {"id":"vid-87d9c35f0034f3c8","src":"vid","url":"https://maps.google.com/?cid=9789070077859263432","where":"Around Tokyo","what":["Nature and parks"],"title":"Ryuzu Falls","summary":"Tochigi","items":[{"name":"Ryuzu Falls","cat":"nature","lat":36.75765,"lng":139.45143}]},
+  {"id":"vid-ab505b717af00e94","src":"vid","url":"https://maps.google.com/?cid=12344467121574514324","where":"Around Tokyo","what":["Attractions"],"title":"Nikkō Tōshōgū","summary":"Tochigi","items":[{"name":"Nikkō Tōshōgū","cat":"see","lat":36.75809,"lng":139.59875}]},
+  {"id":"vid-392a9fec11582fe7","src":"vid","url":"https://maps.google.com/?cid=4119280645435830247","where":"Around Tokyo","what":["Attractions"],"title":"Shinkyō Bridge","summary":"Tochigi","items":[{"name":"Shinkyō Bridge","cat":"see","lat":36.75337,"lng":139.604}]},
+  {"id":"vid-2c1ede4e70f80400","src":"vid","url":"https://maps.google.com/?cid=3179222815454266368","where":"Around Tokyo","what":["Nature and parks"],"title":"Ryuokyo Canyon","summary":"Tochigi","items":[{"name":"Ryuokyo Canyon","cat":"nature","lat":36.85958,"lng":139.71736}]},
+  {"id":"vid-e9067c770ea80104","src":"vid","url":"https://maps.google.com/?cid=16791245111486316804","where":"Kansai","what":["Attractions"],"title":"Seiganto-ji","summary":"Wakayama","items":[{"name":"Seiganto-ji","cat":"see","lat":33.66915,"lng":135.88985}]},
+  {"id":"vid-ecdff9a3fc67fec0","src":"vid","url":"https://maps.google.com/?cid=17068635595467128512","where":"Chugoku","what":["Attractions"],"title":"Sanbutsu-ji Temple","summary":"Tottori","items":[{"name":"Sanbutsu-ji Temple","cat":"see","lat":35.3993,"lng":133.95575}]},
+  {"id":"vid-c04ffbd2525e7026","src":"vid","url":"https://maps.google.com/?cid=13857571459185930278","where":"Chugoku","what":["Nature and parks"],"title":"Mount Mitoku","summary":"Tottori","items":[{"name":"Mount Mitoku","cat":"nature","lat":35.38595,"lng":133.96359}]},
+  {"id":"vid-d230a7de0d117b","src":"vid","url":"https://maps.google.com/?cid=59163242652307835","where":"Kansai","what":["Nature and parks"],"title":"Susuki Pass","summary":"Wakayama","items":[{"name":"Susuki Pass","cat":"nature","lat":34.19162,"lng":135.59799}]},
+  {"id":"vid-2a93aeed57548dc5","src":"vid","url":"https://maps.google.com/?cid=3067988105565081029","where":"Kansai","what":["Attractions"],"title":"Kongōbu-ji","summary":"Wakayama","items":[{"name":"Kongōbu-ji","cat":"see","lat":34.21411,"lng":135.58491}]},
+  {"id":"vid-d3ee2dd9b0177910","src":"vid","url":"https://maps.google.com/?cid=15271193799445412112","where":"Kyoto","what":["Attractions"],"title":"To-ji Temple","summary":"Kyōto","items":[{"name":"To-ji Temple","cat":"see","lat":34.98034,"lng":135.74769}]},
+  {"id":"vid-f4fa99fb61340f2e","src":"vid","url":"https://maps.google.com/?cid=17652590994378723118","where":"Chubu","what":["Attractions"],"title":"Zenkōji temple","summary":"Nagano","items":[{"name":"Zenkōji temple","cat":"see","lat":36.66158,"lng":138.1877}]},
+  {"id":"vid-b1c4b1f7b63b76e9","src":"vid","url":"https://maps.google.com/?cid=12809558917620922089","where":"Osaka","what":["Attractions"],"title":"Shitennoji","summary":"Ōsaka","items":[{"name":"Shitennoji","cat":"see","lat":34.65471,"lng":135.51695}]},
+  {"id":"vid-8de0d4c207659a69","src":"vid","url":"https://maps.google.com/?cid=10223405083943869033","where":"Nara","what":["Attractions"],"title":"Maraishi (Phallus Stone)","summary":"Nara","items":[{"name":"Maraishi (Phallus Stone)","cat":"see","lat":34.4632,"lng":135.8248}]},
+  {"id":"vid-a309870ea7689077","src":"vid","url":"https://maps.google.com/?cid=11748069599980589175","where":"Tohoku","what":["Nature and parks"],"title":"Zao's frost-covered trees","summary":"Yamagata","items":[{"name":"Zao's frost-covered trees","cat":"nature","lat":38.15583,"lng":140.43032}]},
+  {"id":"vid-d98658795ed01721","src":"vid","url":"https://maps.google.com/?cid=15674312831414572833","where":"Tohoku","what":["Activities"],"title":"Ginzan Onsen","summary":"Yamagata","items":[{"name":"Ginzan Onsen","cat":"do","lat":38.57062,"lng":140.53055}]},
+  {"id":"vid-eddadd37ae085f2c","src":"vid","url":"https://maps.google.com/?cid=17139254563124567852","where":"Kansai","what":["Nature and parks"],"title":"Nabana no Sato","summary":"Mie","items":[{"name":"Nabana no Sato","cat":"nature","lat":35.08213,"lng":136.70348}]},
+  {"id":"vid-5c735674800c6246","src":"vid","url":"https://maps.google.com/?cid=6661763332175585862","where":"Around Tokyo","what":["Nature and parks"],"title":"Fujikawaguchiko","summary":"Yamanashi","items":[{"name":"Fujikawaguchiko","cat":"nature","lat":35.49731,"lng":138.7552}]},
+  {"id":"vid-bb8f7a35e2c50e6e","src":"vid","url":"https://maps.google.com/?cid=13515155378618568302","where":"Around Tokyo","what":["Nature and parks"],"title":"Kegon Falls","summary":"Tochigi","items":[{"name":"Kegon Falls","cat":"nature","lat":36.73806,"lng":139.5025}]},
+  {"id":"vid-88a4a86ddb1dbd24","src":"vid","url":"https://maps.google.com/?cid=9846179875119807780","where":"Tokyo","what":["Attractions"],"title":"Zojo-ji","summary":"Tokyo","items":[{"name":"Zojo-ji","cat":"see","lat":35.65748,"lng":139.74829}]},
+  {"id":"vid-bf6b1bb546c1c33d","src":"vid","url":"https://maps.google.com/?cid=13793148749142410045","where":"Kyushu","what":["Nature and parks"],"title":"Mt. Kaimon","summary":"Kagoshima","items":[{"name":"Mt. Kaimon","cat":"nature","lat":31.1801,"lng":130.52834}]},
+  {"id":"vid-27150abc6cebde5f","src":"vid","url":"https://maps.google.com/?cid=2816168946387639903","where":"Kyushu","what":["Activities"],"title":"Nigatsuden Onsen Tonosamayu","summary":"Kagoshima","items":[{"name":"Nigatsuden Onsen Tonosamayu","cat":"do","lat":31.25643,"lng":130.62597}]},
+  {"id":"vid-a9cb2216f8d43546","src":"vid","url":"https://maps.google.com/?cid=12234910294741366086","where":"Kyushu","what":["Activities"],"title":"Yamakawa Sand Bath Hot Spring \"Sayuri\"","summary":"Kagoshima","items":[{"name":"Yamakawa Sand Bath Hot Spring \"Sayuri\"","cat":"do","lat":31.18308,"lng":130.6148}]},
+  {"id":"vid-41ca151b2524b2b2","src":"vid","url":"https://maps.google.com/?cid=4740624764092330674","where":"Chugoku","what":["Attractions"],"title":"Namidamatsu Ruins","summary":"Yamaguchi","items":[{"name":"Namidamatsu Ruins","cat":"see","lat":34.37992,"lng":131.40601}]},
+  {"id":"vid-638575f7b5414b8b","src":"vid","url":"https://maps.google.com/?cid=7171267688415710091","where":"Chugoku","what":["Attractions"],"title":"Hagi-okan","summary":"Yamaguchi","items":[{"name":"Hagi-okan","cat":"see","lat":34.36955,"lng":131.41267}]},
+  {"id":"vid-8e7b44c325b8afc0","src":"vid","url":"https://maps.google.com/?cid=10266875380463349696","where":"Tohoku","what":["Attractions"],"title":"Risshaku-ji Temple (Yamadera)","summary":"Yamagata","items":[{"name":"Risshaku-ji Temple (Yamadera)","cat":"see","lat":38.31312,"lng":140.43461}]},
+  {"id":"vid-5b7af6fbee095cf7","src":"vid","url":"https://maps.google.com/?cid=6591852566500957431","where":"Tohoku","what":["Attractions"],"title":"Yamadera","summary":"Yamagata","items":[{"name":"Yamadera","cat":"see","lat":38.31056,"lng":140.4763}]},
+  {"id":"vid-677cc0bc9a812e8b","src":"vid","url":"https://maps.google.com/?cid=7457046999297240715","where":"Tohoku","what":["Attractions"],"title":"Tsuruga-jo Castle (Aizu-wakamatsu-jo)","summary":"Fukushima","items":[{"name":"Tsuruga-jo Castle (Aizu-wakamatsu-jo)","cat":"see","lat":37.48782,"lng":139.92967}]},
+  {"id":"vid-2bff20bebc6404cb","src":"vid","url":"https://maps.google.com/?cid=3170288666268665035","where":"Tohoku","what":["Attractions"],"title":"Aizu Bukeyashiki","summary":"Fukushima","items":[{"name":"Aizu Bukeyashiki","cat":"see","lat":37.48521,"lng":139.95367}]},
+  {"id":"vid-b1acc4775eebcefc","src":"vid","url":"https://maps.google.com/?cid=12802823857680142076","where":"Tohoku","what":["Hotels"],"title":"Notoya Ryokan","summary":"Yamagata","items":[{"name":"Notoya Ryokan","cat":"stay","lat":38.56913,"lng":140.53152}]},
+  {"id":"vid-fe6908582fc8926f","src":"vid","url":"https://maps.google.com/?cid=18332192933040132719","where":"Tohoku","what":["Nature and parks"],"title":"Shirogane Falls","summary":"Yamagata","items":[{"name":"Shirogane Falls","cat":"nature","lat":38.56808,"lng":140.53163}]},
+  {"id":"vid-f64d8b73ef8dd61f","src":"vid","url":"https://maps.google.com/?cid=17747995036593542687","where":"Chubu","what":["Nature and parks"],"title":"Jigokudani Monkey Park","summary":"Nagano","items":[{"name":"Jigokudani Monkey Park","cat":"nature","lat":36.73269,"lng":138.46214}]},
+  {"id":"vid-6f267b427d8778f7","src":"vid","url":"https://maps.google.com/?cid=8009224512829094135","where":"Kyushu","what":["Activities"],"title":"Huis Ten Bosch","summary":"Nagasaki","items":[{"name":"Huis Ten Bosch","cat":"do","lat":33.08972,"lng":129.79189}]},
+  {"id":"vid-9e267d44f01af577","src":"vid","url":"https://maps.google.com/?cid=11395933642147165559","where":"Hokkaido","what":["Towns and areas"],"title":"Akaigawa","summary":"Hokkaidō","items":[{"name":"Akaigawa","cat":"other","lat":43.08352,"lng":140.81364}]},
+  {"id":"vid-45ff792b2a0605b4","src":"vid","url":"https://maps.google.com/?cid=5043883333973837236","where":"Hokkaido","what":["Nature and parks"],"title":"Kamuiwakkano Falls","summary":"Hokkaidō","items":[{"name":"Kamuiwakkano Falls","cat":"nature","lat":44.15856,"lng":145.12206}]},
+  {"id":"vid-b9b1e805701a9d8","src":"vid","url":"https://maps.google.com/?cid=836295692371732952","where":"Hokkaido","what":["Nature and parks"],"title":"Furepeno Falls","summary":"Hokkaidō","items":[{"name":"Furepeno Falls","cat":"nature","lat":44.09702,"lng":145.0147}]},
+  {"id":"vid-9890931982eb1663","src":"vid","url":"https://maps.google.com/?cid=10993448428191290979","where":"Hokkaido","what":["Nature and parks"],"title":"Rausu Kanketsusen Geyser","summary":"Hokkaidō","items":[{"name":"Rausu Kanketsusen Geyser","cat":"nature","lat":44.03317,"lng":145.15997}]},
+  {"id":"vid-1503ed2541fb2c0a","src":"vid","url":"https://maps.google.com/?cid=1514314644003171338","where":"Hokkaido","what":["Nature and parks"],"title":"Shiretoko Pass Observation Deck","summary":"Hokkaidō","items":[{"name":"Shiretoko Pass Observation Deck","cat":"nature","lat":44.05401,"lng":145.10502}]},
+  {"id":"vid-ef235511f153c77","src":"vid","url":"https://maps.google.com/?cid=1076981883425078391","where":"Nara","what":["Attractions"],"title":"Hōki-ji","summary":"Nara","items":[{"name":"Hōki-ji","cat":"see","lat":34.62293,"lng":135.74619}]},
+  {"id":"vid-63d89c1d96345200","src":"vid","url":"https://maps.google.com/?cid=7194672055612363264","where":"Nara","what":["Attractions"],"title":"Horin-ji","summary":"Nara","items":[{"name":"Horin-ji","cat":"see","lat":34.62229,"lng":135.73901}]},
+  {"id":"vid-1f5f538d8bb62d0a","src":"vid","url":"https://maps.google.com/?cid=2260617405362744586","where":"Nara","what":["Attractions"],"title":"Fujiwara Palace Site","summary":"Nara","items":[{"name":"Fujiwara Palace Site","cat":"see","lat":34.50095,"lng":135.80741}]},
+  {"id":"vid-eaf1470e739e8281","src":"vid","url":"https://maps.google.com/?cid=16929390601657287297","where":"Tohoku","what":["Attractions"],"title":"Chūsonji Temple","summary":"Iwate","items":[{"name":"Chūsonji Temple","cat":"see","lat":39.00157,"lng":141.10281}]},
+  {"id":"vid-608414938ffa07a4","src":"vid","url":"https://maps.google.com/?cid=6954706348575164324","where":"Kyoto","what":["Attractions"],"title":"Byōdō-in Temple","summary":"Kyōto","items":[{"name":"Byōdō-in Temple","cat":"see","lat":34.88929,"lng":135.80768}]},
+  {"id":"vid-7f601c458d81fe0","src":"vid","url":"https://maps.google.com/?cid=573647945352093664","where":"Chubu","what":["Nature and parks"],"title":"Sado Island","summary":"Niigata","items":[{"name":"Sado Island","cat":"nature","lat":38.04108,"lng":138.33872}]},
+  {"id":"vid-a6d5376c92ef8f01","src":"vid","url":"https://maps.google.com/?cid=12021575719796576001","where":"Kyushu","what":["Nature and parks"],"title":"Amami Ōshima","summary":"Kagoshima","items":[{"name":"Amami Ōshima","cat":"nature","lat":28.26785,"lng":129.36212}]},
+  {"id":"vid-fbad0cd541385383","src":"vid","url":"https://maps.google.com/?cid=18135165384552633219","where":"Kyushu","what":["Attractions"],"title":"Harajō Castle Ruins","summary":"Nagasaki","items":[{"name":"Harajō Castle Ruins","cat":"see","lat":32.62902,"lng":130.25417}]},
+  {"id":"vid-9d83b2217fe8aaa6","src":"vid","url":"https://maps.google.com/?cid=11350111342853401254","where":"Chugoku","what":["Nature and parks"],"title":"Saburo-iwa Rocks","summary":"Shimane","items":[{"name":"Saburo-iwa Rocks","cat":"nature","lat":36.12011,"lng":133.09591}]},
+  {"id":"vid-89fb0c3f229dcfbe","src":"vid","url":"https://maps.google.com/?cid=9942554067653742526","where":"Chugoku","what":["Nature and parks"],"title":"Rosoku-jima (Candle Island)","summary":"Shimane","items":[{"name":"Rosoku-jima (Candle Island)","cat":"nature","lat":36.31242,"lng":133.20967}]},
+  {"id":"vid-bb23dcd494e13c8b","src":"vid","url":"https://maps.google.com/?cid=13484864514866363531","where":"Tokyo","what":["Attractions"],"title":"The National Museum of Western Art","summary":"Tokyo","items":[{"name":"The National Museum of Western Art","cat":"see","lat":35.71539,"lng":139.77581}]},
+  {"id":"vid-432a4594b0c80298","src":"vid","url":"https://maps.google.com/?cid=4839757254486393496","where":"Around Tokyo","what":["Attractions"],"title":"Tomioka Silk Mill","summary":"Gunma","items":[{"name":"Tomioka Silk Mill","cat":"see","lat":36.25519,"lng":138.88758}]},
+  {"id":"vid-4451e9f50824e8f2","src":"vid","url":"https://maps.google.com/?cid=4922973106305558770","where":"Remote islands","what":["Nature and parks"],"title":"Ogasawara Islands","summary":"Tokyo (Ogasawara)","items":[{"name":"Ogasawara Islands","cat":"nature","lat":26.97628,"lng":141.69487}]},
+  {"id":"vid-ea7a370333c91ab","src":"vid","url":"https://maps.google.com/?cid=1055992339932942763","where":"Tohoku","what":["Attractions"],"title":"Hiraizumi","summary":"Iwate","items":[{"name":"Hiraizumi","cat":"see","lat":38.98661,"lng":141.11379}]},
+  {"id":"vid-ff954f9289139fce","src":"vid","url":"https://maps.google.com/?cid=18416713741985095630","where":"Chugoku","what":["Attractions"],"title":"Iwami Ginzan Silver Mine","summary":"Shimane","items":[{"name":"Iwami Ginzan Silver Mine","cat":"see","lat":35.11313,"lng":132.44374}]},
+  {"id":"vid-7bf7e79974f608de","src":"vid","url":"https://maps.google.com/?cid=8932863032190961886","where":"Hokkaido","what":["Nature and parks"],"title":"Cape Shiretoko","summary":"Hokkaidō","items":[{"name":"Cape Shiretoko","cat":"nature","lat":44.34518,"lng":145.32971}]},
+  {"id":"vid-cd388bfd3b0955d2","src":"vid","url":"https://maps.google.com/?cid=14787723296204477906","where":"Hokkaido","what":["Nature and parks"],"title":"Shiretoko National Park","summary":"Hokkaidō","items":[{"name":"Shiretoko National Park","cat":"nature","lat":44.15283,"lng":145.18678}]},
+  {"id":"vid-87be20166cf393fa","src":"vid","url":"https://maps.google.com/?cid=9781290721384567802","where":"Hokkaido","what":["Nature and parks"],"title":"Mount Rausu","summary":"Hokkaidō","items":[{"name":"Mount Rausu","cat":"nature","lat":44.07577,"lng":145.12211}]},
+  {"id":"vid-203830fb64904eb0","src":"vid","url":"https://maps.google.com/?cid=2321659464191594160","where":"Nara","what":["Nature and parks"],"title":"Yoshino-Kumano National Park","summary":"Nara","items":[{"name":"Yoshino-Kumano National Park","cat":"nature","lat":34.12377,"lng":135.9259}]},
+  {"id":"vid-a1dd2d6dd0f721c8","src":"vid","url":"https://maps.google.com/?cid=11663528559639994824","where":"Kansai","what":["Attractions"],"title":"Kumano Sansho Triad Shrine","summary":"Wakayama","items":[{"name":"Kumano Sansho Triad Shrine","cat":"see","lat":33.68511,"lng":135.34243}]},
+  {"id":"vid-b9352cdc0a832fcc","src":"vid","url":"https://maps.google.com/?cid=13345622394363129804","where":"Nara","what":["Attractions"],"title":"Yoshino Jingu","summary":"Nara","items":[{"name":"Yoshino Jingu","cat":"see","lat":34.38494,"lng":135.84534}]},
+  {"id":"vid-1bb62ba0a8da831c","src":"vid","url":"https://maps.google.com/?cid=1996831453813048092","where":"Chubu","what":["Attractions"],"title":"Gokayama","summary":"Toyama","items":[{"name":"Gokayama","cat":"see","lat":36.4261,"lng":136.93562}]},
+  {"id":"vid-761a328f7770ab48","src":"vid","url":"https://maps.google.com/?cid=8510170037635558216","where":"Tohoku","what":["Nature and parks"],"title":"Shirakami-Sanchi World Heritage Monument","summary":"Aomori","items":[{"name":"Shirakami-Sanchi World Heritage Monument","cat":"nature","lat":40.52224,"lng":140.17621}]},
+  {"id":"vid-c0899fbab29e4f8b","src":"vid","url":"https://maps.google.com/?cid=13873795751300976523","where":"Okinawa","what":["Attractions"],"title":"Shuri Castle","summary":"Okinawa","items":[{"name":"Shuri Castle","cat":"see","lat":26.21701,"lng":127.7195}]},
+  {"id":"vid-5e8b66c876cde430","src":"vid","url":"https://maps.google.com/?cid=6812651872500704304","where":"Kyushu","what":["Attractions"],"title":"Kumamoto Castle","summary":"Kumamoto","items":[{"name":"Kumamoto Castle","cat":"see","lat":32.80619,"lng":130.70583}]},
+  {"id":"vid-dfc26a521fe06464","src":"vid","url":"https://maps.google.com/?cid=16123566516894458980","where":"Chugoku","what":["Attractions"],"title":"Bitchu Matsuyama Castle","summary":"Okayama","items":[{"name":"Bitchu Matsuyama Castle","cat":"see","lat":34.80906,"lng":133.62191}]},
+  {"id":"vid-14102c41ce9afb3d","src":"vid","url":"https://maps.google.com/?cid=1445704141536688957","where":"Chugoku","what":["Attractions"],"title":"Matsue Castle","summary":"Shimane","items":[{"name":"Matsue Castle","cat":"see","lat":35.47513,"lng":133.05068}]},
+  {"id":"vid-285afa434603f635","src":"vid","url":"https://maps.google.com/?cid=2907911676265494069","where":"Chubu","what":["Attractions"],"title":"Inuyama Castle","summary":"Gifu","items":[{"name":"Inuyama Castle","cat":"see","lat":35.38836,"lng":136.93918}]},
+  {"id":"vid-ee2a210b78298c30","src":"vid","url":"https://maps.google.com/?cid=17161565663193041968","where":"Kansai","what":["Attractions"],"title":"Hikone Castle","summary":"Shiga","items":[{"name":"Hikone Castle","cat":"see","lat":35.27645,"lng":136.25185}]},
+  {"id":"vid-902d0e20fabcf654","src":"vid","url":"https://maps.google.com/?cid=10388975450222032468","where":"Chubu","what":["Attractions"],"title":"Matsumoto Castle","summary":"Nagano","items":[{"name":"Matsumoto Castle","cat":"see","lat":36.23865,"lng":137.96887}]},
+  {"id":"vid-35551ca0677af962","src":"vid","url":"https://maps.google.com/?cid=3843009332287043938","where":"Around Tokyo","what":["Nature and parks"],"title":"Sankeien Garden","summary":"Kanagawa","items":[{"name":"Sankeien Garden","cat":"nature","lat":35.41705,"lng":139.65883}]},
+  {"id":"vid-7648774313f66fe5","src":"vid","url":"https://maps.google.com/?cid=8523193424780095461","where":"Tokyo","what":["Nature and parks"],"title":"Rikugien Gardens","summary":"Tokyo","items":[{"name":"Rikugien Gardens","cat":"nature","lat":35.7331,"lng":139.74573}]},
+  {"id":"vid-71989ea099142834","src":"vid","url":"https://maps.google.com/?cid=8185466735346067508","where":"Nara","what":["Nature and parks"],"title":"Yoshikien Garden","summary":"Nara","items":[{"name":"Yoshikien Garden","cat":"nature","lat":34.68548,"lng":135.83631}]},
+  {"id":"vid-49e561a96b457078","src":"vid","url":"https://maps.google.com/?cid=5324769514712559736","where":"Kyoto","what":["Attractions"],"title":"Katsura Imperial Villa","summary":"Kyōto","items":[{"name":"Katsura Imperial Villa","cat":"see","lat":34.98399,"lng":135.70957}]},
+  {"id":"vid-aeecced5615bb0d5","src":"vid","url":"https://maps.google.com/?cid=12604676872959930581","where":"Kyoto","what":["Attractions"],"title":"Saihōji (Kokedera) Temple","summary":"Kyōto","items":[{"name":"Saihōji (Kokedera) Temple","cat":"see","lat":34.99218,"lng":135.68371}]},
+  {"id":"vid-1d7633952841b991","src":"vid","url":"https://maps.google.com/?cid=2122940990070307217","where":"Around Tokyo","what":["Nature and parks"],"title":"Kairakuen","summary":"Ibaraki","items":[{"name":"Kairakuen","cat":"nature","lat":36.37541,"lng":140.45383}]},
+  {"id":"vid-749df4f1143ab469","src":"vid","url":"https://maps.google.com/?cid=8403141796006900841","where":"Chugoku","what":["Nature and parks"],"title":"Okayama Korakuen","summary":"Okayama","items":[{"name":"Okayama Korakuen","cat":"nature","lat":34.66733,"lng":133.93617}]},
+  {"id":"vid-d11a5f0b379e6db7","src":"vid","url":"https://maps.google.com/?cid=15067460005103824311","where":"Tokyo","what":["Attractions"],"title":"Imperial Palace","summary":"Tokyo","items":[{"name":"Imperial Palace","cat":"see","lat":35.68518,"lng":139.7528}]},
+  {"id":"vid-d836abfffa0bad15","src":"vid","url":"https://maps.google.com/?cid=15579829076834888981","where":"Tokyo","what":["Nature and parks"],"title":"Kokyo Gaien National Garden","summary":"Tokyo","items":[{"name":"Kokyo Gaien National Garden","cat":"nature","lat":35.68012,"lng":139.75831}]},
+  {"id":"vid-dfa0dacae2e42000","src":"vid","url":"https://maps.google.com/?cid=16114120031656484864","where":"Tokyo","what":["Nature and parks"],"title":"Meiji Jingu Gaien Ginkgo Avenue","summary":"Tokyo","items":[{"name":"Meiji Jingu Gaien Ginkgo Avenue","cat":"nature","lat":35.67272,"lng":139.72057}]},
+  {"id":"vid-6a1eb1b5a117f287","src":"vid","url":"https://maps.google.com/?cid=7646744610971579015","where":"Tokyo","what":["Nature and parks"],"title":"Shinjuku Gyoen National Garden","summary":"Tokyo","items":[{"name":"Shinjuku Gyoen National Garden","cat":"nature","lat":35.68518,"lng":139.71005}]},
+  {"id":"vid-75bed992d897454f","src":"vid","url":"https://maps.google.com/?cid=8484457972734838095","where":"Kyoto","what":["Attractions"],"title":"Heian-jingū Shrine","summary":"Kyōto","items":[{"name":"Heian-jingū Shrine","cat":"see","lat":35.01598,"lng":135.78243}]},
+  {"id":"vid-3eb5fe90e52f01a5","src":"vid","url":"https://maps.google.com/?cid=4518797699409969573","where":"Nara","what":["Attractions"],"title":"Tachibana-dera","summary":"Nara","items":[{"name":"Tachibana-dera","cat":"see","lat":34.47011,"lng":135.81733}]},
+  {"id":"vid-a7f51dfe4d001f82","src":"vid","url":"https://maps.google.com/?cid=12102612551678828418","where":"Osaka","what":["Attractions"],"title":"Sumiyoshi Taisha","summary":"Ōsaka","items":[{"name":"Sumiyoshi Taisha","cat":"see","lat":34.61239,"lng":135.49376}]},
+  {"id":"vid-58795d299dc91f8b","src":"vid","url":"https://maps.google.com/?cid=6375229180841893771","where":"Kyushu","what":["Nature and parks"],"title":"Takachiho Gorge","summary":"Miyazaki","items":[{"name":"Takachiho Gorge","cat":"nature","lat":32.70128,"lng":131.30073}]},
+  {"id":"vid-4213af35552109d7","src":"vid","url":"https://maps.google.com/?cid=4761341874657102295","where":"Hiroshima","what":["Activities"],"title":"Shimanami Kaido Cycling Road","summary":"Hiroshima","items":[{"name":"Shimanami Kaido Cycling Road","cat":"do","lat":34.20093,"lng":133.07795}]},
+  {"id":"vid-2028e8c3b7504227","src":"vid","url":"https://maps.google.com/?cid=2317357935573877287","where":"Chugoku","what":["Attractions"],"title":"Adachi Museum of Art","summary":"Shimane","items":[{"name":"Adachi Museum of Art","cat":"see","lat":35.38045,"lng":133.19471}]},
+  {"id":"vid-3d5290c028823b40","src":"vid","url":"https://maps.google.com/?cid=4418753339391621952","where":"Chugoku","what":["Attractions"],"title":"Motonosumi Shrine","summary":"Yamaguchi","items":[{"name":"Motonosumi Shrine","cat":"see","lat":34.4197,"lng":131.06267}]},
+  {"id":"vid-11ce694116eb0dbe","src":"vid","url":"https://maps.google.com/?cid=1283078672125463998","where":"Chugoku","what":["Attractions"],"title":"Kurashiki Bikan Historical Quarter","summary":"Okayama","items":[{"name":"Kurashiki Bikan Historical Quarter","cat":"see","lat":34.59574,"lng":133.77177}]},
+  {"id":"vid-1ef3cff0eba044e9","src":"vid","url":"https://maps.google.com/?cid=2230354874130777321","where":"Chugoku","what":["Attractions"],"title":"The Sand Museum","summary":"Tottori","items":[{"name":"The Sand Museum","cat":"see","lat":35.53967,"lng":134.2384}]},
+  {"id":"vid-d76eab646cb0f519","src":"vid","url":"https://maps.google.com/?cid=15523533413401294105","where":"Chugoku","what":["Nature and parks"],"title":"Tottori Sand Dunes","summary":"Tottori","items":[{"name":"Tottori Sand Dunes","cat":"nature","lat":35.54153,"lng":134.22776}]},
+  {"id":"vid-8d0d9d544c1350c9","src":"vid","url":"https://maps.google.com/?cid=10163952919424225481","where":"Osaka","what":["Attractions"],"title":"Takeda Castle Ruins","summary":"Hyōgo","items":[{"name":"Takeda Castle Ruins","cat":"see","lat":35.30047,"lng":134.82905}]},
+  {"id":"vid-2e4d02421c94f114","src":"vid","url":"https://maps.google.com/?cid=3336325381922025748","where":"Around Tokyo","what":["Nature and parks"],"title":"Hitachi Seaside Park","summary":"Ibaraki","items":[{"name":"Hitachi Seaside Park","cat":"nature","lat":36.4015,"lng":140.60499}]},
+  {"id":"vid-4cd181f9f4b779e","src":"vid","url":"https://maps.google.com/?cid=345959270472972190","where":"Hokkaido","what":["Nature and parks"],"title":"Shirogane Blue Pond (Aoiike)","summary":"Hokkaidō","items":[{"name":"Shirogane Blue Pond (Aoiike)","cat":"nature","lat":43.49347,"lng":142.61421}]},
+  {"id":"vid-4ee07ad75699721","src":"vid","url":"https://maps.google.com/?cid=355229862189438753","where":"Hokkaido","what":["Attractions"],"title":"Otaru Canal","summary":"Hokkaidō","items":[{"name":"Otaru Canal","cat":"see","lat":43.19904,"lng":141.00212}]},
+  {"id":"vid-1838dbeed4fdc1f4","src":"vid","url":"https://maps.google.com/?cid=1745386674428166644","where":"Tohoku","what":["Nature and parks"],"title":"Fukuurajima","summary":"Miyagi","items":[{"name":"Fukuurajima","cat":"nature","lat":38.36669,"lng":141.07114}]},
+  {"id":"vid-8bdccd2d35d910f2","src":"vid","url":"https://maps.google.com/?cid=10078155660208967922","where":"Kyushu","what":["Attractions"],"title":"Beppu Jigoku (Hells of Beppu)","summary":"Ōita","items":[{"name":"Beppu Jigoku (Hells of Beppu)","cat":"see","lat":33.31588,"lng":131.46967}]},
+  {"id":"vid-8e6c816a9f4528e8","src":"vid","url":"https://maps.google.com/?cid=10262719945809144040","where":"Kyushu","what":["Nature and parks"],"title":"Aso Nakadake Crater","summary":"Kumamoto","items":[{"name":"Aso Nakadake Crater","cat":"nature","lat":32.88491,"lng":131.08493}]},
+  {"id":"vid-f8f3dcd6bdc48e4e","src":"vid","url":"https://maps.google.com/?cid=17938924555611704910","where":"Kyushu","what":["Nature and parks"],"title":"Kusasenrigahama","summary":"Kumamoto","items":[{"name":"Kusasenrigahama","cat":"nature","lat":32.88182,"lng":131.05333}]},
+  {"id":"vid-ece2b41e13dd4fe","src":"vid","url":"https://maps.google.com/?cid=1066837723685180670","where":"Kyushu","what":["Nature and parks"],"title":"Isshingyo Sakura Tree","summary":"Kumamoto","items":[{"name":"Isshingyo Sakura Tree","cat":"nature","lat":32.83579,"lng":131.05083}]},
+  {"id":"vid-374a44e66d271103","src":"vid","url":"https://maps.google.com/?cid=3984072576827068675","where":"Kyushu","what":["Nature and parks"],"title":"Mount Aso","summary":"Kumamoto","items":[{"name":"Mount Aso","cat":"nature","lat":32.89851,"lng":131.08748}]},
+  {"id":"vid-4628d4906523697a","src":"vid","url":"https://maps.google.com/?cid=5055524298360580474","where":"Kyushu","what":["Restaurants"],"title":"Ajifu Gyoza","summary":"Fukuoka","items":[{"name":"Ajifu Gyoza","cat":"eat","lat":33.58828,"lng":130.4009}]},
+  {"id":"vid-7f40778707648f98","src":"vid","url":"https://maps.google.com/?cid=9169460263154651032","where":"Shikoku","what":["Nature and parks"],"title":"Iya Valley","summary":"Tokushima","items":[{"name":"Iya Valley","cat":"nature","lat":33.88191,"lng":133.92851}]},
+  {"id":"vid-495638f7c3a2745","src":"vid","url":"https://maps.google.com/?cid=330279615597258565","where":"Shikoku","what":["Attractions"],"title":"Naoshima Island","summary":"Kagawa","items":[{"name":"Naoshima Island","cat":"see","lat":34.45742,"lng":133.98658}]},
+  {"id":"vid-87bc2c35315036f6","src":"vid","url":"https://maps.google.com/?cid=9780741097714104054","where":"Chubu","what":["Attractions"],"title":"Tsumago-juku","summary":"Nagano","items":[{"name":"Tsumago-juku","cat":"see","lat":35.57759,"lng":137.59567}]},
+  {"id":"vid-7d766e65361116fa","src":"vid","url":"https://maps.google.com/?cid=9040534682970691322","where":"Chubu","what":["Attractions"],"title":"Magome","summary":"Nagano","items":[{"name":"Magome","cat":"see","lat":35.53152,"lng":137.57175}]},
+  {"id":"vid-2fc40938920cdca8","src":"vid","url":"https://maps.google.com/?cid=3441886153791036584","where":"Chubu","what":["Nature and parks"],"title":"Kiso Valley","summary":"Nagano","items":[{"name":"Kiso Valley","cat":"nature","lat":35.69407,"lng":137.67771}]},
+  {"id":"vid-970a7b3df003f2e4","src":"vid","url":"https://maps.google.com/?cid=10883646955444237028","where":"Chubu","what":["Nature and parks"],"title":"Kenroku-en","summary":"Ishikawa","items":[{"name":"Kenroku-en","cat":"nature","lat":36.56213,"lng":136.66265}]},
+  {"id":"vid-ccc551bb9d5805f8","src":"vid","url":"https://maps.google.com/?cid=14755289620389823992","where":"Chubu","what":["Attractions"],"title":"Shirakawa-go","summary":"Gifu","items":[{"name":"Shirakawa-go","cat":"see","lat":36.2578,"lng":136.9062}]},
+  {"id":"vid-1b7d45c6cd92232e","src":"vid","url":"https://maps.google.com/?cid=1980816131267633966","where":"Chubu","what":["Attractions"],"title":"Takayama Old Town","summary":"Gifu","items":[{"name":"Takayama Old Town","cat":"see","lat":36.14301,"lng":137.25954}]},
+  {"id":"vid-11cd1c1adc7502bb","src":"vid","url":"https://maps.google.com/?cid=1282712370563842747","where":"Chubu","what":["Attractions"],"title":"Takayama Matsuri Yatai Kaikan","summary":"Gifu","items":[{"name":"Takayama Matsuri Yatai Kaikan","cat":"see","lat":36.14834,"lng":137.26012}]},
+  {"id":"vid-d6a4b260c226fc44","src":"vid","url":"https://maps.google.com/?cid=15466683148941065284","where":"Chubu","what":["Attractions"],"title":"Hida no Sato Folk Village Museum","summary":"Gifu","items":[{"name":"Hida no Sato Folk Village Museum","cat":"see","lat":36.13249,"lng":137.23509}]},
+  {"id":"vid-7025179c32b45b63","src":"vid","url":"https://maps.google.com/?cid=8080891066019240803","where":"Hokkaido","what":["Activities"],"title":"Hōheikyō Onsen","summary":"Hokkaidō","items":[{"name":"Hōheikyō Onsen","cat":"do","lat":42.94973,"lng":141.1564}]},
+  {"id":"vid-5e4f3a38ebfd5af9","src":"vid","url":"https://maps.google.com/?cid=6795714378877197049","where":"Tohoku","what":["Attractions"],"title":"Sendai Dai Kannon","summary":"Miyagi","items":[{"name":"Sendai Dai Kannon","cat":"see","lat":38.30065,"lng":140.82369}]},
+  {"id":"vid-7a8d8b7a7eeed95a","src":"vid","url":"https://maps.google.com/?cid=8830867802575264090","where":"Hokkaido","what":["Nature and parks"],"title":"Mount Yōtei","summary":"Hokkaidō","items":[{"name":"Mount Yōtei","cat":"nature","lat":42.82698,"lng":140.80682}]},
+  {"id":"vid-214b0812ea2c6be9","src":"vid","url":"https://maps.google.com/?cid=2399020103836134377","where":"Hokkaido","what":["Nature and parks"],"title":"Tsukiura Observatory","summary":"Hokkaidō","items":[{"name":"Tsukiura Observatory","cat":"nature","lat":42.58789,"lng":140.79061}]},
+  {"id":"vid-c7b5b02adcffbecc","src":"vid","url":"https://maps.google.com/?cid=14390601882475151052","where":"Hokkaido","what":["Nature and parks"],"title":"Noboribetsu Jigokudani Valley","summary":"Hokkaidō","items":[{"name":"Noboribetsu Jigokudani Valley","cat":"nature","lat":42.49762,"lng":141.14866}]},
+  {"id":"vid-ec8de2355b66d708","src":"vid","url":"https://maps.google.com/?cid=17045528883461805832","where":"Hokkaido","what":["Attractions"],"title":"Hokkaido Jingu","summary":"Hokkaidō","items":[{"name":"Hokkaido Jingu","cat":"see","lat":43.05433,"lng":141.30779}]},
+  {"id":"vid-e6cb236ed20e09e","src":"vid","url":"https://maps.google.com/?cid=1039401562992074910","where":"Hokkaido","what":["Nature and parks"],"title":"Odori Park","summary":"Hokkaidō","items":[{"name":"Odori Park","cat":"nature","lat":43.06075,"lng":141.35443}]},
+  {"id":"vid-1360c6faefc5e7cb","src":"vid","url":"https://maps.google.com/?cid=1396334665551701963","where":"Hokkaido","what":["Bars"],"title":"Sapporo Beer Museum","summary":"Hokkaidō","items":[{"name":"Sapporo Beer Museum","cat":"drink","lat":43.07147,"lng":141.36891}]},
+  {"id":"vid-c21e3cb8d40a0191","src":"vid","url":"https://maps.google.com/?cid=13987684257188413841","where":"Hokkaido","what":["Shopping"],"title":"Shiroi Koibito Park","summary":"Hokkaidō","items":[{"name":"Shiroi Koibito Park","cat":"shop","lat":43.08888,"lng":141.2717}]},
+  {"id":"vid-555564cf966f0209","src":"vid","url":"https://maps.google.com/?cid=6148931708989145609","where":"Hokkaido","what":["Activities"],"title":"Jozankei Onsen","summary":"Hokkaidō","items":[{"name":"Jozankei Onsen","cat":"do","lat":42.96607,"lng":141.16705}]},
+  {"id":"vid-f8d9c6772e893ec2","src":"vid","url":"https://maps.google.com/?cid=17931581606536494786","where":"Hokkaido","what":["Attractions"],"title":"Nibutani Ainu Culture Museum","summary":"Hokkaidō","items":[{"name":"Nibutani Ainu Culture Museum","cat":"see","lat":42.63695,"lng":142.1567}]},
+  {"id":"vid-475a8cd63e5590ed","src":"vid","url":"https://maps.google.com/?cid=5141576776393527533","where":"Hokkaido","what":["Attractions"],"title":"Akanko Ainu Kotan (Ainu Village)","summary":"Hokkaidō","items":[{"name":"Akanko Ainu Kotan (Ainu Village)","cat":"see","lat":43.43367,"lng":144.08985}]},
+  {"id":"vid-533a3a06e3d42315","src":"vid","url":"https://maps.google.com/?cid=5997169655063782165","where":"Hokkaido","what":["Attractions"],"title":"Ru Shiroishi (Ainu Cultural Information Corner)","summary":"Hokkaidō","items":[{"name":"Ru Shiroishi (Ainu Cultural Information Corner)","cat":"see","lat":43.76238,"lng":142.35934}]},
+  {"id":"vid-86a03e145e77dd6b","src":"vid","url":"https://maps.google.com/?cid=9700821854561230187","where":"Hokkaido","what":["Attractions"],"title":"Ainu Cultural Forest / Traditional Kotan Museum","summary":"Hokkaidō","items":[{"name":"Ainu Cultural Forest / Traditional Kotan Museum","cat":"see","lat":43.79192,"lng":142.30785}]},
+  {"id":"vid-81203d317e674480","src":"vid","url":"https://maps.google.com/?cid=9304504112930833536","where":"Hokkaido","what":["Attractions"],"title":"Kawamura Kaneto Ainu Memorial Museum","summary":"Hokkaidō","items":[{"name":"Kawamura Kaneto Ainu Memorial Museum","cat":"see","lat":43.78726,"lng":142.34384}]},
+  {"id":"vid-6976e94f685887fb","src":"vid","url":"https://maps.google.com/?cid=7599517948496611323","where":"Hokkaido","what":["Attractions"],"title":"Upopoy (National Ainu Museum and Park)","summary":"Hokkaidō","items":[{"name":"Upopoy (National Ainu Museum and Park)","cat":"see","lat":42.55779,"lng":141.36351}]},
+  {"id":"vid-45a6d77f4d8d2dba","src":"vid","url":"https://maps.google.com/?cid=5018935776512912826","where":"Hokkaido","what":["Attractions"],"title":"Sapporo Ainu Culture Promotion Center","summary":"Hokkaidō","items":[{"name":"Sapporo Ainu Culture Promotion Center","cat":"see","lat":42.96892,"lng":141.2198}]},
+  {"id":"vid-357228f7d0b5d590","src":"vid","url":"https://maps.google.com/?cid=3851185676178806160","where":"Hiroshima","what":["Attractions"],"title":"Itsukushima Jinja","summary":"Hiroshima","items":[{"name":"Itsukushima Jinja","cat":"see","lat":34.29599,"lng":132.31983}]},
+  {"id":"vid-63b2ab3547c84f6b","src":"vid","url":"https://maps.google.com/?cid=7183992600935288683","where":"Hiroshima","what":["Attractions"],"title":"Otorii (Great Torii, Miyajima)","summary":"Hiroshima","items":[{"name":"Otorii (Great Torii, Miyajima)","cat":"see","lat":34.29731,"lng":132.31813}]},
+  {"id":"vid-ea57285b8bda3c12","src":"vid","url":"https://maps.google.com/?cid=16886009701502434322","where":"Kyoto","what":["Attractions"],"title":"Mikami Shrine","summary":"Kyōto","items":[{"name":"Mikami Shrine","cat":"see","lat":35.01765,"lng":135.66974}]},
+  {"id":"vid-fadc07bbadaad0b3","src":"vid","url":"https://maps.google.com/?cid=18076331507012260019","where":"Nara","what":["Attractions"],"title":"Shoso-in Repository","summary":"Nara","items":[{"name":"Shoso-in Repository","cat":"see","lat":34.69184,"lng":135.83858}]},
+  {"id":"vid-94947dd82acc3d73","src":"vid","url":"https://maps.google.com/?cid=10706320581550947699","where":"Around Tokyo","what":["Shopping"],"title":"Yokohama Red Brick Warehouse","summary":"Kanagawa","items":[{"name":"Yokohama Red Brick Warehouse","cat":"shop","lat":35.45263,"lng":139.64289}]},
+  {"id":"vid-3661ef0a3534c8c7","src":"vid","url":"https://maps.google.com/?cid=3918675977910405319","where":"Around Tokyo","what":["Attractions"],"title":"Yokohama Landmark Tower","summary":"Kanagawa","items":[{"name":"Yokohama Landmark Tower","cat":"see","lat":35.45495,"lng":139.63139}]},
+  {"id":"vid-bb9ad3d40026f822","src":"vid","url":"https://maps.google.com/?cid=13518350138995046434","where":"Kyoto","what":["Attractions"],"title":"Kyoto Sento Imperial Palace","summary":"Kyōto","items":[{"name":"Kyoto Sento Imperial Palace","cat":"see","lat":35.02234,"lng":135.76513}]},
+  {"id":"vid-1f8b7a1904610955","src":"vid","url":"https://maps.google.com/?cid=2273044684804786517","where":"Kyoto","what":["Nature and parks"],"title":"Kyoto Gyoen National Garden","summary":"Kyōto","items":[{"name":"Kyoto Gyoen National Garden","cat":"nature","lat":35.02306,"lng":135.76345}]},
+  {"id":"vid-106b8759906a2f2f","src":"vid","url":"https://maps.google.com/?cid=1183188145859604271","where":"Kyoto","what":["Attractions"],"title":"Nijō Castle","summary":"Kyōto","items":[{"name":"Nijō Castle","cat":"see","lat":35.01404,"lng":135.74843}]},
+  {"id":"vid-ec2916eeff97bfd4","src":"vid","url":"https://maps.google.com/?cid=17017157882742292436","where":"Kyoto","what":["Attractions"],"title":"Kyoto Tower","summary":"Kyōto","items":[{"name":"Kyoto Tower","cat":"see","lat":34.98752,"lng":135.75925}]},
+  {"id":"vid-e94c9df615e2dbfc","src":"vid","url":"https://maps.google.com/?cid=16810985189321923580","where":"Nara","what":["Attractions"],"title":"Hōryū-ji","summary":"Nara","items":[{"name":"Hōryū-ji","cat":"see","lat":34.61472,"lng":135.73418}]},
+  {"id":"vid-f4590df74f4fb763","src":"vid","url":"https://maps.google.com/?cid=17607119574020372323","where":"Nara","what":["Attractions"],"title":"Ishibutai Kofun","summary":"Nara","items":[{"name":"Ishibutai Kofun","cat":"see","lat":34.46685,"lng":135.82615}]},
+  {"id":"vid-bb48a21800c17320","src":"vid","url":"https://maps.google.com/?cid=13495214507391284000","where":"Nara","what":["Attractions"],"title":"Asuka Palace Site","summary":"Nara","items":[{"name":"Asuka Palace Site","cat":"see","lat":34.47338,"lng":135.82111}]},
+  {"id":"vid-6806c669bdc1e24e","src":"vid","url":"https://maps.google.com/?cid=7495896787262235214","where":"Nara","what":["Attractions"],"title":"Asuka","summary":"Nara","items":[{"name":"Asuka","cat":"see","lat":34.47136,"lng":135.82065}]},
+  {"id":"vid-421c78a800f6a5cc","src":"vid","url":"https://maps.google.com/?cid=4763815168817145292","where":"Kyushu","what":["Nature and parks"],"title":"Imari Bay","summary":"Saga","items":[{"name":"Imari Bay","cat":"nature","lat":33.32744,"lng":129.84172}]},
+  {"id":"vid-c62706ef4eb65fb7","src":"vid","url":"https://maps.google.com/?cid=14278388768488972215","where":"Kyushu","what":["Nature and parks"],"title":"Hakata Bay","summary":"Fukuoka","items":[{"name":"Hakata Bay","cat":"nature","lat":33.62604,"lng":130.33339}]},
+  {"id":"vid-7b1fc47532da7d1a","src":"vid","url":"https://maps.google.com/?cid=8872025798586563866","where":"Around Tokyo","what":["Attractions"],"title":"Tatsunokuchi Execution Site","summary":"Kanagawa","items":[{"name":"Tatsunokuchi Execution Site","cat":"see","lat":35.31107,"lng":139.48934}]},
+  {"id":"vid-4b9a5da374f22049","src":"vid","url":"https://maps.google.com/?cid=5447769655881113673","where":"Around Tokyo","what":["Attractions"],"title":"Joryuji","summary":"Kanagawa","items":[{"name":"Joryuji","cat":"see","lat":35.31282,"lng":139.48828}]},
+  {"id":"vid-209870f7a4325303","src":"vid","url":"https://maps.google.com/?cid=2348751414587708163","where":"Kyushu","what":["Nature and parks"],"title":"Yakushima Island","summary":"Kagoshima","items":[{"name":"Yakushima Island","cat":"nature","lat":30.34459,"lng":130.51271}]},
+  {"id":"vid-bb8c7a215e6a0d74","src":"vid","url":"https://maps.google.com/?cid=13514310865568533876","where":"Chubu","what":["Attractions"],"title":"Higashi Chaya District","summary":"Ishikawa","items":[{"name":"Higashi Chaya District","cat":"see","lat":36.57258,"lng":136.66656}]},
+  {"id":"vid-42c4f7812324f544","src":"vid","url":"https://maps.google.com/?cid=4811242435950998852","where":"Chubu","what":["Attractions"],"title":"Toro Archaeological Site","summary":"Shizuoka","items":[{"name":"Toro Archaeological Site","cat":"see","lat":34.95636,"lng":138.40799}]},
+  {"id":"vid-59dd48402b9d5234","src":"vid","url":"https://maps.google.com/?cid=6475411279675478580","where":"Kyushu","what":["Attractions"],"title":"Yoshinogari Historical Park","summary":"Saga","items":[{"name":"Yoshinogari Historical Park","cat":"see","lat":33.32394,"lng":130.38876}]},
+  {"id":"vid-376f517c7e0ea968","src":"vid","url":"https://maps.google.com/?cid=3994500989633603944","where":"Chubu","what":["Attractions"],"title":"Togariishi Jomon Archaeological Museum","summary":"Nagano","items":[{"name":"Togariishi Jomon Archaeological Museum","cat":"see","lat":36.01343,"lng":138.23431}]},
+  {"id":"vid-b4735e96b5f8b9b9","src":"vid","url":"https://maps.google.com/?cid=13002840550539835833","where":"Tohoku","what":["Attractions"],"title":"Oyu Stone Circles","summary":"Akita","items":[{"name":"Oyu Stone Circles","cat":"see","lat":40.27164,"lng":140.80386}]},
+  {"id":"vid-72c2553057cf0b09","src":"vid","url":"https://maps.google.com/?cid=8269265531925629705","where":"Tohoku","what":["Attractions"],"title":"Sannai Maruyama Site","summary":"Aomori","items":[{"name":"Sannai Maruyama Site","cat":"see","lat":40.81059,"lng":140.69673}]},
+  {"id":"vid-ae371db0e3dbdea5","src":"vid","url":"https://maps.google.com/?cid=12553535131892833957","where":"Osaka","what":["Attractions"],"title":"Daisen-ryo Kofun","summary":"Ōsaka","items":[{"name":"Daisen-ryo Kofun","cat":"see","lat":34.56394,"lng":135.48748}]},
+  {"id":"vid-f5acdec701d76e0","src":"vid","url":"https://maps.google.com/?cid=1106423073849833184","where":"Nara","what":["Attractions"],"title":"Asuka-dera","summary":"Nara","items":[{"name":"Asuka-dera","cat":"see","lat":34.47862,"lng":135.82035}]},
+  {"id":"vid-aec80ccb211532fd","src":"vid","url":"https://maps.google.com/?cid=12594330424514523901","where":"Tokyo","what":["Attractions"],"title":"Fuji TV HACHITAMA observation sphere","summary":"Tokyo","items":[{"name":"Fuji TV HACHITAMA observation sphere","cat":"see","lat":35.62707,"lng":139.77466}]},
+  {"id":"vid-76ef7b50946f8ea6","src":"vid","url":"https://maps.google.com/?cid=8570204201927282342","where":"Shikoku","what":["Activities"],"title":"Dogo Onsen","summary":"Ehime","items":[{"name":"Dogo Onsen","cat":"do","lat":33.85207,"lng":132.78641}]},
+  {"id":"vid-1ec393b02d6bef4c","src":"vid","url":"https://maps.google.com/?cid=2216777826481991500","where":"Around Tokyo","what":["Attractions"],"title":"Kotoku-in (Great Buddha of Kamakura)","summary":"Kanagawa","items":[{"name":"Kotoku-in (Great Buddha of Kamakura)","cat":"see","lat":35.31682,"lng":139.53568}]},
+  {"id":"vid-de64f73a43bb9d83","src":"vid","url":"https://maps.google.com/?cid=16025205203707600259","where":"Hokkaido","what":["Nature and parks"],"title":"Path of White Shells","summary":"Hokkaidō","items":[{"name":"Path of White Shells","cat":"nature","lat":45.49147,"lng":141.89004}]},
+  {"id":"vid-fb573b8643d8fb31","src":"vid","url":"https://maps.google.com/?cid=18111009874343689009","where":"Hokkaido","what":["Nature and parks"],"title":"Cape Sōya","summary":"Hokkaidō","items":[{"name":"Cape Sōya","cat":"nature","lat":45.52294,"lng":141.93659}]},
+  {"id":"vid-ee0bf18f78f4f09b","src":"vid","url":"https://maps.google.com/?cid=17153069204282601627","where":"Remote islands","what":["Attractions"],"title":"Iwo Jima","summary":"Tokyo (Ogasawara)","items":[{"name":"Iwo Jima","cat":"see","lat":24.78757,"lng":141.31557}]},
+  {"id":"vid-35bb617286fdd1ef","src":"vid","url":"https://maps.google.com/?cid=3871795449174020591","where":"Okinawa","what":["Towns and areas"],"title":"Okinawa","summary":"Okinawa","items":[{"name":"Okinawa","cat":"other","lat":26.12019,"lng":127.7025}]},
+  {"id":"vid-46fc857a983dd19f","src":"vid","url":"https://maps.google.com/?cid=5115110038372733343","where":"Kyushu","what":["Nature and parks"],"title":"Mt. Inasa Overlook","summary":"Nagasaki","items":[{"name":"Mt. Inasa Overlook","cat":"nature","lat":32.75263,"lng":129.84955}]},
+  {"id":"vid-a6defa42e0235e9c","src":"vid","url":"https://maps.google.com/?cid=12024323220261002908","where":"Kyushu","what":["Attractions"],"title":"Atomic Bomb Hypocenter Monument","summary":"Nagasaki","items":[{"name":"Atomic Bomb Hypocenter Monument","cat":"see","lat":32.77374,"lng":129.86324}]},
+  {"id":"vid-a9dfcb1cb2a623e5","src":"vid","url":"https://maps.google.com/?cid=12240725636333052901","where":"Kyushu","what":["Attractions"],"title":"Fukuoka City Museum","summary":"Fukuoka","items":[{"name":"Fukuoka City Museum","cat":"see","lat":33.58979,"lng":130.35306}]},
+  {"id":"vid-c91f62ebee004301","src":"vid","url":"https://maps.google.com/?cid=14492410891351376641","where":"Hiroshima","what":["Nature and parks"],"title":"Itsukushima (Miyajima)","summary":"Hiroshima","items":[{"name":"Itsukushima (Miyajima)","cat":"nature","lat":34.27321,"lng":132.30525}]},
+  {"id":"vid-2605bd17ac977b26","src":"vid","url":"https://maps.google.com/?cid=2739803857702320934","where":"Around Tokyo","what":["Towns and areas"],"title":"Hakone","summary":"Kanagawa","items":[{"name":"Hakone","cat":"other","lat":35.23377,"lng":139.10885}]},
+  {"id":"vid-b7cb5bbf410fc5be","src":"vid","url":"https://maps.google.com/?cid=13243780006201509310","where":"Tokyo","what":["Shopping"],"title":"Don Quijote Akihabara","summary":"Tokyo","items":[{"name":"Don Quijote Akihabara","cat":"shop","lat":35.70073,"lng":139.77172}]},
+  {"id":"vid-40eaf934117f0a9c","src":"vid","url":"https://maps.google.com/?cid=4677825165004835484","where":"Tokyo","what":["Attractions"],"title":"Tokyo Skytree","summary":"Tokyo","items":[{"name":"Tokyo Skytree","cat":"see","lat":35.71005,"lng":139.81074}]},
+  {"id":"vid-a26e24a1bf97025c","src":"vid","url":"https://maps.google.com/?cid=11704332758705177180","where":"Tokyo","what":["Restaurants"],"title":"Tsukiji Outer Market","summary":"Tokyo","items":[{"name":"Tsukiji Outer Market","cat":"eat","lat":35.66477,"lng":139.77025}]},
+  {"id":"vid-481a93f0d2a409dd","src":"vid","url":"https://maps.google.com/?cid=5195627782660688349","where":"Tokyo","what":["Attractions"],"title":"Tokyo Tower","summary":"Tokyo","items":[{"name":"Tokyo Tower","cat":"see","lat":35.65858,"lng":139.74543}]},
+  {"id":"vid-137ff10ff7670de8","src":"vid","url":"https://maps.google.com/?cid=1405106659640413672","where":"Tokyo","what":["Attractions"],"title":"Rainbow Bridge Promenade","summary":"Tokyo","items":[{"name":"Rainbow Bridge Promenade","cat":"see","lat":35.63786,"lng":139.75911}]},
+  {"id":"vid-232fd618bd4977dd","src":"vid","url":"https://maps.google.com/?cid=2535480516976146397","where":"Tokyo","what":["Attractions"],"title":"Tokyo National Museum","summary":"Tokyo","items":[{"name":"Tokyo National Museum","cat":"see","lat":35.71884,"lng":139.77652}]},
+  {"id":"vid-2d7e490be8560647","src":"vid","url":"https://maps.google.com/?cid=3278137894263719495","where":"Tokyo","what":["Attractions"],"title":"Godzilla Head","summary":"Tokyo","items":[{"name":"Godzilla Head","cat":"see","lat":35.69505,"lng":139.70191}]},
+  {"id":"vid-71a5c0e1150c1a8f","src":"vid","url":"https://maps.google.com/?cid=8189163570396404367","where":"Tokyo","what":["Bars"],"title":"Shinjuku Golden-Gai","summary":"Tokyo","items":[{"name":"Shinjuku Golden-Gai","cat":"drink","lat":35.69411,"lng":139.70476}]},
+  {"id":"vid-3499ed0ca0a1edf9","src":"vid","url":"https://maps.google.com/?cid=3790321199899340281","where":"Tokyo","what":["Shopping"],"title":"Takeshita Street","summary":"Tokyo","items":[{"name":"Takeshita Street","cat":"shop","lat":35.67126,"lng":139.70468}]},
+  {"id":"vid-9a45c347f706db70","src":"vid","url":"https://maps.google.com/?cid=11116505969088453488","where":"Tokyo","what":["Towns and areas"],"title":"Shinagawa Station","summary":"Tokyo","items":[{"name":"Shinagawa Station","cat":"other","lat":35.62847,"lng":139.73876}]},
+  {"id":"vid-a6a1fcc916f3a4df","src":"vid","url":"https://maps.google.com/?cid=12007156022150145247","where":"Around Tokyo","what":["Nature and parks"],"title":"Mount Fuji","summary":"Yamanashi","items":[{"name":"Mount Fuji","cat":"nature","lat":35.36063,"lng":138.72736}]},
+  {"id":"vid-1b3493b0430734b2","src":"vid","url":"https://maps.google.com/?cid=1960354123061081266","where":"Kyoto","what":["Nature and parks"],"title":"Arashiyama Monkey Park Iwatayama","summary":"Kyōto","items":[{"name":"Arashiyama Monkey Park Iwatayama","cat":"nature","lat":35.0114,"lng":135.67662}]},
+  {"id":"vid-5e6fa133c7c13f12","src":"vid","url":"https://maps.google.com/?cid=6804834805746843410","where":"Kyoto","what":["Nature and parks"],"title":"Arashiyama","summary":"Kyōto","items":[{"name":"Arashiyama","cat":"nature","lat":35.00958,"lng":135.66634}]},
+  {"id":"vid-f890ac3f9dd53c8f","src":"vid","url":"https://maps.google.com/?cid=17911005107283377295","where":"Nara","what":["Attractions"],"title":"Tōdai-ji","summary":"Nara","items":[{"name":"Tōdai-ji","cat":"see","lat":34.68899,"lng":135.83982}]},
+  {"id":"vid-f96cacf357447456","src":"vid","url":"https://maps.google.com/?cid=17972930374069941334","where":"Nara","what":["Nature and parks"],"title":"Nara Park","summary":"Nara","items":[{"name":"Nara Park","cat":"nature","lat":34.68505,"lng":135.84301}]},
+  {"id":"vid-94fbfc3b6d00644c","src":"vid","url":"https://maps.google.com/?cid=10735451468929721420","where":"Chubu","what":["Towns and areas"],"title":"Gifu","summary":"Gifu","items":[{"name":"Gifu","cat":"other","lat":35.42342,"lng":136.76062}]},
+  {"id":"vid-f01d07d5ca11e41","src":"vid","url":"https://maps.google.com/?cid=1081374622389182017","where":"Osaka","what":["Attractions"],"title":"Osaka Castle","summary":"Ōsaka","items":[{"name":"Osaka Castle","cat":"see","lat":34.68726,"lng":135.52585}]},
+  {"id":"vid-57c2e32670decafd","src":"vid","url":"https://maps.google.com/?cid=6323866581023509245","where":"Osaka","what":["Attractions"],"title":"Umeda Sky Building","summary":"Ōsaka","items":[{"name":"Umeda Sky Building","cat":"see","lat":34.70529,"lng":135.48965}]},
+  {"id":"vid-b8bb1326b48ba590","src":"vid","url":"https://maps.google.com/?cid=13311254180582368656","where":"Osaka","what":["Attractions"],"title":"Dotonbori","summary":"Ōsaka","items":[{"name":"Dotonbori","cat":"see","lat":34.66872,"lng":135.5013}]},
+  {"id":"vid-7a4f8c2f6eba81b1","src":"vid","url":"https://maps.google.com/?cid=8813417131136418225","where":"Osaka","what":["Attractions"],"title":"Himeji Castle","summary":"Hyōgo","items":[{"name":"Himeji Castle","cat":"see","lat":34.83945,"lng":134.6939}]},
+  {"id":"vid-8df155c46fde6215","src":"vid","url":"https://maps.google.com/?cid=10228050530913903125","where":"Chubu","what":["Towns and areas"],"title":"Kanazawa","summary":"Ishikawa","items":[{"name":"Kanazawa","cat":"other","lat":36.55973,"lng":136.65204}]},
+  {"id":"vid-c7126106c2f670f4","src":"vid","url":"https://maps.google.com/?cid=14344634444797079796","where":"Osaka","what":["Towns and areas"],"title":"Kobe","summary":"Hyōgo","items":[{"name":"Kobe","cat":"other","lat":34.69104,"lng":135.19554}]},
+  {"id":"vid-e129ced5b9751665","src":"vid","url":"https://maps.google.com/?cid=16224726549913736805","where":"Hiroshima","what":["Attractions"],"title":"Peace Memorial Park, Hiroshima","summary":"Hiroshima","items":[{"name":"Peace Memorial Park, Hiroshima","cat":"see","lat":34.39269,"lng":132.4522}]},
+  {"id":"vid-6c0d289a8292810d","src":"vid","url":"https://maps.google.com/?cid=7785923974874169613","where":"Tokyo","what":["Attractions"],"title":"Sensō-ji","summary":"Tokyo","items":[{"name":"Sensō-ji","cat":"see","lat":35.71477,"lng":139.79666}]},
+  {"id":"vid-8fca893849103f73","src":"vid","url":"https://maps.google.com/?cid=10361244767556222835","where":"Tokyo","what":["Attractions"],"title":"Meiji Jingu","summary":"Tokyo","items":[{"name":"Meiji Jingu","cat":"see","lat":35.6764,"lng":139.69933}]},
+  {"id":"vid-20e563a2e0aec969","src":"vid","url":"https://maps.google.com/?cid=2370410330085837161","where":"Tokyo","what":["Attractions"],"title":"Shibuya Scramble Crossing","summary":"Tokyo","items":[{"name":"Shibuya Scramble Crossing","cat":"see","lat":35.65948,"lng":139.70056}]},
+  {"id":"vid-e1ab173e46d78542","src":"vid","url":"https://maps.google.com/?cid=16261116435795248450","where":"Kyoto","what":["Attractions"],"title":"Ryōan-ji","summary":"Kyōto","items":[{"name":"Ryōan-ji","cat":"see","lat":35.03449,"lng":135.71826}]},
+  {"id":"vid-c77ac89d5a241ae9","src":"vid","url":"https://maps.google.com/?cid=14374021738854095593","where":"Kyoto","what":["Attractions"],"title":"Yasaka Shrine","summary":"Kyōto","items":[{"name":"Yasaka Shrine","cat":"see","lat":35.00366,"lng":135.77855}]},
+  {"id":"vid-62af658650c434ba","src":"vid","url":"https://maps.google.com/?cid=7111013964196361402","where":"Kyoto","what":["Attractions"],"title":"Kiyomizu-dera","summary":"Kyōto","items":[{"name":"Kiyomizu-dera","cat":"see","lat":34.99467,"lng":135.78466}]},
+  {"id":"vid-ee4272b1c22645f","src":"vid","url":"https://maps.google.com/?cid=1073025677330113631","where":"Kyoto","what":["Attractions"],"title":"Kinkaku-ji","summary":"Kyōto","items":[{"name":"Kinkaku-ji","cat":"see","lat":35.03937,"lng":135.72924}]},
+  {"id":"vid-7b1aca1c753ae2e9","src":"vid","url":"https://maps.google.com/?cid=8870624639634301673","where":"Kyoto","what":["Attractions"],"title":"Fushimi Inari Taisha","summary":"Kyōto","items":[{"name":"Fushimi Inari Taisha","cat":"see","lat":34.96769,"lng":135.77919}]}
+];
+const SOURCES = {instagram: {label: 'From Instagram', sub: 'Saved posts with tips'}, vid: {label: 'Vid’s places', sub: 'From Vid’s Google Maps list'}};
+const ALL_IDEAS = [...IDEAS.map(d => ({src: 'instagram', ...d})), ...VID_IDEAS];
+
 // ═══ 5. SMALL HELPERS ═════════════════════════════════════════════════════════
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -670,7 +901,7 @@ function prefAt(x, y, tol = 0) {
 // ═══ 6. STATE AND SAVING ══════════════════════════════════════════════════════
 const LS_KEY = 'japanTripPlanV2', LS_OLD = 'japanTripPlanV1', LS_SYNC = `${LS_KEY}:sync:${TRIP_KEY}`;
 const UI_KEY = 'japanTripView';
-const view = {openPlaces: {}, page: 'plan', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
+const view = {openPlaces: {}, page: 'plan', ideaSrc: 'instagram', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
 const saveView = () => { try { localStorage.setItem(UI_KEY, JSON.stringify(view)); } catch {} };
 const ui = {openStop:null, openLeg:null, edit:false, day:1, showDay:false, playing:null, view:[0,0,MAP_W,MAP_H], pending:null};
 
@@ -1170,7 +1401,7 @@ function bookingsHTML(target, color) {
       </div></div>`; }).join('')}</div>`;
 }
 
-// ═══ 9b. INSTAGRAM IDEAS PAGE ═════════════════════════════════════════════════
+// ═══ 9b. IDEAS PAGE (Instagram finds and Vid's places) ═════════════════════════════════════════════════
 const normName = t => String(t || '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '');
 const ideaItems = d => d.items.length ? d.items : [{name: d.title, cat: d.cat || 'other', note: d.summary}];
 function inPlan(d, it) {
@@ -1180,37 +1411,63 @@ function inPlan(d, it) {
     return pn === n || (p.url === d.url && normName(p.name) === n) || m.some(x => x && pn.includes(x));
   }));
 }
+// Nearest stop to an idea with a map position, for sorting and the "near our stops" filter.
+function nearest(d) {
+  const it = d.items[0]; if (!it || it.lat == null) return null;
+  const r = rankStops(it.lat, it.lng)[0]; return r ? {s: r.s, km: r.km} : null;
+}
+const NEAR_KM = 60;
 function renderIdeas() {
   const hidden = new Set(trip.hiddenIdeas);
-  if (view.ideaWhat === '__hidden' && !hidden.size) view.ideaWhat = '';   // nothing left to show under Hidden
-  const showHidden = view.ideaWhat === '__hidden';
-  $('#ideas-count').textContent = ` ${IDEAS.filter(d => !hidden.has(d.id)).length}`;
+  if (!SOURCES[view.ideaSrc]) view.ideaSrc = 'instagram';
+  const base = ALL_IDEAS.filter(d => d.src === view.ideaSrc), hiddenHere = base.filter(d => hidden.has(d.id)).length;
+  if (view.ideaWhat === '__hidden' && !hiddenHere) view.ideaWhat = '';   // nothing left to show under Hidden
+  const showHidden = view.ideaWhat === '__hidden', isVid = view.ideaSrc === 'vid';
+  $('#ideas-count').textContent = ` ${ALL_IDEAS.filter(d => !hidden.has(d.id)).length}`;
   if (view.page !== 'ideas') return;
-  const wheres = [...new Set(IDEAS.map(d => d.where))], whats = [...new Set(IDEAS.flatMap(d => d.what))].sort();
+  $('#idea-src').innerHTML = Object.entries(SOURCES).map(([k, v]) => `<button data-action="idea-src" data-v="${k}" aria-pressed="${k === view.ideaSrc}">
+      <b>${esc(v.label)} (${ALL_IDEAS.filter(d => d.src === k && !hidden.has(d.id)).length})</b><small>${esc(v.sub)}</small></button>`).join('');
+  const near = new Map(base.map(d => [d.id, nearest(d)]));
+  const ORDER = ['Hokkaido', 'Tohoku', 'Tokyo', 'Around Tokyo', 'Mt Fuji', 'Chubu', 'Japanese Alps', 'Kyoto', 'Kyoto–Osaka', 'Osaka', 'Nara', 'Kansai', 'Hiroshima', 'Chugoku', 'Shikoku', 'Kyushu', 'Okinawa', 'Remote islands', 'Anywhere'];
+  const wheres = [...new Set(base.map(d => d.where))].sort((x, y) => ORDER.indexOf(x) - ORDER.indexOf(y)), whats = [...new Set(base.flatMap(d => d.what))].sort();
+  if (view.ideaWhere && view.ideaWhere !== '__near' && !wheres.includes(view.ideaWhere)) view.ideaWhere = '';
+  if (view.ideaWhat && view.ideaWhat !== '__hidden' && !whats.includes(view.ideaWhat)) view.ideaWhat = '';
   const chip = (group, v, label, on) => `<button class="chip" data-action="idea-filter" data-g="${group}" data-v="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
-  $('#idea-where').innerHTML = '<span class="chip-lbl">Where</span>' + chip('where', '', 'All', !view.ideaWhere) + wheres.map(w => chip('where', w, w === 'Anywhere' ? 'Anywhere in Japan' : w, view.ideaWhere === w)).join('');
+  $('#idea-where').innerHTML = '<span class="chip-lbl">Where</span>' + chip('where', '', 'All', !view.ideaWhere)
+    + (isVid ? chip('where', '__near', `Near our stops (${base.filter(d => !hidden.has(d.id) && near.get(d.id)?.km <= NEAR_KM).length})`, view.ideaWhere === '__near') : '')
+    + wheres.map(w => chip('where', w, w === 'Anywhere' ? 'Anywhere in Japan' : w, view.ideaWhere === w)).join('');
   $('#idea-what').innerHTML = '<span class="chip-lbl">What</span>' + chip('what', '', 'All', !view.ideaWhat) + whats.map(w => chip('what', w, w, view.ideaWhat === w)).join('')
-    + (hidden.size ? chip('what', '__hidden', `Hidden (${hidden.size})`, showHidden) : '');
+    + (hiddenHere ? chip('what', '__hidden', `Hidden (${hiddenHere})`, showHidden) : '');
   const q = normName($('#idea-q').value);
-  const list = IDEAS.filter(d => (showHidden ? hidden.has(d.id) : !hidden.has(d.id))
-    && (!view.ideaWhere || d.where === view.ideaWhere)
+  const list = base.filter(d => (showHidden ? hidden.has(d.id) : !hidden.has(d.id))
+    && (!view.ideaWhere || (view.ideaWhere === '__near' ? near.get(d.id)?.km <= NEAR_KM : d.where === view.ideaWhere))
     && (!view.ideaWhat || showHidden || d.what.includes(view.ideaWhat))
     && (!q || normName([d.title, d.summary, d.user, d.where, ...d.what, ...d.items.map(i => i.name)].join(' ')).includes(q)));
+  if (isVid) list.sort((x, y) => (near.get(x.id)?.km ?? 1e9) - (near.get(y.id)?.km ?? 1e9));   // closest to the route first
   const added = list.reduce((n, d) => n + ideaItems(d).filter(it => inPlan(d, it)).length, 0);
+  const from = isVid ? 'from Vid’s list, closest to your stops first' : 'from saved Instagram posts';
   $('#ideas-sum').textContent = list.length
-    ? `${list.length} idea${list.length > 1 ? 's' : ''} from saved Instagram posts${added ? `, ${added} already in the plan` : ''}. Press + to add one to a stop.`
+    ? `${list.length} idea${list.length > 1 ? 's' : ''} ${from}${added ? `, ${added} already in the plan` : ''}. Press + to add one to a stop.`
     : showHidden ? 'No hidden ideas.' : 'No ideas match. Try another filter.';
-  $('#idea-grid').innerHTML = list.map(d => `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">
-      <div class="idea-tags"><span class="where">📍 ${esc(d.where === 'Anywhere' ? 'Anywhere in Japan' : d.where)}</span>${d.what.map(w => `<span>${esc(w)}</span>`).join('')}</div>
+  const plusOrIn = (d, it, j) => inPlan(d, it) ? '<span class="inplan">In plan ✓</span>'
+    : `<button class="plus" data-action="idea-add" data-id="${d.id}" data-j="${j}" aria-label="Add ${esc(it.name)} to the plan">+</button>`;
+  $('#idea-grid').innerHTML = list.map(d => {
+    const n = near.get(d.id), tags = `<div class="idea-tags"><span class="where">📍 ${esc(d.where === 'Anywhere' ? 'Anywhere in Japan' : d.where)}</span>${d.what.map(w => `<span>${esc(w)}</span>`).join('')}</div>`;
+    const hideBtn = `<button class="hide" data-action="idea-hide" data-id="${d.id}">${hidden.has(d.id) ? 'Unhide' : 'Hide'}</button>`;
+    if (d.src === 'vid') return `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">${tags}
+      <h3>${catOf(d.items[0].cat).icon} ${esc(d.title)}</h3>
+      <ul class="idea-items"><li><span class="near">${esc(d.summary)}${n ? ` · ${n.km < 1 ? 'under 1' : Math.round(n.km)} km from ${esc(n.s.name)}` : ''}</span>${plusOrIn(d, d.items[0], 0)}</li></ul>
+      <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">Open in Google Maps</a><span>Vid’s list</span>${hideBtn}</footer>
+    </article>`;
+    return `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">${tags}
       <h3>${esc(d.title)}</h3>
       <p>${esc(d.summary)}</p>
       <ul class="idea-items">${ideaItems(d).map((it, j) => `<li>
-        <span>${catOf(it.cat).icon} ${esc(it.name)}${it.side ? ' <em class="side">Side trip</em>' : ''}</span>
-        ${inPlan(d, it) ? '<span class="inplan">In plan ✓</span>'
-          : `<button class="plus" data-action="idea-add" data-id="${d.id}" data-j="${j}" aria-label="Add ${esc(it.name)} to the plan">+</button>`}</li>`).join('')}</ul>
+        <span>${catOf(it.cat).icon} ${esc(it.name)}${it.side ? ' <em class="side">Side trip</em>' : ''}</span>${plusOrIn(d, it, j)}</li>`).join('')}</ul>
       <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">@${esc(d.user)} on Instagram</a>${d.also ? `<a href="${esc(safeUrl(d.also))}" target="_blank" rel="noopener">repost</a>` : ''}<span>${esc(d.date)}</span>
-        <button class="hide" data-action="idea-hide" data-id="${d.id}">${hidden.has(d.id) ? 'Unhide' : 'Hide'}</button></footer>
-    </article>`).join('');
+        ${hideBtn}</footer>
+    </article>`;
+  }).join('');
 }
 function setPage(page) {
   view.page = page; saveView();
@@ -1379,14 +1636,17 @@ const ACTIONS = {
     setTimeout(() => { if (!trip.bookings.some(x => x.fileId === b.fileId)) FILES.del(b.fileId).catch(e => console.warn(e)); }, 9000);
   },
   'idea-filter': d => { view[d.g === 'where' ? 'ideaWhere' : 'ideaWhat'] = d.v; saveView(); renderIdeas(); },
+  'idea-src': d => { if (view.ideaSrc !== d.v) { view.ideaSrc = d.v; view.ideaWhere = view.ideaWhat = ''; $('#idea-q').value = ''; saveView(); } renderIdeas(); },
   'idea-add': d => {
-    const idea = IDEAS.find(x => x.id === d.id), it = ideaItems(idea)[+d.j];
-    fillPlaceDialog({name: it.name, url: idea.url, lat: it.lat ?? null, lng: it.lng ?? null, approx: it.approx, side: it.side},
-      {stop: WHERE_STOP[it.where || idea.where], cat: it.cat, note: `${it.note || idea.summary} (via @${idea.user})`,
-       info: `From @${idea.user}. Filed under ${byId(WHERE_STOP[it.where || idea.where])?.name || 'your first stop'} — change the stop if needed.`});
+    const idea = ALL_IDEAS.find(x => x.id === d.id), it = ideaItems(idea)[+d.j];
+    const place = {name: it.name, url: idea.url, lat: it.lat ?? null, lng: it.lng ?? null, approx: it.approx, side: it.side};
+    if (idea.src === 'vid') return fillPlaceDialog(place, {cat: it.cat, note: 'Recommended by Vid'});   // exact position: nearest stop is suggested
+    const stopId = stopForWhere(it.where || idea.where);
+    fillPlaceDialog(place, {stop: stopId, cat: it.cat, note: `${it.note || idea.summary} (via @${idea.user})`,
+       info: `From @${idea.user}. ${byId(stopId) ? `Filed under ${byId(stopId).name}` : 'Pick a stop for it'} — change it if needed.`});
   },
   'idea-hide': d => {
-    const idea = IDEAS.find(x => x.id === d.id), was = trip.hiddenIdeas.includes(d.id);
+    const idea = ALL_IDEAS.find(x => x.id === d.id), was = trip.hiddenIdeas.includes(d.id);
     undoable(was ? `Showing ${idea.title} again.` : `Hid ${idea.title}.`, () => { trip.hiddenIdeas = was ? trip.hiddenIdeas.filter(x => x !== d.id) : [...trip.hiddenIdeas, d.id]; });
   },
 };
@@ -1530,10 +1790,12 @@ async function runChecks() {
   const CAT_SAMPLES = [['Park Hyatt Tokyo','stay'],['Diggers Bar','drink'],['Ichiran Ramen Dotonbori','eat'],['Kinkaku-ji','see'],['Nara Park','nature'],['Churaumi Aquarium','do'],['Kuoe Kyoto','shop'],['% Arabica coffee','cafe']];
   const miss = CAT_SAMPLES.filter(([n, c]) => classify(n, '') !== c);
   add(miss.length ? 'fail' : 'pass', 'Places are sorted into categories correctly', miss.length ? miss.map(([n, c]) => `${n}: got ${classify(n, '')}, expected ${c}`).join('; ') : `${CAT_SAMPLES.length} examples tested`);
-  const badIdeas = IDEAS.filter(d => !WHERE_STOP[d.where] || ideaItems(d).some(it => !CATS.some(c => c.id === it.cat)));
-  add(badIdeas.length ? 'fail' : 'pass', 'Instagram ideas are tagged and filed', badIdeas.length ? badIdeas.map(d => d.title).join(', ') : `${IDEAS.length} ideas`);
-  const missing = [...new Set(Object.values(WHERE_STOP))].filter(id => !byId(id));
-  add(missing.length ? 'warn' : 'pass', 'Instagram ideas have a stop to go to', missing.length ? `no stop called ${missing.join(', ')} — those ideas will default to the first stop` : '');
+  const placed = it => it.lat != null && inJapan(it.lat, it.lng);
+  const badIdeas = ALL_IDEAS.filter(d => !SOURCES[d.src] || !d.where || (!WHERE_STOP[d.where] && !ideaItems(d).every(placed)) || ideaItems(d).some(it => !CATS.some(c => c.id === it.cat)));
+  add(badIdeas.length ? 'fail' : 'pass', 'Ideas are tagged and filed', badIdeas.length ? badIdeas.map(d => d.title).join(', ') : `${IDEAS.length} from Instagram, ${VID_IDEAS.length} from Vid`);
+  add(new Set(ALL_IDEAS.map(d => d.id)).size === ALL_IDEAS.length ? 'pass' : 'fail', 'Every idea has its own id');
+  const homeless = [...new Set(IDEAS.filter(d => !ideaItems(d).every(placed)).map(d => d.where))].filter(w => !stopForWhere(w));
+  add(homeless.length ? 'warn' : 'pass', 'Ideas have a stop to go to', homeless.length ? `no stop for ${homeless.join(', ')} yet — those ideas ask you to pick one` : '');
   const targets = new Set(trip.stops.flatMap((s, i) => [`stop:${s.id}`, ...(i ? [`leg:${s.id}`] : [])]));
   const loose = trip.bookings.filter(b => !targets.has(b.attach));
   add(loose.length ? 'fail' : 'pass', 'Bookings are attached to the trip', loose.length ? loose.map(b => b.title).join(', ') : `${trip.bookings.length} booking${trip.bookings.length === 1 ? '' : 's'}`);

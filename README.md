@@ -74,6 +74,7 @@ Three options, simplest first:
 - **Add a place:** in Google Maps, Share → copy link, then paste it into *Add a place* (or anywhere on the page). It's filed under the nearest stop; you can change the stop and add a note. Notes show in the stop's panel and can be edited there.
 - **New stop:** paste a Maps link for the town and choose *New stop at this place*. Use **Edit stops** to reorder, rename or remove.
 - **Bookings:** click the travel line between two stops to add flight or train details. Lines on the map turn solid once something is booked.
+- **Ideas:** the *Ideas* tab has two sets — tips from saved Instagram posts, and Vid's places from his Google Maps list (Japan only, sorted closest to your stops first, with a *Near our stops* filter). Press **+** to add one to a stop, or **Hide** to rule it out for everyone.
 - **Checks:** the header button runs the built-in checks (map placement, dates vs bookings, saving, sync). It turns amber or red if something needs a look.
 - **Getting Claude to change it:** press **Copy plan** and paste the text into a chat with Claude, then ask for the change. You'll get back an updated `index.html` to upload over the old one. **Load plan** pastes plan text back in.
 
