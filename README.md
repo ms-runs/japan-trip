@@ -75,6 +75,7 @@ Three options, simplest first:
 - **New stop:** paste a Maps link for the town and choose *New stop at this place*. Use **Edit stops** to reorder, rename or remove.
 - **Bookings:** click the travel line between two stops to add flight or train details. Lines on the map turn solid once something is booked.
 - **Ideas:** the *Ideas* tab has two sets — tips from saved Instagram posts, and Vid's places from his Google Maps list (Japan only, sorted closest to your stops first, with a *Near our stops* filter). Press **+** to add one to a stop, or **Hide** to rule it out for everyone.
+- **Proposals:** suggested route changes to review together. The tab lists what would change (stops added or dropped, nights, travel, new things to do) and the map shows the proposed route over the current one. **Accept and update the plan** applies it for everyone; saved places, notes and bookings stay with their stops. **Undo** on the same tab puts the earlier plan back. **Not now** sets it aside. New proposals are added in `PROPOSALS` in `index.html`.
 - **Checks:** the header button runs the built-in checks (map placement, dates vs bookings, saving, sync). It turns amber or red if something needs a look.
 - **Getting Claude to change it:** press **Copy plan** and paste the text into a chat with Claude, then ask for the change. You'll get back an updated `index.html` to upload over the old one. **Load plan** pastes plan text back in.
 

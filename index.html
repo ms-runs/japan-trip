@@ -157,6 +157,49 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 .ideas{display:none;flex:1;min-height:0;overflow-y:auto;padding:18px clamp(12px,3vw,32px) 40px}
 body[data-page=ideas] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}   /* kept laid out so map checks still work */
 body[data-page=ideas] .ideas{display:block}
+/* Proposals: the map stays, the sidebar swaps for the review panel */
+.prop-panel{display:none}
+body[data-page=changes] .app > .sidebar:not(.prop-panel){display:none}
+body[data-page=changes] .prop-panel{display:block}
+body[data-page=changes] .playbar{display:none}
+.prop-panel{padding:16px 16px 40px;background:var(--paper)}
+.prop-empty{color:var(--muted);font-size:13px;padding:8px 0}
+.prop{display:flex;flex-direction:column;gap:14px}
+.prop-kicker{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prop-state{font-size:10.5px;letter-spacing:.04em;padding:2px 8px;border-radius:99px;background:#fdf1d8;color:#7a5200}
+.prop-state[data-s=accepted]{background:#dcefe2;color:var(--ok)}
+.prop-state[data-s=dismissed]{background:var(--paper2);color:var(--muted)}
+.prop h2{font:600 21px/1.25 'Shippori Mincho',serif;text-wrap:balance}
+.prop p{font-size:13px;line-height:1.5;color:#403a35}
+.prop ul.why{display:flex;flex-direction:column;gap:5px;padding-left:16px;font-size:12.5px;color:#403a35;line-height:1.45}
+.prop-totals{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:9px;font-size:12.5px}
+.prop-totals b{font:600 15px 'Shippori Mincho',serif}
+.prop-totals .delta{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:#fdf1d8;color:#7a5200}
+.prop-totals .delta.down{background:#dcefe2;color:var(--ok)}
+.prop-view{display:flex;gap:2px;background:var(--paper2);border-radius:7px;padding:3px;align-self:flex-start}
+.prop-view button{border:0;background:none;border-radius:5px;padding:4px 12px;font-size:12px;color:var(--muted)}
+.prop-view button[aria-pressed=true]{background:#fff;color:var(--ink);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cmp h3,.prop h3{font:600 11px 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.cmp ol{list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+.cmp li{display:grid;grid-template-columns:10px 1fr auto;gap:6px;align-items:baseline;min-width:0}
+.cmp li i{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.cmp li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp li em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px}
+.cmp li.gone span{text-decoration:line-through;color:var(--muted)}
+.cmp li.new span{font-weight:600}
+.chg{list-style:none;display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.chg li{display:grid;grid-template-columns:22px 1fr;gap:2px 8px;padding:8px 10px;background:#fff;font-size:12.5px;line-height:1.4}
+.chg li > b{grid-row:span 2;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--paper2);color:var(--ink)}
+.chg li[data-k=add] > b{background:#dcefe2;color:var(--ok)}
+.chg li[data-k=remove] > b{background:#fbe1dd;color:var(--bad)}
+.chg li[data-k=warn] > b{background:#fdf1d8;color:var(--warn)}
+.chg li small{grid-column:2;color:var(--muted);font-size:11.5px}
+.prop-note{font-size:12px;color:var(--muted);line-height:1.45}
+.prop-actions{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(transparent,var(--paper) 30%)}
+.prop-actions button{padding:9px 16px;border-radius:7px;border:1px solid var(--line2);background:#fff;font-weight:500}
+.prop-actions .primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.prop-actions .primary:hover{background:#163c66}
 .ideas-bar{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;max-width:1200px}
 .src-switch{display:flex;gap:6px;flex-wrap:wrap}
 .src-switch button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 14px;min-width:170px;text-align:left}
@@ -224,6 +267,7 @@ body[data-page=ideas] .ideas{display:block}
   <nav class="tabs" aria-label="Pages">
     <button data-action="page" data-v="plan" aria-pressed="true">Plan</button>
     <button data-action="page" data-v="ideas" aria-pressed="false">Ideas<small id="ideas-count"></small></button>
+    <button data-action="page" data-v="changes" aria-pressed="false">Proposals<small id="prop-count"></small></button>
   </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
@@ -256,6 +300,7 @@ body[data-page=ideas] .ideas{display:block}
     <div id="stops"></div>
     <button class="add-stop" data-action="add-stop">+ Add a stop</button>
   </aside>
+  <aside class="sidebar prop-panel" id="prop-panel" aria-label="Proposed changes to the plan"></aside>
 
   <main class="map">
     <div class="playbar">
@@ -919,6 +964,7 @@ function normalize(t) {
     if (i === 0) delete s.leg; else s.leg = {...leg('train'), ...(s.leg || {})};
   });
   t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= []; t.bookings ||= [];
+  if (!t.proposals || typeof t.proposals !== 'object' || Array.isArray(t.proposals)) t.proposals = {};   // {id: {status, at, previous}}
   const targets = new Set(t.stops.flatMap((s, i) => [`stop:${s.id}`, ...(i ? [`leg:${s.id}`] : [])]));
   t.bookings.forEach(b => { if (!targets.has(b.attach)) b.attach = `stop:${t.stops[0].id}`; });   // its stop was removed
   return t;
@@ -1469,28 +1515,217 @@ function renderIdeas() {
     </article>`;
   }).join('');
 }
+// ═══ 9c. PROPOSALS — suggested changes the group reviews, then accepts ═══════
+// A proposal lists the stops in their new order. Existing stops are named by id and keep
+// their saved places, notes and bookings; only what's listed changes (nights, the travel
+// into the stop, extra things to do). New stops are given in full; stops in `remove` go.
+// A stop someone adds after the proposal was written is kept, after the stop it followed.
+// Accepting writes the result into the shared plan, and keeps the plan from before in
+// trip.proposals[id].previous so it can be undone from the Proposals tab.
+const VID = 'From Vid’s pitch';
+const PROPOSALS = [{
+  id: 'vid-route-2026-10', by: 'Vid', date: '22 Oct 2026',
+  title: 'Vid’s route: Hokkaido, Kansai, the Alps, then Tokyo',
+  summary: 'From Vid’s pitch for the trip. About a week in Hokkaido, fly south to Kansai, work back east through the Japanese Alps, and finish in Tokyo. It leaves out Tōhoku. The order follows Japanese history: the Ainu, the ancient capitals, the samurai towns, then modern Tokyo.',
+  why: [
+    'Hokkaido gets a proper week: a few nights in Sapporo, then a south-west loop by car (skiing at Niseko or Rusutsu, Lake Toya, Noboribetsu, the national Ainu museum) that ends near the airport.',
+    'Kansai gets 8 nights, so there’s room for day trips: Himeji and Kobe, Hiroshima and Miyajima.',
+    'On the way back east: Takayama, Shirakawa-go, Kanazawa and the snow monkeys, then the shinkansen to Tokyo.',
+    'Vid’s own caveat: it’s slightly too long and doesn’t include everyone’s wishlists yet, so expect to trim it.',
+  ],
+  remove: ['tohoku'],
+  order: [
+    {id: 'tokyo1'},
+    {id: 'sapporo', nights: 3, add: [{label: VID, items: [
+      it('Cape Sōya: 2-day trip to the northern tip, via Asahikawa and the Blue Pond', ['view']),
+      it('Wildcard: stay in Akan Ainu Kotan village', ['culture']),
+      it('Wildcard: Abashiri sea ice, icebreakers and the −20° sea-ice room', ['nature'])]}]},
+    {stop: mkStop('niseko', 'Niseko and the south-west loop', 'Hokkaidō: Niseko, Lake Toya, Noboribetsu', 42.8048, 140.6874, '#1a5a38', 4, ['JP01'],
+      leg('car', '1h 45m', 'Pick up a rental car in Sapporo. Via Jozankei onsen, then the loop: Niseko, Lake Toya, Noboribetsu and Shiraoi, ending near New Chitose airport.'),
+      [{label: 'Ski and onsen', items: [it('Ski Niseko or Rusutsu, both known for powder', ['sport'], true), it('Jozankei onsen town', ['nature']),
+        it('Noboribetsu Hell Valley and onsen', ['nature', 'view'], true), it('Lake Toya', ['view'])]},
+       {label: 'Ainu culture', items: [it('Upopoy, the national Ainu museum in Shiraoi', ['culture'], true)]}],
+      'Vid: driving is far more practical than public transport here, and the loop finishes close to New Chitose for the flight south.')},
+    {id: 'kyoto', nights: 3, leg: leg('flight', 'about 2h + 1h 15m train', 'Fly New Chitose (CTS) to Kansai (KIX) or Osaka Itami (ITM), then the Haruka express or an airport bus to Kyoto'),
+      add: [{label: VID, items: [it('Kiyomizu-dera', ['temple'], true), it('Nijō Castle and its nightingale floors', ['castle'], true),
+        it('Ryōan-ji rock garden', ['temple']), it('Sanjūsangen-dō: 1,001 Buddha statues', ['temple']), it('Sentō Imperial Palace gardens', ['park']),
+        it('Book early: geisha tea ceremony, a night in a ryokan, a kaiseki dinner', ['culture', 'eat'], true)]}]},
+    {id: 'nara', add: [{label: VID, items: [it('Hōryū-ji: the world’s oldest wooden buildings (607 CE)', ['temple'], true),
+      it('Asuka, the first capital, if there’s time', ['culture'])]}]},
+    {id: 'osaka', add: [{label: VID, items: [it('Hiroshima and Miyajima: Peace Memorial, Atomic Bomb Dome, the floating torii', ['culture'], true),
+      it('Shitennō-ji, one of Japan’s oldest temples', ['temple']), it('Mozu Kofun burial mounds', ['culture']),
+      it('Wildcards: Naoshima art island, Tottori sand dunes, Ise Grand Shrine', ['culture'])]}]},
+    {stop: mkStop('takayama', 'Takayama', 'Chūbu: Gero, Takayama', 36.1461, 137.2522, '#4a2888', 1, ['JP21'],
+      leg('train', 'about 3h 30m', 'Shinkansen to Nagoya, then the Hida limited express via Gero (break the journey for Gero onsen)'),
+      [{label: 'Plan', items: [it('Sanmachi Suji Edo-era old town and morning markets', ['culture'], true), it('Sake brewery tastings', ['bar']),
+        it('A5 Hida beef', ['beef', 'eat'], true), it('Gero onsen on the way in', ['nature'])]}],
+      'Hida beef comes from here. Vid reckons it’s as good as Kobe beef and cheaper, but it’s rarely exported.')},
+    {id: 'chubu', leg: leg('bus', 'about 2h 15m', 'Nōhi bus via Shirakawa-go: stop off to walk the village, then carry on to Kanazawa')},
+    {id: 'lz551qjz', leg: leg('shinkansen', 'about 2h 30m', 'Hokuriku Shinkansen from Kanazawa to Nagano, then the Nagaden train and bus to Yudanaka for the monkey park'),
+      add: [{label: VID, items: [it('Snow monkeys bathing at Jigokudani', ['nature'], true), it('Zenkō-ji in Nagano: find the key in the pitch-black corridor', ['temple'])]}]},
+    {id: 'tokyo2', leg: leg('shinkansen', 'about 2h 30m', 'Back to Nagano, then the Hokuriku Shinkansen to Tokyo (about 1h 30m)'),
+      add: [{label: VID, items: [it('Kamakura: the first shogun’s capital, and a giant Buddha you can go inside', ['temple'], true),
+        it('Hakone: Ōwakudani Boiling Valley by cable car, black eggs', ['nature']), it('Atami seaside onsen town', ['nature']),
+        it('Mt Fuji views, if the January clouds allow', ['view'])]}]},
+  ],
+}];
+const proposalState = P => trip.proposals[P.id]?.status || 'open';
+const nightsWord = n => `${n} night${n === 1 ? '' : 's'}`;
+const sumNights = t => t.stops.reduce((a, s) => a + s.nights, 0);
+
+// The plan as it would be with P accepted (a copy; the real plan is untouched), plus warnings.
+function proposedTrip(P, base = trip) {
+  const t = structuredClone(base), have = new Map(t.stops.map(s => [s.id, s])), warn = [], out = [];
+  const listed = new Set(P.order.map(e => e.id || e.stop.id));
+  for (const e of P.order) {
+    const fresh = e.stop && !have.has(e.stop.id), s = fresh ? structuredClone(e.stop) : have.get(e.id || e.stop.id);
+    if (!s) continue;                                                     // removed from the plan since: skip it
+    const want = e.stop && !fresh ? {...e.stop, add: []} : e;
+    if (want.nights) s.nights = want.nights;
+    if (want.leg && out.length) {
+      if (!fresh && isBooked(s.leg)) warn.push(`Travel into ${s.name} is already booked, so it was kept. Check it still makes sense in the new order.`);
+      else s.leg = structuredClone(want.leg);
+    }
+    for (const sec of want.add || []) {
+      const have = new Set(s.sections.flatMap(x => x.items.map(i => normName(i.text)))), items = sec.items.filter(i => !have.has(normName(i.text)));
+      if (!items.length) continue;
+      const same = s.sections.find(x => x.label === sec.label);
+      same ? same.items.push(...structuredClone(items)) : s.sections.push({label: sec.label, items: structuredClone(items)});
+    }
+    out.push(s);
+  }
+  t.stops.forEach((s, i) => {
+    if (listed.has(s.id) || P.remove.includes(s.id)) return;
+    const prev = t.stops.slice(0, i).reverse().find(p => out.includes(p));
+    out.splice(prev ? out.indexOf(prev) + 1 : 0, 0, s);
+  });
+  t.stops = out;
+  t.bookings.filter(b => b.attach.startsWith('leg:') && P.order.some(e => e.leg && `leg:${e.id}` === b.attach))
+    .forEach(b => warn.push(`${b.title} is attached to travel that changes. Check it after accepting.`));
+  return {t: normalize(t), warn};
+}
+
+// Indices of one longest run of a[] that is already in increasing order (stops that didn't move).
+function steadyRun(a) {
+  const len = a.map(() => 1), prev = a.map(() => -1);
+  a.forEach((v, i) => { for (let j = 0; j < i; j++) if (a[j] < v && len[j] + 1 > len[i]) { len[i] = len[j] + 1; prev[i] = j; } });
+  const keep = new Set(); for (let i = len.indexOf(Math.max(0, ...len)); i >= 0; i = prev[i]) keep.add(i);
+  return keep;
+}
+// What would change, in plain words, going from plan a to plan b.
+function planChanges(a, b, warn = []) {
+  const A = new Map(a.stops.map((s, i) => [s.id, {s, i}])), B = new Map(b.stops.map((s, i) => [s.id, {s, i}])), rows = [];
+  const row = (k, icon, text, sub = '') => rows.push({k, icon, text, sub});
+  a.stops.forEach(s => { if (!B.has(s.id)) row('remove', '−', `Drop ${s.name}, ${nightsWord(s.nights)}`,
+    [s.region, s.places.length ? `its ${s.places.length} saved places go with it` : ''].filter(Boolean).join(' · ')); });
+  b.stops.forEach(s => { if (!A.has(s.id)) row('add', '+', `Add ${s.name}, ${nightsWord(s.nights)}`, s.region); });
+  const kept = b.stops.filter(s => A.has(s.id)), steady = steadyRun(kept.map(s => A.get(s.id).i));
+  kept.forEach((s, j) => { if (!steady.has(j)) { const before = b.stops[B.get(s.id).i - 1]; row('move', '↕', `Move ${s.name} to after ${before ? before.name : 'the start'}`); } });
+  kept.forEach(s => { const n = A.get(s.id).s.nights; if (n !== s.nights) row('nights', '☾', `${s.name}: ${n} → ${nightsWord(s.nights)}`); });
+  b.stops.forEach((s, i) => {
+    if (!i) return;
+    const was = A.get(s.id), from = b.stops[i - 1], L = s.leg, m = MODES[L.mode] || MODES.train;
+    if (was && was.i > 0 && a.stops[was.i - 1].id === from.id && ['mode', 'est', 'notes'].every(k => was.s.leg[k] === L[k])) return;
+    row('leg', m.icon, `${from.name} to ${s.name}: ${m.label.toLowerCase()}${L.est ? `, ${L.est}` : ''}`, L.notes);
+  });
+  b.stops.forEach(s => {
+    const was = A.get(s.id); if (!was) return;
+    const old = new Set(was.s.sections.flatMap(x => x.items.map(i => i.text))), added = s.sections.flatMap(x => x.items).filter(i => !old.has(i.text));
+    if (added.length) row('adds', '★', `${s.name}: ${added.length} thing${added.length > 1 ? 's' : ''} to do added`, added.map(i => i.text).join(' · '));
+  });
+  warn.forEach(w => row('warn', '!', w));
+  return rows;
+}
+const dateRange = n => { const a = dateAt(0), b = dateAt(n); return a ? `${fmt(a)} – ${fmt(b)}` : ''; };
+const stopList = (t, other, cls) => `<ol>${t.stops.map(s => `<li class="${other.stops.some(o => o.id === s.id) ? '' : cls}" style="--c:${esc(s.color)}">
+    <i></i><span title="${esc(s.name)}">${esc(s.name)}</span><em>${s.nights}</em></li>`).join('')}</ol>`;
+
+function renderProposals() {
+  const open = PROPOSALS.filter(P => proposalState(P) === 'open').length;
+  $('#prop-count').textContent = open ? ` ${open}` : '';
+  ui.preview = null;
+  if (view.page !== 'changes') return;
+  if (!PROPOSALS.length) { $('#prop-panel').innerHTML = '<p class="prop-empty">No proposals to review right now.</p>'; return; }
+  $('#prop-panel').innerHTML = PROPOSALS.map(P => {
+    const st = proposalState(P), rec = trip.proposals[P.id] || {}, done = st === 'accepted';
+    const {t: next, warn} = done ? {t: trip, warn: []} : proposedTrip(P);
+    const a = done && rec.previous ? {stops: rec.previous.stops} : trip, b = done ? trip : next;
+    if (!done && st === 'open' && view.propShow !== 'now') ui.preview = next;
+    const na = sumNights(a), nb = sumNights(b), d = nb - na, when = rec.at ? fmt(new Date(rec.at)) : '';
+    const totals = `<div class="prop-totals"><span>${done ? 'Before' : 'Now'} <b>${nightsWord(na)}</b>${trip.startDate ? `, ${dateRange(na)}` : ''}</span>
+      <span>${done ? 'After' : 'Proposed'} <b>${nightsWord(nb)}</b>${trip.startDate ? `, ${dateRange(nb)}` : ''}</span>
+      ${d ? `<span class="delta${d < 0 ? ' down' : ''}">${d > 0 ? '+' : '−'}${nightsWord(Math.abs(d))}</span>` : ''}</div>`;
+    const rows = planChanges(a, b, warn);
+    const actions = st === 'open'
+      ? `<button class="primary" data-action="prop-accept" data-id="${P.id}">Accept and update the plan</button><button data-action="prop-dismiss" data-id="${P.id}">Not now</button>`
+      : st === 'dismissed' ? `<button data-action="prop-reopen" data-id="${P.id}">Review again</button>`
+      : rec.previous ? `<button data-action="prop-undo" data-id="${P.id}">Undo: go back to the plan from before</button>` : '';
+    const stateText = {open: 'To review', accepted: `Accepted ${when}`, dismissed: `Set aside ${when}`}[st];
+    return `<article class="prop">
+      <div class="prop-kicker">Proposal from ${esc(P.by)} · ${esc(P.date)}<span class="prop-state" data-s="${st}">${esc(stateText)}</span></div>
+      <h2>${esc(P.title)}</h2>
+      <p>${esc(P.summary)}</p>
+      <ul class="why">${P.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>
+      ${totals}
+      ${st === 'open' ? `<div class="prop-view" role="group" aria-label="What the map shows">
+        <button data-action="prop-show" data-v="proposed" aria-pressed="${view.propShow !== 'now'}">Map: proposed route</button>
+        <button data-action="prop-show" data-v="now" aria-pressed="${view.propShow === 'now'}">Current plan</button></div>` : ''}
+      <div class="cmp"><div><h3>${done ? 'Before' : 'Current plan'}</h3>${stopList(a, b, 'gone')}</div><div><h3>${done ? 'Now' : 'Proposed'}</h3>${stopList(b, a, 'new')}</div></div>
+      <div><h3>${done ? 'What changed' : 'What would change'} (${rows.length})</h3>
+        <ul class="chg">${rows.map(r => `<li data-k="${r.k}"><b aria-hidden="true">${esc(r.icon)}</b><span>${esc(r.text)}</span>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</li>`).join('')}</ul></div>
+      <p class="prop-note">${done
+        ? 'The plan now follows this route. Undo puts back the stops from before accepting; anything changed in the stops since then is lost.'
+        : `Accepting updates the plan${REMOTE ? ' for everyone with the share link' : ''}. Saved places, notes and bookings stay with their stops. You can undo it here afterwards.`}</p>
+      <div class="prop-actions">${actions}</div>
+    </article>`;
+  }).join('<hr style="border:0;border-top:1px solid var(--line);margin:22px 0">');
+}
+function acceptProposal(id) {
+  const P = PROPOSALS.find(x => x.id === id); if (!P || proposalState(P) !== 'open') return;
+  if (!confirm(`Accept “${P.title}”?${REMOTE ? ' This changes the plan for everyone sharing it.' : ''} You can undo it from the Proposals tab.`)) return;
+  const before = JSON.stringify(trip), {t} = proposedTrip(P);
+  trip.proposals[P.id] = {status: 'accepted', at: new Date().toISOString(), previous: {stops: structuredClone(trip.stops), bookings: structuredClone(trip.bookings)}};
+  trip.stops = t.stops; trip.bookings = t.bookings;
+  ui.openStop = ui.openLeg = null; ui.showDay = false;
+  save(); setPage('plan'); renderAll(); fitAll();
+  toast(`Accepted. The plan now follows ${P.by}’s route.`, () => { trip = normalize(JSON.parse(before)); save(); renderAll(); fitAll(); toast('Restored.'); });
+}
+function undoProposal(id) {
+  const rec = trip.proposals[id]; if (!rec?.previous) return;
+  if (!confirm(`Go back to the plan from before this proposal was accepted?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Changes made to the stops since then will be lost.`)) return;
+  undoable('The plan is back to how it was before.', () => { trip.stops = rec.previous.stops; trip.bookings = rec.previous.bookings || trip.bookings; delete trip.proposals[id]; });
+  fitAll();
+}
+const shownTrip = () => (view.page === 'changes' && ui.preview) || trip;
+
 function setPage(page) {
   view.page = page; saveView();
   document.body.dataset.page = page;
   $$('.tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === page));
-  if (page === 'plan') renderMap(); else renderIdeas();
+  if (page === 'ideas') return renderIdeas();
+  renderProposals(); renderMap();
+  if (page === 'changes') fitShown();
 }
+const fitShown = () => setView(viewAround([...shownTrip().stops, ...(shownTrip() === trip ? [] : trip.stops)].map(s => project(s.lat, s.lng)), MAP_W*.5));
 
 // ═══ 10. MAP ══════════════════════════════════════════════════════════════════
 function renderLand() {
-  const byPref = {}; trip.stops.forEach(s => s.prefIds.forEach(id => byPref[id] = s));
+  const T = shownTrip(), preview = T !== trip, focus = preview ? null : ui.openStop;
+  const byPref = {}; T.stops.forEach(s => s.prefIds.forEach(id => byPref[id] = s));
   $$('#land path').forEach(p => {
-    const s = byPref[p.id], pct = !s ? 0 : ui.openStop ? (ui.openStop === s.id ? 55 : 18) : 32;
+    const s = byPref[p.id], pct = !s ? 0 : focus ? (focus === s.id ? 55 : 18) : 32;
     p.style.fill = s ? `color-mix(in srgb, ${s.color} ${pct}%, var(--land))` : '';
   });
-  const used = [...new Set(trip.stops.slice(1).map(s => s.leg.mode))];
-  $('#legend').innerHTML = used.map(k => `<span><i style="background:${MODES[k].color}"></i>${MODES[k].icon} ${MODES[k].label}</span>`).join('')
-    + '<span><i class="dot"></i>Saved place (ring: approximate)</span><span style="color:var(--muted)">Dashed lines: not booked yet</span>';
+  const used = [...new Set(T.stops.slice(1).map(s => s.leg.mode))];
+  $('#legend').innerHTML = (preview ? '<span><b>Showing the proposed route</b></span>' : '')
+    + used.map(k => `<span><i style="background:${MODES[k].color}"></i>${MODES[k].icon} ${MODES[k].label}</span>`).join('')
+    + (preview ? '<span><i style="background:repeating-linear-gradient(90deg,#7d746b 0 4px,transparent 4px 7px)"></i>Current route</span>'
+               : '<span><i class="dot"></i>Saved place (ring: approximate)</span><span style="color:var(--muted)">Dashed lines: not booked yet</span>');
 }
 // Where each pin is drawn: its true spot, nudged outward if it would cover an earlier pin.
-function pinPositions(k) {
+function pinPositions(k, T = shownTrip()) {
   const placed = [];
-  return trip.stops.map(s => {
+  return T.stops.map(s => {
     const [tx, ty] = project(s.lat, s.lng); let x = tx, y = ty;
     for (let t = 0; t < 30 && placed.some(([px, py]) => Math.hypot(px - x, py - y) < 20*k); t++) {
       const a = t*2.4, r = 20*k*(1 + t/6); x = tx + Math.cos(a)*r; y = ty + Math.sin(a)*r;
@@ -1502,9 +1737,12 @@ function pinPositions(k) {
 function renderOverlay() {
   const svg = $('#map'); svg.setAttribute('viewBox', ui.view.join(' '));
   const k = Math.max(ui.view[2]/(svg.clientWidth || MAP_W), ui.view[3]/(svg.clientHeight || MAP_H)), pos = pinPositions(k);  // map units per screen pixel
-  let routes = '';
-  for (let i = 1; i < trip.stops.length; i++) {
-    const L = trip.stops[i].leg, m = MODES[L.mode] || MODES.train, a = pos[i - 1], b = pos[i], booked = isBooked(L);
+  const T = shownTrip(), preview = T !== trip;
+  let routes = preview   // the current route, faint, under the proposed one
+    ? `<path d="M${trip.stops.map(s => project(s.lat, s.lng).join(' ')).join('L')}" fill="none" stroke="#7d746b" stroke-width="${1.8*k}" stroke-dasharray="${4*k} ${3*k}" stroke-linejoin="round" opacity=".55"/>`
+    : '';
+  for (let i = 1; i < T.stops.length; i++) {
+    const L = T.stops[i].leg, m = MODES[L.mode] || MODES.train, a = pos[i - 1], b = pos[i], booked = isBooked(L);
     const bend = L.mode === 'flight' ? 0.2 : 0, cx = (a.x + b.x)/2 - (b.y - a.y)*bend, cy = (a.y + b.y)/2 + (b.x - a.x)*bend;
     const mx = (a.x + 2*cx + b.x)/4, my = (a.y + 2*cy + b.y)/4, deg = Math.atan2(b.y - a.y, b.x - a.x)*180/Math.PI;
     const dash = booked ? 'none' : L.mode === 'ferry' ? `${3*k} ${4*k}` : `${7*k} ${5*k}`;
@@ -1519,7 +1757,7 @@ function renderOverlay() {
   const taken = [];
   const fits = (x, y, w, h) => { if (taken.some(b => x < b[2] && x + w > b[0] && y < b[3] && y + h > b[1])) return false; taken.push([x, y, x + w, y + h]); return true; };
   pos.forEach(p => fits(p.x - 11*k, p.y - 11*k, 22*k, 22*k));   // keep labels off the stop pins
-  $('#places').innerHTML = trip.stops.flatMap(s => s.places.filter(p => p.lat != null).map(p => {
+  $('#places').innerHTML = preview ? '' : trip.stops.flatMap(s => s.places.filter(p => p.lat != null).map(p => {
     const [x, y] = project(p.lat, p.lng), label = `${catOf(p.cat).icon} ${p.name}`;
     const showLabel = k < 0.12 && fits(x + 7*k, y - 7*k, (label.length*6 + 6)*k, 14*k);
     return `<g data-sid="${s.id}" data-tip="${esc(label)} (${esc(s.name)})${p.approx ? ', approximate location' : ''}">`
@@ -1528,9 +1766,9 @@ function renderOverlay() {
       + (showLabel ? `<text x="${x + 8*k}" y="${y}" font-size="${11*k}" font-weight="500" dominant-baseline="central" fill="#1c1917" stroke="#fff" stroke-width="${3*k}" paint-order="stroke">${esc(label)}</text>` : '') + '</g>';
   })).join('');
 
-  const info = ui.showDay ? dayInfo(ui.day) : null;
-  $('#pins').innerHTML = trip.stops.map((s, i) => {
-    const p = pos[i], active = ui.openStop === s.id, r = (active ? 11 : 9)*k, moved = Math.hypot(p.x - p.tx, p.y - p.ty) > 1;
+  const info = ui.showDay && !preview ? dayInfo(ui.day) : null;
+  $('#pins').innerHTML = T.stops.map((s, i) => {
+    const p = pos[i], active = !preview && ui.openStop === s.id, r = (active ? 11 : 9)*k, moved = Math.hypot(p.x - p.tx, p.y - p.ty) > 1;
     return `<g data-sid="${s.id}" data-tip="${i + 1}. ${esc(s.name)}, ${s.nights} night${s.nights > 1 ? 's' : ''}">
       ${moved ? `<line x1="${p.tx}" y1="${p.ty}" x2="${p.x}" y2="${p.y}" stroke="${esc(s.color)}" stroke-width="${1.2*k}"/><circle cx="${p.tx}" cy="${p.ty}" r="${2.2*k}" fill="${esc(s.color)}"/>` : ''}
       <circle cx="${p.x + k}" cy="${p.y + 2*k}" r="${r}" fill="rgba(0,0,0,.2)"/>
@@ -1602,7 +1840,7 @@ function togglePlay() {
 }
 
 // ═══ 12. ACTIONS AND EVENTS ═══════════════════════════════════════════════════
-function renderAll() { renderHeader(); renderStops(); renderMap(); renderPlayback(); renderIdeas(); }
+function renderAll() { renderHeader(); renderStops(); renderProposals(); renderMap(); renderPlayback(); renderIdeas(); }
 const byId = id => trip.stops.find(s => s.id === id);
 
 const ACTIONS = {
@@ -1626,6 +1864,11 @@ const ACTIONS = {
   'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = normalize(structuredClone(DEFAULT_TRIP)); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
   'checks': () => showChecks(),
   'page': d => setPage(d.v),
+  'prop-show': d => { view.propShow = d.v; saveView(); renderProposals(); renderMap(); fitShown(); },
+  'prop-accept': d => acceptProposal(d.id),
+  'prop-dismiss': d => { const P = PROPOSALS.find(x => x.id === d.id); undoable(`Set aside “${P.title}”. It stays in the Proposals tab.`, () => { trip.proposals[P.id] = {status: 'dismissed', at: new Date().toISOString()}; }); },
+  'prop-reopen': d => undoable('Back on the list to review.', () => { delete trip.proposals[d.id]; }),
+  'prop-undo': d => undoProposal(d.id),
   'bk-open': d => openBookingFile(d.id),
   'bk-copy': d => { const b = trip.bookings.find(x => x.id === d.id); navigator.clipboard.writeText(b.ref).then(() => toast(`Copied ${b.ref}.`), () => toast(`Reference: ${b.ref}`)); },
   'bk-edit': d => fillBookingDialog(structuredClone(trip.bookings.find(x => x.id === d.id))),
@@ -1722,7 +1965,7 @@ svgEl.addEventListener('mousemove', e => {
 });
 svgEl.addEventListener('mouseleave', () => { tipEl.classList.remove('on'); hoverSid = null; $$('.stop.hover').forEach(el => el.classList.remove('hover')); });
 svgEl.addEventListener('click', e => {
-  const sid = e.target.closest('[data-sid]')?.dataset.sid; if (!sid) return;
+  const sid = e.target.closest('[data-sid]')?.dataset.sid; if (!sid || shownTrip() !== trip) return;   // previewing a proposal: nothing to open
   ui.openStop = sid; renderStops(); renderMap(); zoomToStop(sid);
   document.querySelector(`.stop[data-sid="${sid}"]`)?.scrollIntoView({block:'nearest', behavior:'smooth'});
 });
@@ -1853,7 +2096,7 @@ renderAll();
 ui.view = clampView(viewAround(trip.stops.map(s => project(s.lat, s.lng)), MAP_W*.5)); renderOverlay();
 setStatus(REMOTE ? 'saving' : 'local', REMOTE ? 'Connecting…' : undefined);
 if (REMOTE) initRemote(); else mergeSeeds();
-setPage(view.page === 'ideas' ? 'ideas' : 'plan');
+setPage(['ideas', 'changes'].includes(view.page) ? view.page : 'plan');
 runChecks().then(R => $('#checks-btn').dataset.state = checksState(R));
 </script>
 </body>
