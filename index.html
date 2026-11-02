@@ -157,6 +157,24 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 .ideas{display:none;flex:1;min-height:0;overflow-y:auto;padding:18px clamp(12px,3vw,32px) 40px}
 body[data-page=ideas] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}   /* kept laid out so map checks still work */
 body[data-page=ideas] .ideas{display:block}
+/* Pre-trip checklist: full page, shared with everyone on the plan */
+.checklist{display:none;flex:1;min-height:0;overflow-y:auto;padding:22px clamp(16px,3vw,32px) 48px}
+body[data-page=checklist] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}
+body[data-page=checklist] .checklist{display:block}
+.ck-wrap{max-width:640px;margin:0 auto}
+.ck-wrap h2{font-size:20px;margin:0 0 4px}
+.ck-sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.ck-progress{height:6px;border-radius:99px;background:rgba(0,0,0,.08);overflow:hidden;margin-bottom:18px}
+.ck-progress span{display:block;height:100%;background:var(--ok);transition:width .2s}
+.ck-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ck-item{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:start;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:9px;padding:10px 12px}
+.ck-item input[type=checkbox]{width:18px;height:18px;margin:2px 0 0;accent-color:var(--ok)}
+.ck-item .ck-text{font-weight:500;font-size:14px;border:0;background:none;padding:0;width:100%;font:inherit;font-weight:500}
+.ck-item .ck-note{grid-column:2;font-size:12.5px;color:var(--muted);border:0;background:none;padding:0;width:100%;font:inherit;font-size:12.5px;resize:vertical;line-height:1.4;field-sizing:content;min-height:1.4em}
+.ck-item.done .ck-text{text-decoration:line-through;color:var(--muted)}
+.ck-item .x{opacity:.5}.ck-item .x:hover{opacity:1}
+.ck-add{display:flex;gap:8px;margin-top:14px}
+.ck-add input{flex:1}
 /* Proposals: the map stays, the sidebar swaps for the review panel */
 .prop-panel{display:none}
 body[data-page=changes] .app > .sidebar:not(.prop-panel){display:none}
@@ -268,6 +286,7 @@ body[data-page=changes] .playbar{display:none}
     <button data-action="page" data-v="plan" aria-pressed="true">Plan</button>
     <button data-action="page" data-v="ideas" aria-pressed="false">Ideas<small id="ideas-count"></small></button>
     <button data-action="page" data-v="changes" aria-pressed="false">Proposals<small id="prop-count"></small></button>
+    <button data-action="page" data-v="checklist" aria-pressed="false">Checklist<small id="ck-count"></small></button>
   </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
@@ -372,6 +391,7 @@ body[data-page=changes] .playbar{display:none}
   </main>
 </div>
 
+<section class="checklist" id="checklist" aria-label="Pre-trip checklist"></section>
 <section class="ideas" id="ideas" aria-label="Ideas to add to the trip">
   <div class="ideas-bar">
     <div class="src-switch" id="idea-src" role="group" aria-label="Whose ideas"></div>
@@ -944,6 +964,11 @@ function prefAt(x, y, tol = 0) {
 }
 
 // ═══ 6. STATE AND SAVING ══════════════════════════════════════════════════════
+// Starting items for the pre-trip checklist (only used when a plan has no checklist yet).
+const CHECKLIST_START = [
+  {id: 'ck-cash', text: 'Cash (yen)', note: 'Plenty of places are still cash-only. 7-Eleven and post office ATMs take foreign cards.', done: false},
+  {id: 'ck-suica', text: 'Suica card', note: 'Add one to your phone’s wallet before flying, or buy a card on arrival. Top it up for trains, buses and konbini.', done: false},
+];
 const LS_KEY = 'japanTripPlanV2', LS_OLD = 'japanTripPlanV1', LS_SYNC = `${LS_KEY}:sync:${TRIP_KEY}`;
 const UI_KEY = 'japanTripView';
 const view = {openPlaces: {}, page: 'plan', ideaSrc: 'instagram', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
@@ -964,6 +989,8 @@ function normalize(t) {
     if (i === 0) delete s.leg; else s.leg = {...leg('train'), ...(s.leg || {})};
   });
   t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= []; t.bookings ||= [];
+  if (!Array.isArray(t.checklist)) t.checklist = structuredClone(CHECKLIST_START);
+  t.checklist.forEach(c => { c.id ||= uid(); c.text ??= ''; c.note ??= ''; c.done = Boolean(c.done); });
   if (!t.proposals || typeof t.proposals !== 'object' || Array.isArray(t.proposals)) t.proposals = {};   // {id: {status, at, previous}}
   const targets = new Set(t.stops.flatMap((s, i) => [`stop:${s.id}`, ...(i ? [`leg:${s.id}`] : [])]));
   t.bookings.forEach(b => { if (!targets.has(b.attach)) b.attach = `stop:${t.stops[0].id}`; });   // its stop was removed
@@ -1703,6 +1730,7 @@ function setPage(page) {
   document.body.dataset.page = page;
   $$('.tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === page));
   if (page === 'ideas') return renderIdeas();
+  if (page === 'checklist') return renderChecklist();
   renderProposals(); renderMap();
   if (page === 'changes') fitShown();
 }
@@ -1840,7 +1868,26 @@ function togglePlay() {
 }
 
 // ═══ 12. ACTIONS AND EVENTS ═══════════════════════════════════════════════════
-function renderAll() { renderHeader(); renderStops(); renderProposals(); renderMap(); renderPlayback(); renderIdeas(); }
+function renderChecklist() {
+  const L = trip.checklist, done = L.filter(c => c.done).length;
+  $('#ck-count').textContent = L.length ? `${done}/${L.length}` : '';
+  if (view.page !== 'checklist') return;
+  const keep = document.activeElement?.closest?.('#checklist') ? document.activeElement.dataset.bind : null;
+  $('#checklist').innerHTML = `<div class="ck-wrap">
+    <h2>Before we go</h2>
+    <p class="ck-sub">${L.length ? `${done} of ${L.length} done` : 'Nothing on the list yet'}${REMOTE ? ' · shared with everyone on the plan' : ''}</p>
+    <div class="ck-progress"><span style="width:${L.length ? done / L.length * 100 : 0}%"></span></div>
+    <ul class="ck-list">${L.map((c, i) => `<li class="ck-item${c.done ? ' done' : ''}">
+      <input type="checkbox" data-action="ck-toggle" data-id="${c.id}"${c.done ? ' checked' : ''} aria-label="Done: ${esc(c.text)}">
+      <input class="ck-text" data-bind="checklist.${i}.text" value="${esc(c.text)}" aria-label="Item">
+      <button class="x" data-action="ck-delete" data-id="${c.id}" aria-label="Remove ${esc(c.text)}" title="Remove">✕</button>
+      <textarea class="ck-note" rows="2" data-bind="checklist.${i}.note" placeholder="Add a note" aria-label="Note for ${esc(c.text)}">${esc(c.note)}</textarea>
+    </li>`).join('')}</ul>
+    <form class="ck-add" id="ck-add"><input id="ck-new" placeholder="Add something to do before the trip" autocomplete="off"><button class="btn" type="submit">Add</button></form>
+  </div>`;
+  if (keep) document.querySelector(`#checklist [data-bind="${keep}"]`)?.focus();
+}
+function renderAll() { renderHeader(); renderStops(); renderProposals(); renderMap(); renderPlayback(); renderIdeas(); renderChecklist(); }
 const byId = id => trip.stops.find(s => s.id === id);
 
 const ACTIONS = {
@@ -1864,6 +1911,8 @@ const ACTIONS = {
   'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = normalize(structuredClone(DEFAULT_TRIP)); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
   'checks': () => showChecks(),
   'page': d => setPage(d.v),
+  'ck-toggle': d => { const c = trip.checklist.find(x => x.id === d.id); c.done = !c.done; save(); renderChecklist(); },
+  'ck-delete': d => { const c = trip.checklist.find(x => x.id === d.id); undoable(`Removed ${c.text || 'item'}.`, () => { trip.checklist = trip.checklist.filter(x => x !== c); }); },
   'prop-show': d => { view.propShow = d.v; saveView(); renderProposals(); renderMap(); fitShown(); },
   'prop-accept': d => acceptProposal(d.id),
   'prop-dismiss': d => { const P = PROPOSALS.find(x => x.id === d.id); undoable(`Set aside “${P.title}”. It stays in the Proposals tab.`, () => { trip.proposals[P.id] = {status: 'dismissed', at: new Date().toISOString()}; }); },
@@ -1898,6 +1947,12 @@ document.addEventListener('click', e => {
   if (!el || el.tagName === 'SELECT') return;
   if (e.target.closest('input,select,textarea') && el !== e.target) return;   // typing in a field inside a clickable header
   ACTIONS[el.dataset.action]?.(el.dataset, el);
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'ck-add') return;
+  e.preventDefault();
+  const text = $('#ck-new').value.trim(); if (!text) return;
+  trip.checklist.push({id: uid(), text, note: '', done: false}); save(); renderChecklist(); $('#ck-new').focus();
 });
 document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button]')) { e.preventDefault(); e.target.click(); }
@@ -2096,7 +2151,7 @@ renderAll();
 ui.view = clampView(viewAround(trip.stops.map(s => project(s.lat, s.lng)), MAP_W*.5)); renderOverlay();
 setStatus(REMOTE ? 'saving' : 'local', REMOTE ? 'Connecting…' : undefined);
 if (REMOTE) initRemote(); else mergeSeeds();
-setPage(['ideas', 'changes'].includes(view.page) ? view.page : 'plan');
+setPage(['ideas', 'changes', 'checklist'].includes(view.page) ? view.page : 'plan');
 runChecks().then(R => $('#checks-btn').dataset.state = checksState(R));
 </script>
 </body>
