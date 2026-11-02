@@ -1096,7 +1096,7 @@ function normalize(t) {
     s.places.forEach(p => { p.id ||= uid(); p.note ??= ''; if (!CATS.some(c => c.id === p.cat)) p.cat = classify(p.name, p.note); });
     s.sections = s.sections.filter(sec => (sec.items || []).length); s.notes ??= ''; s.tip ??= ''; s.prefIds ||= [];
     s.color ||= PALETTE[i % PALETTE.length];
-    s.nights = clamp(parseInt(s.nights) || 1, 1, 30);
+    s.nights = clamp(Number.isFinite(parseInt(s.nights)) ? parseInt(s.nights) : 1, 0, 30);   // 0 = a day stop, no night there
     if (i === 0) delete s.leg; else s.leg = {...leg('train'), ...(s.leg || {})};
   });
   t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= []; t.bookings ||= [];
@@ -1317,7 +1317,7 @@ function stopHTML(s, i) {
   const open = ui.openStop === s.id, start = dateAt(nightsBefore(i)), end = dateAt(nightsBefore(i) + s.nights), p = `stops.${i}.`;
   const title = ui.edit
     ? `<input class="name-in" data-bind="${p}name" data-rerender value="${esc(s.name)}" aria-label="Stop name"><input class="region-in" data-bind="${p}region" value="${esc(s.region)}" aria-label="Region">`
-    : `<span class="s-name">${esc(s.name)}</span><span class="s-sub">${esc(s.region)}${start ? `<em>${fmt(start)} – ${fmt(end)}</em>` : ''}${s.places.length ? `<em>${s.places.length} saved</em>` : ''}${trip.bookings.some(b => b.attach === `stop:${s.id}`) ? `<em>📎 ${trip.bookings.filter(b => b.attach === `stop:${s.id}`).length}</em>` : ''}</span>`;
+    : `<span class="s-name">${esc(s.name)}</span><span class="s-sub">${esc(s.region)}${start ? `<em>${s.nights ? `${fmt(start)} – ${fmt(end)}` : `${fmt(start)}, day stop`}</em>` : ''}${s.places.length ? `<em>${s.places.length} saved</em>` : ''}${trip.bookings.some(b => b.attach === `stop:${s.id}`) ? `<em>📎 ${trip.bookings.filter(b => b.attach === `stop:${s.id}`).length}</em>` : ''}</span>`;
   const editCtl = ui.edit ? `<span class="edit-ctl">
       <button data-action="move" data-id="${s.id}" data-d="-1" aria-label="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
       <button data-action="move" data-id="${s.id}" data-d="1" aria-label="Move down"${i === trip.stops.length - 1 ? ' disabled' : ''}>▼</button>
@@ -1329,7 +1329,7 @@ function stopHTML(s, i) {
       ${editCtl}
       <span class="nights" title="Nights here">
         <button data-action="nights" data-id="${s.id}" data-d="-1" aria-label="One night fewer">−</button>
-        <input type="number" min="1" max="30" data-bind="${p}nights" data-int data-rerender value="${s.nights}" aria-label="Nights in ${esc(s.name)}">
+        <input type="number" min="0" max="30" data-bind="${p}nights" data-int data-rerender value="${s.nights}" aria-label="Nights in ${esc(s.name)}">
         <button data-action="nights" data-id="${s.id}" data-d="1" aria-label="One night more">+</button>
       </span>
     </div>
@@ -1761,7 +1761,7 @@ const PROPOSALS = [{
   ],
 }];
 const proposalState = P => trip.proposals[P.id]?.status || 'open';
-const nightsWord = n => `${n} night${n === 1 ? '' : 's'}`;
+const nightsWord = n => n ? `${n} night${n === 1 ? '' : 's'}` : 'day stop';
 const sumNights = t => t.stops.reduce((a, s) => a + s.nights, 0);
 
 // The plan as it would be with P accepted (a copy; the real plan is untouched), plus warnings.
@@ -1772,7 +1772,7 @@ function proposedTrip(P, base = trip) {
     const fresh = e.stop && !have.has(e.stop.id), s = fresh ? structuredClone(e.stop) : have.get(e.id || e.stop.id);
     if (!s) continue;                                                     // removed from the plan since: skip it
     const want = e.stop && !fresh ? {...e.stop, add: []} : e;
-    if (want.nights) s.nights = want.nights;
+    if (want.nights != null) s.nights = want.nights;
     if (want.set) Object.assign(s, structuredClone(want.set));
     if (want.note && !s.notes.includes(want.note)) s.notes = (s.notes.trim() ? s.notes.trim() + '\n\n' : '') + want.note;
     const extra = [];
@@ -1972,7 +1972,7 @@ function renderOverlay() {
   const info = ui.showDay && !preview ? dayInfo(ui.day) : null;
   $('#pins').innerHTML = T.stops.map((s, i) => {
     const p = pos[i], active = !preview && ui.openStop === s.id, r = (active ? 11 : 9)*k, moved = Math.hypot(p.x - p.tx, p.y - p.ty) > 1;
-    return `<g data-sid="${s.id}" data-tip="${i + 1}. ${esc(s.name)}, ${s.nights} night${s.nights > 1 ? 's' : ''}">
+    return `<g data-sid="${s.id}" data-tip="${i + 1}. ${esc(s.name)}, ${nightsWord(s.nights)}">
       ${moved ? `<line x1="${p.tx}" y1="${p.ty}" x2="${p.x}" y2="${p.y}" stroke="${esc(s.color)}" stroke-width="${1.2*k}"/><circle cx="${p.tx}" cy="${p.ty}" r="${2.2*k}" fill="${esc(s.color)}"/>` : ''}
       <circle cx="${p.x + k}" cy="${p.y + 2*k}" r="${r}" fill="rgba(0,0,0,.2)"/>
       <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${esc(s.color)}" stroke="#fff" stroke-width="${(active ? 2.5 : 2)*k}"/>
@@ -2289,7 +2289,7 @@ const byId = id => trip.stops.find(s => s.id === id);
 const ACTIONS = {
   'toggle-stop': d => { ui.openStop = ui.openStop === d.id ? null : d.id; renderStops(); renderMap(); if (ui.openStop) zoomToStop(d.id); },
   'toggle-leg': d => { ui.openLeg = ui.openLeg === d.id ? null : d.id; renderStops(); },
-  'nights': d => { const s = byId(d.id); s.nights = clamp(s.nights + +d.d, 1, 30); save(); renderAll(); },
+  'nights': d => { const s = byId(d.id); s.nights = clamp(s.nights + +d.d, 0, 30); save(); renderAll(); },
   'move': d => { const a = trip.stops, i = a.findIndex(s => s.id === d.id), j = i + +d.d; [a[i], a[j]] = [a[j], a[i]]; save(); renderAll(); toast('Moved. Check the travel details either side of it.'); },
   'delete-stop': d => { const s = byId(d.id); if (trip.stops.length < 2) return; undoable(`Removed ${s.name}${s.places.length ? ` and its ${s.places.length} saved places` : ''}.`, () => { trip.stops = trip.stops.filter(x => x !== s); }); },
   'clear-leg': d => { const s = byId(d.id); undoable('Booking details cleared.', () => { s.leg = leg(s.leg.mode, s.leg.est); }); },
@@ -2384,7 +2384,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('input', e => {
   const t = e.target; if (!t.dataset.bind) return;
   let v = t.value;
-  if ('int' in t.dataset) { v = parseInt(v); if (!(v >= 1)) return; v = Math.min(v, 30); }
+  if ('int' in t.dataset) { v = parseInt(v); if (!(v >= 0)) return; v = Math.min(v, 30); }
   setPath(t.dataset.bind, v); save();
   if (t.dataset.bind === 'startDate') renderAll();
 });
@@ -2490,8 +2490,8 @@ async function runChecks() {
     else add('fail', name, hit ? `lands in ${hit.getAttribute('name')}, expected ${s.prefIds.map(prefName).join(' or ')}` : 'lands in the sea');
   });
 
-  const bad = trip.stops.filter(s => !Number.isInteger(s.nights) || s.nights < 1);
-  add(bad.length ? 'fail' : 'pass', 'Every stop has at least one night', bad.length ? bad.map(s => s.name).join(', ') : `${totalNights()} nights across ${trip.stops.length} stops`);
+  const bad = trip.stops.filter(s => !Number.isInteger(s.nights) || s.nights < 0), days = trip.stops.filter(s => s.nights === 0);
+  add(bad.length || !totalNights() ? 'fail' : 'pass', 'Every stop has a sensible number of nights', bad.length ? bad.map(s => s.name).join(', ') : `${totalNights()} nights across ${trip.stops.length} stops${days.length ? ` (${days.map(s => s.name).join(', ')}: day stop)` : ''}`);
   add(!trip.stops[0].leg && trip.stops.slice(1).every(s => MODES[s.leg?.mode]) ? 'pass' : 'fail', 'Every move between stops has a travel leg');
   add(new Set(trip.stops.map(s => s.id)).size === trip.stops.length ? 'pass' : 'fail', 'Stops are uniquely identified');
 
