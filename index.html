@@ -1586,7 +1586,7 @@ function bookingsHTML(target, color) {
         <button class="x" data-action="bk-delete" data-id="${b.id}" aria-label="Remove booking ${esc(b.title)}">✕</button></div>
       <div class="bk-meta">${b.ref ? `Ref <code>${esc(b.ref)}</code>` : 'No reference found'}${b.names ? ` · ${esc(b.names)}` : ''}${when ? `<br>${esc(when)}` : ''}${b.price ? ` · ${esc(b.price)}` : ''}${b.address ? `<br>${esc(b.address)}` : ''}</div>
       <div class="bk-actions">
-        <button data-action="bk-open" data-id="${b.id}">Open PDF</button>
+        ${b.fileId ? `<button data-action="bk-open" data-id="${b.id}">Open PDF</button>` : ''}
         ${b.ref ? `<button data-action="bk-copy" data-id="${b.id}">Copy ref</button>` : ''}
         ${b.providerUrl ? `<a href="${esc(safeUrl(b.providerUrl))}" target="_blank" rel="noopener">Open in ${esc(b.provider)}</a>` : ''}
         ${maps ? `<a href="${esc(maps)}" target="_blank" rel="noopener">Directions</a>` : ''}
