@@ -81,3 +81,45 @@ $$;
 
 revoke all on function save_file(text, text, text, text, text), get_file(text, text), delete_file(text, text) from public;
 grant execute on function save_file(text, text, text, text, text), get_file(text, text), delete_file(text, text) to anon, authenticated;
+
+-- ── Budget lines (added Nov 2026; safe to run this whole file again) ──────────
+-- One row per budget line, so people adding prices at the same time never clash.
+-- Same rules as above: closed table, reachable only with the trip code.
+create table if not exists budget_lines (
+  key        text not null references trips (key) on delete cascade,
+  id         text not null check (length(id) between 4 and 40),
+  data       jsonb not null check (pg_column_size(data) < 20000),
+  updated_at timestamptz not null default now(),
+  primary key (key, id)
+);
+alter table budget_lines enable row level security;
+
+create or replace function get_budget(p_key text)
+returns table (id text, data jsonb, updated_at timestamptz)
+language sql security definer set search_path = public as $$
+  select id, data, updated_at from budget_lines where key = p_key order by updated_at;
+$$;
+
+create or replace function save_budget_line(p_key text, p_id text, p_data jsonb)
+returns timestamptz
+language plpgsql security definer set search_path = public as $$
+declare ts timestamptz;
+begin
+  if not exists (select 1 from trips where key = p_key) then return null; end if;
+  if (select count(*) from budget_lines where key = p_key) >= 1000
+     and not exists (select 1 from budget_lines where key = p_key and id = p_id) then return null; end if;
+  insert into budget_lines (key, id, data) values (p_key, p_id, p_data)
+  on conflict (key, id) do update set data = excluded.data, updated_at = now()
+  returning budget_lines.updated_at into ts;
+  return ts;
+end $$;
+
+create or replace function delete_budget_line(p_key text, p_id text)
+returns boolean
+language sql security definer set search_path = public as $$
+  with gone as (delete from budget_lines where key = p_key and id = p_id returning 1)
+  select exists (select 1 from gone);
+$$;
+
+revoke all on function get_budget(text), save_budget_line(text, text, jsonb), delete_budget_line(text, text) from public;
+grant execute on function get_budget(text), save_budget_line(text, text, jsonb), delete_budget_line(text, text) to anon, authenticated;

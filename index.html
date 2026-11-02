@@ -150,8 +150,8 @@ dialog textarea.json{min-height:200px;font:11px ui-monospace,monospace}
 .things li .x{width:20px;height:20px;font-size:10px;opacity:.55}
 .things li .x:hover{opacity:1}
 
-.tabs{display:flex;gap:2px;background:rgba(255,255,255,.08);border-radius:7px;padding:3px}
-.tabs button{border:0;background:none;color:rgba(246,241,233,.65);border-radius:5px;padding:4px 11px;font-size:12.5px}
+.tabs{display:flex;gap:2px;max-width:100%;overflow-x:auto;scrollbar-width:none;background:rgba(255,255,255,.08);border-radius:7px;padding:3px}
+.tabs button{white-space:nowrap;flex:none;border:0;background:none;color:rgba(246,241,233,.65);border-radius:5px;padding:4px 11px;font-size:12.5px}
 .tabs button[aria-pressed=true]{background:var(--paper);color:var(--ink);font-weight:500}
 .tabs small{opacity:.6;margin-left:4px}
 .ideas{display:none;flex:1;min-height:0;overflow-y:auto;padding:18px clamp(12px,3vw,32px) 40px}
@@ -174,6 +174,71 @@ body[data-page=checklist] .checklist{display:block}
 .ck-item.done .ck-text{text-decoration:line-through;color:var(--muted)}
 .ck-item .x{opacity:.5}.ck-item .x:hover{opacity:1}
 .ck-add{display:flex;gap:8px;margin-top:14px}
+.ck-group{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+.ck-item{grid-template-columns:auto 1fr auto auto}
+.ck-item .ck-note{grid-column:2/5}
+.ck-who{font-size:12px;padding:2px 4px;max-width:96px}
+/* Budget: full page, lines live in their own database table */
+.budget{display:none;flex:1;min-height:0;overflow-y:auto;padding:22px clamp(16px,3vw,32px) 56px}
+body[data-page=budget] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}
+body[data-page=budget] .budget{display:block}
+.bd-wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.bd-head{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;justify-content:space-between}
+.bd-head h2{font:600 22px 'Shippori Mincho',serif}
+.bd-settings{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12px;color:var(--muted)}
+.bd-settings label{display:flex;gap:6px;align-items:center}
+.bd-settings input{width:86px}.bd-settings input.wide{width:180px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:4px 10px;font-size:12px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.bd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi small{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.kpi b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.stack{display:flex;height:10px;border-radius:99px;overflow:hidden;background:rgba(0,0,0,.06)}
+.stack i{display:block;height:100%}
+.stack i+i{border-left:2px solid #fff}
+.bd-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h3{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.card h3 small{font-weight:400;color:var(--muted);font-size:12px}
+.card + .card{margin-top:18px}
+.brk{display:grid;grid-template-columns:minmax(90px,1.1fr) minmax(60px,2fr) auto;gap:6px 12px;align-items:center;font-size:12.5px}
+.brk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brk .nm small{color:var(--muted);margin-left:4px}
+.brk .amt{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.brk .amt small{display:block;color:var(--muted);font-size:11px}
+.legend-row{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--muted);margin-bottom:10px}
+.legend-row span{display:flex;align-items:center;gap:5px}
+.mini{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.mini li{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.mini li b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.mini .sub{color:var(--muted);font-size:11.5px}
+.mini button{font-size:11.5px;border:1px solid var(--line2);background:#fff;border-radius:5px;padding:2px 8px}
+.empty{color:var(--muted);font-size:12.5px}
+.bd-add{display:grid;grid-template-columns:minmax(140px,2fr) 100px 70px minmax(110px,1fr) minmax(110px,1fr) auto;gap:8px}
+.bd-add > *{min-width:0}
+.bd-add button{border:0;background:var(--accent);color:#fff;border-radius:6px;padding:6px 14px}
+.bd-filters{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.bd-filters button{border:1px solid var(--line2);background:#fff;border-radius:99px;padding:3px 10px;font-size:12px}
+.bd-filters button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.bd-group{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px;display:flex;justify-content:space-between}
+.bl{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:9px 4px}
+.bl:hover{background:var(--paper)}
+.bl .t{font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bl .m{grid-column:2;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bl .a{grid-row:1/3;grid-column:3;text-align:right;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+.bl .a small{display:block;color:var(--muted);font-size:11px}
+.bl .ic{grid-row:1/3;font-size:16px;width:24px;text-align:center}
+.pill{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;color:#fff}
+.bl.repay .t{color:var(--muted)}
+#bl-dlg .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#bl-dlg .actions{display:flex;gap:8px;justify-content:flex-end}
+#bl-dlg .actions .del{margin-right:auto;color:var(--bad)}
+@media (max-width:820px){.bd-grid{grid-template-columns:1fr}.bd-add{grid-template-columns:1fr 1fr}.bd-add input:first-child{grid-column:1/3}}
+
 .ck-add input{flex:1}
 /* Proposals: the map stays, the sidebar swaps for the review panel */
 .prop-panel{display:none}
@@ -287,6 +352,7 @@ body[data-page=changes] .playbar{display:none}
     <button data-action="page" data-v="ideas" aria-pressed="false">Ideas<small id="ideas-count"></small></button>
     <button data-action="page" data-v="changes" aria-pressed="false">Proposals<small id="prop-count"></small></button>
     <button data-action="page" data-v="checklist" aria-pressed="false">Checklist<small id="ck-count"></small></button>
+    <button data-action="page" data-v="budget" aria-pressed="false">Budget<small id="bd-count"></small></button>
   </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
@@ -392,6 +458,7 @@ body[data-page=changes] .playbar{display:none}
 </div>
 
 <section class="checklist" id="checklist" aria-label="Pre-trip checklist"></section>
+<section class="budget" id="budget" aria-label="Trip budget"></section>
 <section class="ideas" id="ideas" aria-label="Ideas to add to the trip">
   <div class="ideas-bar">
     <div class="src-switch" id="idea-src" role="group" aria-label="Whose ideas"></div>
@@ -434,6 +501,36 @@ body[data-page=changes] .playbar{display:none}
     <label>Category<select id="pl-cat"></select></label>
     <label>Note<textarea id="pl-note" rows="2" placeholder="What is it, and why go?"></textarea></label>
     <div class="actions"><button value="cancel" formnovalidate>Cancel</button><button value="add" class="primary">Add place</button></div>
+  </form>
+</dialog>
+
+<dialog id="bl-dlg">
+  <form method="dialog" id="bl-form">
+    <h3 id="bl-title">Budget line</h3>
+    <label>What<input id="bl-item" required placeholder="Ski passes, ryokan, kaiseki dinner…"></label>
+    <div class="row2">
+      <label>Amount<input id="bl-amount" type="number" step="0.01" min="0" inputmode="decimal"></label>
+      <label>Currency<select id="bl-cur"><option value="GBP">£ GBP</option><option value="JPY">¥ JPY</option></select></label>
+    </div>
+    <div class="row2">
+      <label>Status<select id="bl-status"></select></label>
+      <label id="bl-paid-wrap">Paid so far (deposit)<input id="bl-paid" type="number" step="0.01" min="0"></label>
+    </div>
+    <div class="row2">
+      <label>Where<select id="bl-stop"></select></label>
+      <label>Category<select id="bl-cat"></select></label>
+    </div>
+    <div class="row2">
+      <label>Paid or booked by<select id="bl-payer"></select></label>
+      <label id="bl-split-label">Split between<select id="bl-split"></select></label>
+    </div>
+    <div class="row2">
+      <label>Date of the thing<input id="bl-date" type="date"></label>
+      <label>Balance due<input id="bl-due" type="date"></label>
+    </div>
+    <label>Link<input id="bl-link" type="url" placeholder="https://…"></label>
+    <label>Notes<textarea id="bl-notes" rows="2"></textarea></label>
+    <div class="actions"><button type="button" class="del" id="bl-del">Delete</button><button value="cancel" formnovalidate>Cancel</button><button value="save" class="primary">Save</button></div>
   </form>
 </dialog>
 
@@ -969,6 +1066,20 @@ const CHECKLIST_START = [
   {id: 'ck-cash', text: 'Cash (yen)', note: 'Plenty of places are still cash-only. 7-Eleven and post office ATMs take foreign cards.', done: false},
   {id: 'ck-suica', text: 'Suica card', note: 'Add one to your phone’s wallet before flying, or buy a card on arrival. Top it up for trains, buses and konbini.', done: false},
 ];
+// From the Pre-Trip tab of the group's planning sheet (cash and Suica are already above).
+const CHECKLIST_SHEET = [
+  ['ck-vjw', 'Bureaucracy', 'Submit Visit Japan Web form', 'Digital immigration and customs at services.digital.go.jp. Screenshot the QR code for offline use.'],
+  ['ck-passport', 'Bureaucracy', 'Check passport', 'Undamaged and valid for the whole stay.'],
+  ['ck-data', 'Connectivity', 'Set up data (eSIM or pocket Wi-Fi)', 'Buy an eSIM online, or book a pocket Wi-Fi router for airport collection.'],
+  ['ck-pdfs', 'Documents', 'Save offline PDFs', 'Flight itineraries, hotel confirmations and insurance documents on your phone.'],
+  ['ck-banks', 'Finances', 'Tell your banks you’re travelling', 'Avoid fraud freezes on your cards.'],
+  ['ck-fees', 'Finances', 'Check card fees', 'Pack cards with no foreign transaction fees.'],
+  ['ck-shoes', 'Gear and packing', 'Pack slip-on shoes', 'Easy on and off for temples and ryokans.'],
+  ['ck-bag', 'Gear and packing', 'Pack a small rubbish bag', 'Public bins are rare in cities.'],
+  ['ck-adapter', 'Gear and packing', 'Buy Type A plug adapters', 'Flat two-prong. High-power UK devices like hairdryers may run weaker at 100V.'],
+  ['ck-trains', 'Reservations', 'Book long-distance trains', 'Reserve shinkansen seats for busy travel days.'],
+  ['ck-sights', 'Reservations', 'Reserve sights and dining', 'teamLab, Kokedera, the kaiseki dinner and popular ryokans need booking weeks ahead.'],
+].map(([id, cat, text, note]) => ({id, cat, text, note, who: '', done: false}));
 const LS_KEY = 'japanTripPlanV2', LS_OLD = 'japanTripPlanV1', LS_SYNC = `${LS_KEY}:sync:${TRIP_KEY}`;
 const UI_KEY = 'japanTripView';
 const view = {openPlaces: {}, page: 'plan', ideaSrc: 'instagram', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
@@ -990,7 +1101,15 @@ function normalize(t) {
   });
   t.version = 2; t.startDate ||= ''; t.imports ||= []; t.hiddenIdeas ||= []; t.bookings ||= [];
   if (!Array.isArray(t.checklist)) t.checklist = structuredClone(CHECKLIST_START);
-  t.checklist.forEach(c => { c.id ||= uid(); c.text ??= ''; c.note ??= ''; c.done = Boolean(c.done); });
+  t.seeded ||= [];
+  if (!t.seeded.includes('pretrip-sheet')) {   // the Pre-Trip tab of the group's spreadsheet, added once
+    const have = new Set(t.checklist.map(c => c.id));
+    t.checklist.push(...structuredClone(CHECKLIST_SHEET.filter(c => !have.has(c.id))));
+    t.checklist.forEach(c => { if (!c.cat) c.cat = {'ck-cash': 'Finances', 'ck-suica': 'Transit'}[c.id] || ''; });
+    t.seeded.push('pretrip-sheet');
+  }
+  t.checklist.forEach(c => { c.id ||= uid(); c.text ??= ''; c.note ??= ''; c.cat ??= ''; c.who ??= ''; c.done = Boolean(c.done); });
+  t.budget = {rate: 210, travellers: ['Miguel', 'Vid', 'Sam'], target: 0, ...(t.budget || {})};
   if (!t.proposals || typeof t.proposals !== 'object' || Array.isArray(t.proposals)) t.proposals = {};   // {id: {status, at, previous}}
   const targets = new Set(t.stops.flatMap((s, i) => [`stop:${s.id}`, ...(i ? [`leg:${s.id}`] : [])]));
   t.bookings.forEach(b => { if (!targets.has(b.attach)) b.attach = `stop:${t.stops[0].id}`; });   // its stop was removed
@@ -1073,6 +1192,7 @@ async function initRemote() {
   mergeSeeds();
   setInterval(poll, 15000);
   addEventListener('focus', poll);
+  loadBudget(); setInterval(loadBudget, 15000); addEventListener('focus', loadBudget);
 }
 
 // ═══ 7. DATES ═════════════════════════════════════════════════════════════════
@@ -1550,7 +1670,51 @@ function renderIdeas() {
 // Accepting writes the result into the shared plan, and keeps the plan from before in
 // trip.proposals[id].previous so it can be undone from the Proposals tab.
 const VID = 'From Vid’s pitch';
+const BOOKED = (o) => ({...leg(o.mode), ...o});
+const MEETING = 'From the 1 Nov call';
 const PROPOSALS = [{
+  id: 'meeting-2026-11-01', by: 'Group call', date: '1 Nov 2026',
+  title: 'Decisions from the 1 Nov call: dates locked, ski at Shiga Kōgen',
+  summary: 'What the three of you agreed on the 1 Nov call. Four nights in Sapporo over New Year, fly to Kansai on 1 Jan (GK156 is booked), Nara, Kyoto, Osaka, three nights in Kanazawa, two nights skiing at Shiga Kōgen with the snow monkeys, then four nights in Tokyo before the 16 Jan 23:30 flight home.',
+  why: [
+    'Skiing moves from Hokkaido to Shiga Kōgen (Nagano), next to the snow monkeys. Niseko and the Ainu museum come out: Upopoy is closed 28 Dec to 4 Jan.',
+    'Most businesses close 29 Dec to 3 Jan, which suits a slower New Year in Sapporo. Hōryū-ji in Nara is open on 1 Jan.',
+    'Be in Kansai before 4 Jan, when millions travel home and the trains are packed. The 4 Jan Kyoto → Osaka hop is short.',
+    'Takayama becomes a guided day tour from Kanazawa on 9 Jan (with Shirakawa-go, about £70 each). Hōshi ryokan on 8 Jan.',
+    'Your saved places from Niseko and Takayama move to Sapporo and Kanazawa, so nothing is lost.',
+  ],
+  remove: ['niseko', 'takayama'],
+  order: [
+    {id: 'tokyo1', set: {name: 'Flying out', region: 'London → Paris → Haneda, overnight', sections: []},
+      note: `${MEETING}: Air France from Heathrow 06:20 on 27 Dec via Paris, landing at Haneda on the 28th.`},
+    {id: 'sapporo', nights: 4, absorb: ['niseko'],
+      leg: leg('flight', '1h 30m', 'JAL from Haneda to New Chitose (CTS) on 28 Dec, arriving in the evening. Not booked yet.'),
+      note: `${MEETING}: 4 nights over New Year (28 Dec – 1 Jan). Hostel booked for the first night near Sapporo station. Upopoy (Ainu museum) is closed 28 Dec – 4 Jan, so it’s dropped. Most businesses close 29 Dec – 3 Jan.`},
+    {id: 'nara', nights: 1,
+      leg: BOOKED({mode: 'flight', est: '2h 30m + train', carrier: 'Jetstar Japan', number: 'GK 156', depDate: '2027-01-01', depTime: '16:35', arrDate: '2027-01-01', arrTime: '19:05',
+        notes: 'New Chitose (CTS) → Kansai (KIX) Terminal 1, then train to Nara (about 1h 20m)'}),
+      add: [{label: MEETING, items: [it('Hōryū-ji, open on 1 Jan and the oldest wooden buildings in the world', ['temple'], true)]}],
+      note: `${MEETING}: arrive the evening of 1 Jan, Nara on the 2nd, train to Kyoto that evening.`},
+    {id: 'kyoto', nights: 2, leg: leg('train', 'about 45m', 'JR Nara line or Kintetsu to Kyoto, evening of 2 Jan'),
+      add: [{label: MEETING, items: [it('Kaiseki dinner, about ¥10,000 each. Vid is booking it', ['eat', 'culture'], true),
+        it('Vid to check the temples and shrines are open on 3 and 4 Jan', ['temple'])]}]},
+    {id: 'osaka', nights: 3, leg: leg('train', 'about 30m', 'JR Special Rapid or Keihan from Kyoto, evening of 4 Jan. 4 Jan is the big travel-home day, so keep it to this short hop.'),
+      note: `${MEETING}: 4 – 7 Jan for the food and nightlife.`},
+    {id: 'chubu', nights: 3, absorb: ['takayama'],
+      leg: leg('shinkansen', 'about 2h 10m', 'Thunderbird from Osaka to Tsuruga, then the Hokuriku Shinkansen to Kanazawa, 7 Jan'),
+      add: [{label: MEETING, items: [it('Hōshi ryokan on 8 Jan: ~¥47,000 for the room with breakfast. Strict check-in times', ['culture'], true),
+        it('Guided day tour to Shirakawa-go and Takayama on 9 Jan, about £70 each', ['culture', 'view'], true),
+        it('Hida beef in Takayama', ['beef', 'eat'])]}],
+      note: `${MEETING}: 7 – 10 Jan. Ryokan on the 8th (not the first night). Day tour on the 9th.`},
+    {id: 'lz551qjz', nights: 2, set: {name: 'Shiga Kōgen', region: 'Nagano: skiing and snow monkeys', lat: 36.7066, lng: 138.5155},
+      leg: leg('shinkansen', 'about 2h 30m', 'Hokuriku Shinkansen to Nagano (about 1h), then the Nagaden train to Yudanaka and the bus up to Shiga Kōgen, 10 Jan'),
+      add: [{label: MEETING, items: [it('Snow monkeys at Jigokudani on 10 Jan, on the way up', ['nature'], true),
+        it('Ski 11 and 12 Jan', ['sport'], true), it('Check for a combined lift pass + monkey park tour price', ['sport'])]}],
+      note: `${MEETING}: skiing moved here from Hokkaido. 10 – 12 Jan.`},
+    {id: 'tokyo2', nights: 4, leg: leg('shinkansen', 'about 2h 30m', 'Bus down to Nagano, then the Hokuriku Shinkansen to Tokyo (about 1h 30m), 12 Jan'),
+      note: `${MEETING}: 12 – 16 Jan. Flight home departs 16 Jan at 23:30.`},
+  ],
+}, {
   id: 'vid-route-2026-10', by: 'Vid', date: '22 Oct 2026',
   title: 'Vid’s route: Hokkaido, Kansai, the Alps, then Tokyo',
   summary: 'From Vid’s pitch for the trip. About a week in Hokkaido, fly south to Kansai, work back east through the Japanese Alps, and finish in Tokyo. It leaves out Tōhoku. The order follows Japanese history: the Ainu, the ancient capitals, the samurai towns, then modern Tokyo.',
@@ -1609,11 +1773,21 @@ function proposedTrip(P, base = trip) {
     if (!s) continue;                                                     // removed from the plan since: skip it
     const want = e.stop && !fresh ? {...e.stop, add: []} : e;
     if (want.nights) s.nights = want.nights;
+    if (want.set) Object.assign(s, structuredClone(want.set));
+    if (want.note && !s.notes.includes(want.note)) s.notes = (s.notes.trim() ? s.notes.trim() + '\n\n' : '') + want.note;
+    const extra = [];
+    for (const gone of want.absorb || []) {                               // a stop folded into this one keeps its places and plans
+      const o = have.get(gone); if (!o) continue;
+      const names = new Set(s.places.map(p => p.name.toLowerCase()));
+      s.places.push(...structuredClone(o.places.filter(p => !names.has(p.name.toLowerCase()))));
+      extra.push(...o.sections.map(sec => ({label: `${sec.label} (from ${o.name})`, items: sec.items})));
+      if (o.notes.trim() && !s.notes.includes(o.notes.trim())) s.notes = (s.notes.trim() ? s.notes.trim() + '\n\n' : '') + `From ${o.name}: ${o.notes.trim()}`;
+    }
     if (want.leg && out.length) {
       if (!fresh && isBooked(s.leg)) warn.push(`Travel into ${s.name} is already booked, so it was kept. Check it still makes sense in the new order.`);
       else s.leg = structuredClone(want.leg);
     }
-    for (const sec of want.add || []) {
+    for (const sec of [...(want.add || []), ...extra]) {
       const have = new Set(s.sections.flatMap(x => x.items.map(i => normName(i.text)))), items = sec.items.filter(i => !have.has(normName(i.text)));
       if (!items.length) continue;
       const same = s.sections.find(x => x.label === sec.label);
@@ -1715,7 +1889,7 @@ function acceptProposal(id) {
   trip.stops = t.stops; trip.bookings = t.bookings;
   ui.openStop = ui.openLeg = null; ui.showDay = false;
   save(); setPage('plan'); renderAll(); fitAll();
-  toast(`Accepted. The plan now follows ${P.by}’s route.`, () => { trip = normalize(JSON.parse(before)); save(); renderAll(); fitAll(); toast('Restored.'); });
+  toast(`Accepted “${P.title}”.`, () => { trip = normalize(JSON.parse(before)); save(); renderAll(); fitAll(); toast('Restored.'); });
 }
 function undoProposal(id) {
   const rec = trip.proposals[id]; if (!rec?.previous) return;
@@ -1731,6 +1905,7 @@ function setPage(page) {
   $$('.tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === page));
   if (page === 'ideas') return renderIdeas();
   if (page === 'checklist') return renderChecklist();
+  if (page === 'budget') { renderBudget(); return loadBudget(); }
   renderProposals(); renderMap();
   if (page === 'changes') fitShown();
 }
@@ -1877,17 +2052,238 @@ function renderChecklist() {
     <h2>Before we go</h2>
     <p class="ck-sub">${L.length ? `${done} of ${L.length} done` : 'Nothing on the list yet'}${REMOTE ? ' · shared with everyone on the plan' : ''}</p>
     <div class="ck-progress"><span style="width:${L.length ? done / L.length * 100 : 0}%"></span></div>
-    <ul class="ck-list">${L.map((c, i) => `<li class="ck-item${c.done ? ' done' : ''}">
+    ${[...new Set(L.map(c => c.cat || 'Other'))].map(g => `<h3 class="ck-group">${esc(g)}</h3>
+    <ul class="ck-list">${L.map((c, i) => [c, i]).filter(([c]) => (c.cat || 'Other') === g).map(([c, i]) => `<li class="ck-item${c.done ? ' done' : ''}">
       <input type="checkbox" data-action="ck-toggle" data-id="${c.id}"${c.done ? ' checked' : ''} aria-label="Done: ${esc(c.text)}">
       <input class="ck-text" data-bind="checklist.${i}.text" value="${esc(c.text)}" aria-label="Item">
+      <select class="ck-who" data-bind="checklist.${i}.who" aria-label="Who is doing ${esc(c.text)}"><option value="">Everyone</option>${trip.budget.travellers.map(n => `<option${n === c.who ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
       <button class="x" data-action="ck-delete" data-id="${c.id}" aria-label="Remove ${esc(c.text)}" title="Remove">✕</button>
       <textarea class="ck-note" rows="2" data-bind="checklist.${i}.note" placeholder="Add a note" aria-label="Note for ${esc(c.text)}">${esc(c.note)}</textarea>
-    </li>`).join('')}</ul>
+    </li>`).join('')}</ul>`).join('')}
     <form class="ck-add" id="ck-add"><input id="ck-new" placeholder="Add something to do before the trip" autocomplete="off"><button class="btn" type="submit">Add</button></form>
   </div>`;
   if (keep) document.querySelector(`#checklist [data-bind="${keep}"]`)?.focus();
 }
-function renderAll() { renderHeader(); renderStops(); renderProposals(); renderMap(); renderPlayback(); renderIdeas(); renderChecklist(); }
+
+// ═══ BUDGET ═══════════════════════════════════════════════════════════════════
+// Budget lines live in their own table (budget_lines), one row per line, so two people
+// adding prices at once never clash. Settings (rate, travellers, target) ride along in the plan.
+const BCATS = {flights:{icon:'✈', label:'Flights'}, transport:{icon:'🚅', label:'Trains and local transport'}, stay:{icon:'🏨', label:'Accommodation'},
+  food:{icon:'🍜', label:'Food and drink'}, activity:{icon:'🎿', label:'Activities and tickets'}, shopping:{icon:'🛍', label:'Shopping'},
+  other:{icon:'📄', label:'Other'}, repay:{icon:'↔', label:'Paying each other back'}};
+const BSTATUS = {paid:{label:'Paid', color:'#1a6b3c'}, booked:{label:'Booked, balance open', color:'#c27b12'},
+  expected:{label:'Expected cost', color:'#6f86ad'}, idea:{label:'Idea, price seen', color:'#a39a8e'}};
+const BUDGET_LS = `japanTripBudget:${TRIP_KEY || 'local'}`;
+const budget = {lines: readJSON(BUDGET_LS) || [], pending: new Set(readJSON(BUDGET_LS + ':pending') || []), filter: 'all'};
+const writeBudget = () => { try { localStorage.setItem(BUDGET_LS, JSON.stringify(budget.lines)); localStorage.setItem(BUDGET_LS + ':pending', JSON.stringify([...budget.pending])); } catch {} };
+const rate = () => +trip.budget.rate > 0 ? +trip.budget.rate : 210;
+const inGBP = (amt, cur) => cur === 'JPY' ? (+amt || 0) / rate() : (+amt || 0);
+function money(gbp, cur = view.budgetCur || 'GBP') {
+  return cur === 'JPY' ? '¥' + Math.round(gbp * rate()).toLocaleString('en-GB') : '£' + Math.round(gbp).toLocaleString('en-GB');
+}
+const orig = l => l.cur === 'JPY' ? '¥' + Math.round(+l.amount || 0).toLocaleString('en-GB') : '£' + (+l.amount || 0).toLocaleString('en-GB', {maximumFractionDigits: 2});
+// How one line splits across paid / still to pay / expected / ideas, in pounds.
+function parts(l) {
+  const t = inGBP(l.amount, l.cur), z = {total: t, paid: 0, open: 0, expected: 0, idea: 0};
+  if (l.status === 'paid') z.paid = t;
+  else if (l.status === 'booked') { z.paid = Math.min(t, inGBP(l.paid, l.cur)); z.open = t - z.paid; }
+  else if (l.status === 'expected') z.expected = t;
+  else z.idea = t;
+  return z;
+}
+const spendLines = () => budget.lines.filter(l => l.cat !== 'repay');
+function sum(lines) { const z = {paid: 0, open: 0, expected: 0, idea: 0}; lines.forEach(l => { const p = parts(l); for (const k in z) z[k] += p[k]; }); z.committed = z.paid + z.open + z.expected; return z; }
+const stopLabel = id => id === 'general' || !id ? 'Whole trip' : byId(id)?.name || 'Removed stop';
+function stopDates(id) {
+  const i = trip.stops.findIndex(s => s.id === id); if (i < 0 || !trip.startDate) return '';
+  const a = dateAt(nightsBefore(i)), b = dateAt(nightsBefore(i + 1));
+  return `${fmt(a)}–${fmt(b)}`;
+}
+// Who owes whom, from money actually paid out so far.
+function settleUp() {
+  const people = trip.budget.travellers, bal = Object.fromEntries(people.map(n => [n, 0]));
+  for (const l of budget.lines) {
+    if (!people.includes(l.payer)) continue;
+    const paid = parts(l).paid; if (!paid) continue;
+    if (l.cat === 'repay') { if (people.includes(l.split)) { bal[l.payer] += paid; bal[l.split] -= paid; } continue; }
+    bal[l.payer] += paid;
+    const who = l.split && l.split !== 'all' && people.includes(l.split) ? [l.split] : people;
+    who.forEach(n => bal[n] -= paid / who.length);
+  }
+  const cred = people.filter(n => bal[n] > 0.5).map(n => [n, bal[n]]), debt = people.filter(n => bal[n] < -0.5).map(n => [n, -bal[n]]), moves = [];
+  cred.sort((a, b) => b[1] - a[1]); debt.sort((a, b) => b[1] - a[1]);
+  while (cred.length && debt.length) {
+    const x = Math.min(cred[0][1], debt[0][1]); moves.push({from: debt[0][0], to: cred[0][0], amt: x});
+    cred[0][1] -= x; debt[0][1] -= x; if (cred[0][1] < 0.5) cred.shift(); if (debt[0][1] < 0.5) debt.shift();
+  }
+  return {bal, moves};
+}
+function priceOf(str) {
+  const m = String(str || '').replace(/,/g, '').match(/(¥|JPY|円|yen|£|GBP)?\s*(\d+(?:\.\d+)?)\s*(¥|JPY|円|yen|£|GBP)?/i); if (!m) return null;
+  const c = (m[1] || m[3] || '').toLowerCase();
+  return {amount: +m[2], cur: /¥|jpy|円|yen/.test(c) ? 'JPY' : /£|gbp/.test(c) ? 'GBP' : null};
+}
+
+function stack(z, max) {
+  const w = k => max ? (z[k] / max * 100).toFixed(2) : 0;
+  return `<div class="stack" role="img" aria-label="${money(z.paid)} paid, ${money(z.open)} booked and open, ${money(z.expected)} expected">${['paid', 'open', 'expected'].map(k => z[k] > 0 ? `<i style="width:${w(k)}%;background:${BSTATUS[k === 'open' ? 'booked' : k].color}"></i>` : '').join('')}</div>`;
+}
+function renderBudget() {
+  const all = sum(spendLines()), n = trip.budget.travellers.length || 1;
+  $('#bd-count').textContent = all.committed ? (all.committed >= 1000 ? `£${(all.committed / 1000).toFixed(1)}k` : money(all.committed, 'GBP')) : '';
+  if (view.page !== 'budget') return;
+  const keepFocus = document.activeElement?.closest?.('#budget') ? document.activeElement.id : null;
+  const cur = view.budgetCur || 'GBP', target = +trip.budget.target || 0;
+  const stops = [{id: 'general'}, ...trip.stops], byStop = stops.map(s => ({s, z: sum(spendLines().filter(l => (l.stop || 'general') === s.id))}));
+  const orphan = spendLines().filter(l => l.stop && l.stop !== 'general' && !byId(l.stop));
+  if (orphan.length) byStop.push({s: {id: '__gone', name: 'Stops no longer in the plan'}, z: sum(orphan)});
+  const maxStop = Math.max(1, ...byStop.map(r => r.z.committed));
+  const byCat = Object.keys(BCATS).filter(k => k !== 'repay').map(k => ({k, z: sum(spendLines().filter(l => l.cat === k))})).filter(r => r.z.committed || r.z.idea);
+  const maxCat = Math.max(1, ...byCat.map(r => r.z.committed));
+  const {moves, bal} = settleUp();
+  const due = budget.lines.filter(l => l.status === 'booked' && parts(l).open > 0.005).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  const linked = new Set(budget.lines.map(l => l.booking).filter(Boolean));
+  const unbudgeted = trip.bookings.filter(b => !linked.has(b.id));
+  const shown = budget.lines.filter(l => budget.filter === 'all' || (budget.filter === 'repay' ? l.cat === 'repay' : l.status === budget.filter && l.cat !== 'repay'));
+  const groups = [...stops.map(s => s.id), '__gone'].map(id => ({id, lines: shown.filter(l => id === '__gone' ? l.stop && l.stop !== 'general' && !byId(l.stop) : (l.stop || 'general') === id)})).filter(g => g.lines.length);
+  const kpi = (label, val, sub, color) => `<div class="kpi"><small>${color ? `<i class="dot" style="background:${color}"></i>` : ''}${label}</small><b>${val}</b><span>${sub}</span></div>`;
+  const brkRow = (name, sub, z, max) => `<div class="nm">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>${stack(z, max)}<div class="amt">${money(z.committed)}${z.idea ? `<small>+${money(z.idea)} ideas</small>` : ''}</div>`;
+  const opt = (v, label, sel) => `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(label)}</option>`;
+  $('#budget').innerHTML = `<div class="bd-wrap">
+    <div class="bd-head">
+      <div><h2>Trip budget</h2><p class="muted">${budget.lines.length} lines${REMOTE ? ' · shared with the group' : ' · saved in this browser'}${budget.error ? ' · <b style="color:var(--bad)">couldn’t reach the shared budget, showing the last copy</b>' : ''}</p></div>
+      <div class="bd-settings">
+        <div class="seg" role="group" aria-label="Show amounts in">${['GBP', 'JPY'].map(c => `<button data-action="bd-cur" data-v="${c}" aria-pressed="${cur === c}">${c === 'GBP' ? '£' : '¥'}</button>`).join('')}</div>
+        <label>£1 =<input id="bd-rate" type="number" min="1" step="0.1" value="${rate()}"> ¥</label>
+        <label>Target per person £<input id="bd-target" type="number" min="0" step="50" value="${target || ''}" placeholder="none"></label>
+        <label>Travellers<input id="bd-people" class="wide" value="${esc(trip.budget.travellers.join(', '))}"></label>
+      </div>
+    </div>
+    <div class="bd-kpis">
+      ${kpi('Trip total', money(all.committed), `paid + booked + expected · ${money(all.committed / n)} each`)}
+      ${kpi('Paid', money(all.paid), `${all.committed ? Math.round(all.paid / all.committed * 100) : 0}% of the total`, BSTATUS.paid.color)}
+      ${kpi('Booked, still to pay', money(all.open), `${due.length} open balance${due.length === 1 ? '' : 's'}`, BSTATUS.booked.color)}
+      ${kpi('Expected other costs', money(all.expected), 'estimates, not booked yet', BSTATUS.expected.color)}
+      ${target ? kpi('Against target', money(target * n - all.committed), `${all.committed / n > target ? 'over' : 'left of'} ${money(target, 'GBP')} each`, all.committed / n > target ? 'var(--bad)' : 'var(--ok)')
+        : kpi('Ideas, not counted', money(all.idea), 'prices seen, not in the total', BSTATUS.idea.color)}
+    </div>
+    <div class="card">
+      <h3>Add a price<small>Things you’ve seen, booked or paid</small></h3>
+      <form class="bd-add" id="bd-add">
+        <input id="bq-item" placeholder="What is it? e.g. teamLab tickets" autocomplete="off" aria-label="What">
+        <input id="bq-amount" type="number" step="0.01" min="0" placeholder="Amount" aria-label="Amount" inputmode="decimal">
+        <select id="bq-cur" aria-label="Currency">${opt('JPY', '¥', view.bqCur || 'JPY')}${opt('GBP', '£', view.bqCur || 'JPY')}</select>
+        <select id="bq-stop" aria-label="Where">${stops.map(s => opt(s.id, stopLabel(s.id), view.bqStop || 'general')).join('')}</select>
+        <select id="bq-status" aria-label="Status">${Object.entries(BSTATUS).map(([k, v]) => opt(k, v.label, view.bqStatus || 'expected')).join('')}</select>
+        <button type="submit">Add</button>
+      </form>
+    </div>
+    <div class="bd-grid">
+      <div>
+        <div class="card">
+          <h3>By stop<small>${trip.startDate ? 'in trip order' : 'add a start date for dates'}</small></h3>
+          <div class="legend-row">${['paid', 'booked', 'expected'].map(k => `<span><i class="dot" style="background:${BSTATUS[k].color}"></i>${BSTATUS[k].label}</span>`).join('')}</div>
+          <div class="brk">${byStop.filter(r => r.z.committed || r.z.idea || r.s.id !== 'general').map(r => brkRow(r.s.name || stopLabel(r.s.id), r.s.id === 'general' ? 'flights etc.' : stopDates(r.s.id), r.z, maxStop)).join('')}</div>
+        </div>
+        <div class="card">
+          <h3>By category</h3>
+          ${byCat.length ? `<div class="brk">${byCat.map(r => brkRow(`${BCATS[r.k].icon} ${BCATS[r.k].label}`, '', r.z, maxCat)).join('')}</div>` : '<p class="empty">Nothing yet.</p>'}
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Settle up<small>from money paid so far</small></h3>
+          ${moves.length ? `<ul class="mini">${moves.map(m => `<li><span>${esc(m.from)} → ${esc(m.to)}</span><b>${money(m.amt)}</b></li>`).join('')}</ul>`
+            : `<p class="empty">Everyone’s square.</p>`}
+          <p class="muted" style="margin-top:10px">${trip.budget.travellers.map(p => `${esc(p)} ${bal[p] >= 0 ? 'is owed' : 'owes'} ${money(Math.abs(bal[p]))}`).join(' · ')}</p>
+          <p class="muted" style="margin-top:6px">Record a repayment as a line in “${BCATS.repay.label}”: paid by the person sending, split = the person receiving.</p>
+        </div>
+        <div class="card">
+          <h3>Balances to pay<small>${money(all.open)}</small></h3>
+          ${due.length ? `<ul class="mini">${due.map(l => `<li><span>${esc(l.item)}<br><span class="sub">${l.due ? `due ${fmt(new Date(l.due + 'T00:00:00'))}` : 'no due date'}${l.payer ? ` · ${esc(l.payer)}` : ''}</span></span><b>${money(parts(l).open)}</b></li>`).join('')}</ul>` : '<p class="empty">Nothing booked with a balance open.</p>'}
+        </div>
+        ${unbudgeted.length ? `<div class="card"><h3>Bookings not in the budget</h3><ul class="mini">${unbudgeted.map(b => `<li><span>${esc(b.title)}<br><span class="sub">${esc(b.price || 'no price found')}</span></span><button data-action="bd-from-booking" data-id="${b.id}">Add</button></li>`).join('')}</ul></div>` : ''}
+      </div>
+    </div>
+    <div class="card">
+      <h3>All lines<small>tap a line to edit it</small></h3>
+      <div class="bd-filters" role="group" aria-label="Filter lines">${[['all', 'All'], ['paid', 'Paid'], ['booked', 'Booked'], ['expected', 'Expected'], ['idea', 'Ideas'], ['repay', 'Paying back']].map(([k, l]) => `<button data-action="bd-filter" data-v="${k}" aria-pressed="${budget.filter === k}">${l}</button>`).join('')}</div>
+      ${groups.length ? groups.map(g => { const z = sum(g.lines.filter(l => l.cat !== 'repay')); return `<div class="bd-group"><span>${esc(g.id === '__gone' ? 'Stops no longer in the plan' : stopLabel(g.id))}</span><span>${z.committed ? money(z.committed) : ''}</span></div>`
+        + g.lines.map(l => { const p = parts(l), st = BSTATUS[l.status] || BSTATUS.expected;
+          return `<button class="bl${l.cat === 'repay' ? ' repay' : ''}" data-action="bd-edit" data-id="${l.id}">
+            <span class="ic">${(BCATS[l.cat] || BCATS.other).icon}</span>
+            <span class="t"><span class="pill" style="background:${st.color}">${l.cat === 'repay' ? 'Paid back' : st.label}</span>${esc(l.item)}</span>
+            <span class="m">${[l.date && fmt(new Date(l.date + 'T00:00:00')), l.cat === 'repay' ? `${l.payer} → ${l.split}` : l.payer && `${l.payer}${l.split && l.split !== 'all' ? ` for ${l.split}` : ''}`, l.status === 'booked' && p.open > 0.005 && `${money(p.open)} still to pay`, l.notes].filter(Boolean).map(esc).join(' · ')}</span>
+            <span class="a">${money(p.total)}${l.cur !== cur ? `<small>${orig(l)}</small>` : ''}</span></button>`; }).join(''); }).join('')
+        : '<p class="empty" style="margin-top:8px">No lines here yet.</p>'}
+    </div>
+  </div>`;
+  if (keepFocus) document.getElementById(keepFocus)?.focus();
+}
+
+// Saving: each line is written on its own; failed writes are retried on the next sync.
+async function flushBudget() {
+  if (!REMOTE || !budget.pending.size) return;
+  for (const id of [...budget.pending]) {
+    const l = budget.lines.find(x => x.id === id);
+    try {
+      const r = l ? await rpc('save_budget_line', {p_key: TRIP_KEY, p_id: id, p_data: l}) : await rpc('delete_budget_line', {p_key: TRIP_KEY, p_id: id});
+      if (l && r === null) throw new Error('refused');
+      budget.pending.delete(id);
+    } catch (e) { console.warn('budget save', e); break; }
+  }
+  writeBudget();
+}
+async function loadBudget() {
+  if (!REMOTE) return;
+  await flushBudget();
+  try {
+    const rows = await rpc('get_budget', {p_key: TRIP_KEY});
+    const mine = budget.lines.filter(l => budget.pending.has(l.id));
+    const theirs = rows.filter(r => !budget.pending.has(r.id)).map(r => ({...r.data, id: r.id}));
+    const next = [...theirs, ...mine.filter(l => !theirs.some(t => t.id === l.id))];
+    const changed = JSON.stringify(next) !== JSON.stringify(budget.lines);
+    budget.lines = next; budget.error = false; writeBudget();
+    if (changed) renderBudget();
+  } catch (e) { console.warn(e); budget.error = true; renderBudget(); }
+}
+function putLine(l) {
+  l.at = new Date().toISOString();
+  const i = budget.lines.findIndex(x => x.id === l.id); i >= 0 ? budget.lines[i] = l : budget.lines.push(l);
+  budget.pending.add(l.id); writeBudget(); renderBudget(); flushBudget();
+}
+function dropLine(id) {
+  const l = budget.lines.find(x => x.id === id); if (!l) return;
+  budget.lines = budget.lines.filter(x => x !== l); budget.pending.add(id); writeBudget(); renderBudget(); flushBudget();
+  toast(`Removed ${l.item}.`, () => putLine(l));
+}
+function openLine(l) {
+  const f = id => document.getElementById('bl-' + id), people = trip.budget.travellers;
+  const opts = (pairs, sel) => pairs.map(([v, t]) => `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  f('title').textContent = l.item ? 'Edit budget line' : 'New budget line';
+  f('item').value = l.item || ''; f('amount').value = l.amount ?? ''; f('cur').value = l.cur || 'JPY'; f('paid').value = l.paid ?? '';
+  f('status').innerHTML = opts(Object.entries(BSTATUS).map(([k, v]) => [k, v.label]), l.status || 'expected');
+  f('stop').innerHTML = opts([['general', 'Whole trip'], ...trip.stops.map(s => [s.id, s.name])], l.stop || 'general');
+  f('cat').innerHTML = opts(Object.entries(BCATS).map(([k, v]) => [k, `${v.icon} ${v.label}`]), l.cat || 'other');
+  f('payer').innerHTML = opts([['', 'Nobody yet'], ...people.map(p => [p, p])], l.payer || '');
+  f('split').innerHTML = opts([['all', 'Everyone equally'], ...people.map(p => [p, `Just ${p}`])], l.split || 'all');
+  f('date').value = l.date || ''; f('due').value = l.due || ''; f('link').value = l.link || ''; f('notes').value = l.notes || '';
+  f('del').hidden = !budget.lines.some(x => x.id === l.id);
+  const sync = () => { f('paid-wrap').style.visibility = f('status').value === 'booked' ? '' : 'hidden';
+    f('split-label').firstChild.textContent = f('cat').value === 'repay' ? 'Paid to ' : 'Split between'; };
+  f('status').onchange = f('cat').onchange = sync; sync();
+  f('del').onclick = () => { $('#bl-dlg').close(); dropLine(l.id); };
+  $('#bl-dlg').onclose = () => {
+    if ($('#bl-dlg').returnValue !== 'save') return;
+    const out = {...l, item: f('item').value.trim() || 'Untitled', amount: +f('amount').value || 0, cur: f('cur').value, status: f('status').value,
+      paid: f('status').value === 'booked' ? +f('paid').value || 0 : undefined, stop: f('stop').value, cat: f('cat').value, payer: f('payer').value,
+      split: f('split').value, date: f('date').value, due: f('due').value, link: f('link').value.trim(), notes: f('notes').value.trim()};
+    putLine(out); toast(`Saved ${out.item}.`);
+  };
+  openDlg('#bl-dlg');
+}
+
+function renderAll() { renderHeader(); renderStops(); renderProposals(); renderMap(); renderPlayback(); renderIdeas(); renderChecklist(); renderBudget(); }
 const byId = id => trip.stops.find(s => s.id === id);
 
 const ACTIONS = {
@@ -1911,6 +2307,14 @@ const ACTIONS = {
   'reset': () => { if (!confirm(`Go back to the built-in plan?${REMOTE ? ' This changes it for everyone sharing the plan.' : ''} Your edits will be lost.`)) return; trip = normalize(structuredClone(DEFAULT_TRIP)); ui.openStop = ui.openLeg = null; save(); renderAll(); fitAll(); },
   'checks': () => showChecks(),
   'page': d => setPage(d.v),
+  'bd-cur': d => { view.budgetCur = d.v; saveView(); renderBudget(); },
+  'bd-filter': d => { budget.filter = d.v; renderBudget(); },
+  'bd-edit': d => openLine(structuredClone(budget.lines.find(x => x.id === d.id))),
+  'bd-from-booking': d => {
+    const b = trip.bookings.find(x => x.id === d.id), pr = priceOf(b.price), at = b.attach?.split(':')[1];
+    openLine({id: uid(), item: b.title, booking: b.id, amount: pr?.amount ?? '', cur: pr?.cur || 'JPY', status: 'paid', stop: byId(at) ? at : 'general',
+      cat: {flight: 'flights', train: 'transport', stay: 'stay', activity: 'activity'}[b.kind] || 'other', split: 'all', date: (b.dates || [])[0] || '', notes: b.ref ? `Ref ${b.ref}` : ''});
+  },
   'ck-toggle': d => { const c = trip.checklist.find(x => x.id === d.id); c.done = !c.done; save(); renderChecklist(); },
   'ck-delete': d => { const c = trip.checklist.find(x => x.id === d.id); undoable(`Removed ${c.text || 'item'}.`, () => { trip.checklist = trip.checklist.filter(x => x !== c); }); },
   'prop-show': d => { view.propShow = d.v; saveView(); renderProposals(); renderMap(); fitShown(); },
@@ -1949,10 +2353,29 @@ document.addEventListener('click', e => {
   ACTIONS[el.dataset.action]?.(el.dataset, el);
 });
 document.addEventListener('submit', e => {
+  if (e.target.id !== 'bd-add') return;
+  e.preventDefault();
+  const item = $('#bq-item').value.trim(), amount = +$('#bq-amount').value;
+  if (!item) return $('#bq-item').focus();
+  Object.assign(view, {bqCur: $('#bq-cur').value, bqStop: $('#bq-stop').value, bqStatus: $('#bq-status').value}); saveView();
+  const guess = /flight|airline|jal|ana|jetstar|peach/i.test(item) ? 'flights' : /hotel|ryokan|hostel|airbnb|stay|night/i.test(item) ? 'stay'
+    : /dinner|lunch|breakfast|kaiseki|ramen|sushi|bar|drinks?|food|meal/i.test(item) ? 'food' : /ticket|tour|ski|lift|entry|museum|onsen|teamlab|class/i.test(item) ? 'activity'
+    : /train|shinkansen|bus|taxi|suica|pass\b|car hire|rental/i.test(item) ? 'transport' : /shop|souvenir|gift/i.test(item) ? 'shopping' : 'other';
+  putLine({id: uid(), item, amount: amount || 0, cur: view.bqCur, stop: view.bqStop, status: view.bqStatus, cat: guess, payer: '', split: 'all', notes: ''});
+  toast(`Added ${item}. Tap it to add who paid, dates or notes.`);
+  $('#bq-item').focus();
+});
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'bd-rate') { const v = +e.target.value; if (v > 0) { trip.budget.rate = v; save(); renderAll(); } }
+  if (id === 'bd-target') { trip.budget.target = Math.max(0, +e.target.value || 0); save(); renderAll(); }
+  if (id === 'bd-people') { const v = e.target.value.split(',').map(x => x.trim()).filter(Boolean); if (v.length) { trip.budget.travellers = [...new Set(v)]; save(); renderAll(); } }
+});
+document.addEventListener('submit', e => {
   if (e.target.id !== 'ck-add') return;
   e.preventDefault();
   const text = $('#ck-new').value.trim(); if (!text) return;
-  trip.checklist.push({id: uid(), text, note: '', done: false}); save(); renderChecklist(); $('#ck-new').focus();
+  trip.checklist.push({id: uid(), text, note: '', cat: 'Other', who: '', done: false}); save(); renderChecklist(); $('#ck-new').focus();
 });
 document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button]')) { e.preventDefault(); e.target.click(); }
@@ -2151,7 +2574,7 @@ renderAll();
 ui.view = clampView(viewAround(trip.stops.map(s => project(s.lat, s.lng)), MAP_W*.5)); renderOverlay();
 setStatus(REMOTE ? 'saving' : 'local', REMOTE ? 'Connecting…' : undefined);
 if (REMOTE) initRemote(); else mergeSeeds();
-setPage(['ideas', 'changes', 'checklist'].includes(view.page) ? view.page : 'plan');
+setPage(['ideas', 'changes', 'checklist', 'budget'].includes(view.page) ? view.page : 'plan');
 runChecks().then(R => $('#checks-btn').dataset.state = checksState(R));
 </script>
 </body>

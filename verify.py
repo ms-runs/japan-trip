@@ -47,6 +47,7 @@ BASE = f"http://127.0.0.1:{PORT}"
 # ── fake Supabase: same conflict rule as the real SQL function ───────────────
 store = {}
 files_store = {}
+budget_store = {}
 PDFJS_DIR = pathlib.Path(__import__("os").environ.get("PDFJS_DIR", "/home/claude/pdfjs/package/build"))
 PDFS = HERE / "testpdfs"
 HAVE_PDFS = (PDFS / "ANA-eticket.pdf").exists() and (PDFJS_DIR / "pdf.min.js").exists()   # test files and a local pdf.js; skipped if absent
@@ -67,6 +68,13 @@ def fake_supabase(route):
         out = [{"name": f["p_name"], "type": f["p_type"], "data": f["p_data"]}] if f else []
     elif fn == "delete_file":
         out = files_store.pop((body["p_key"], body["p_id"]), None) is not None
+    elif fn == "get_budget":
+        out = [{"id": k[1], "data": v, "updated_at": "2026-01-01T00:00:00Z"} for k, v in budget_store.items() if k[0] == body["p_key"]]
+    elif fn == "save_budget_line":
+        out = "2026-01-01T00:00:00Z" if row else None
+        if row: budget_store[(body["p_key"], body["p_id"])] = body["p_data"]
+    elif fn == "delete_budget_line":
+        out = budget_store.pop((body["p_key"], body["p_id"]), None) is not None
     else:
         if row and ((row["trip"].get("tripId") != body["p_data"].get("tripId")) or body["p_base"] is None or body["p_base"] != row["saved_at"]):
             out = [{"ok": False, **row}]
