@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1917">
 <title>Japan trip planner</title>
+<script>try { if (window.self !== window.top) document.documentElement.classList.add('embedded'); } catch { document.documentElement.classList.add('embedded'); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
@@ -331,16 +333,100 @@ body[data-page=changes] .playbar{display:none}
 #drop-hint.on{display:flex}
 #bk-dlg .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #bk-dlg .grid .full{grid-column:1/-1}
+.menu-btn,.grip,.tabs .ti{display:none}
+/* ── Phones and narrow windows ─────────────────────────────────────────────── */
 @media (max-width:860px){
-  .app{grid-template-columns:1fr;grid-template-rows:46vh 1fr}
-  .map{order:-1}
-  .sidebar{border-right:0;border-top:1px solid var(--line)}
+  body{padding-bottom:calc(58px + env(safe-area-inset-bottom))}
+  /* Header: one row — name, nights, sync status, ⋯ menu */
+  header{flex-wrap:nowrap;gap:10px;padding:8px 10px 8px 14px;padding-top:max(8px,env(safe-area-inset-top));position:relative;z-index:30}
+  .logo{font-size:17px;white-space:nowrap}
+  .logo small,#trip-summary small{display:none}
+  #trip-summary{font-size:14px;white-space:nowrap;opacity:.85}
+  #status{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .menu-btn{display:flex;align-items:center;justify-content:center;flex:none;width:40px;height:36px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:none;color:var(--paper);font-size:20px;line-height:1}
+  .menu-btn[aria-expanded=true]{background:rgba(255,255,255,.14)}
+  .tools{display:none;position:absolute;top:100%;right:8px;margin:0;width:min(240px,calc(100vw - 16px));flex-direction:column;flex-wrap:nowrap;gap:2px;padding:6px;background:var(--ink);border-radius:0 0 12px 12px;box-shadow:0 14px 30px rgba(0,0,0,.35)}
+  header.menu-open .tools{display:flex}
+  .tools button{border:0;border-radius:8px;padding:12px 14px;font-size:15px;text-align:left;white-space:nowrap}
+  /* Tabs become a bottom bar, where thumbs reach */
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:35;max-width:none;overflow:visible;gap:0;border-radius:0;background:var(--ink);padding:5px 4px calc(5px + env(safe-area-inset-bottom));box-shadow:0 -1px 0 rgba(255,255,255,.06)}
+  .tabs button{position:relative;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:3px 0 2px;font-size:11px;background:none!important;color:rgba(246,241,233,.62)}
+  .tabs button[aria-pressed=true]{color:#fff;font-weight:600}
+  .tabs .ti{display:block;width:46px;height:28px;padding:4px 12px;border-radius:99px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:background .15s}
+  .tabs button[aria-pressed=true] .ti{background:rgba(255,255,255,.16)}
+  .tabs small{position:absolute;top:0;left:calc(50% + 9px);margin:0;opacity:1;font-size:9.5px;font-weight:600;line-height:15px;padding:0 5px;border-radius:99px;background:#3a3531;color:var(--paper)}
+  .tabs small:empty{display:none}
+  /* Plan + Proposals: map on top, list below, grab handle in between */
+  .app{display:flex;flex-direction:column}
+  .map{order:0;flex:none;height:var(--map-h,40dvh);transition:height .22s ease}
+  .app.resizing .map{transition:none}
+  .grip{display:flex;order:1;flex:none;position:relative;align-items:center;justify-content:center;gap:8px;height:24px;background:var(--paper);border-top:1px solid var(--line);touch-action:none;cursor:row-resize;user-select:none;-webkit-user-select:none}
+  .grip span{width:42px;height:5px;border-radius:99px;background:var(--line2)}
+  .grip b{display:none;font-size:12px;font-weight:500;color:var(--muted)}
+  .app.map-hidden .grip{height:34px}
+  .app.map-hidden .grip b{display:inline}
+  .sidebar{order:2;flex:1;min-height:0;border:0}
   .legend{display:none}
-  header{gap:6px 10px;padding:8px 12px}
-  .logo small{display:none}
-  .tools{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto}
-  .tools button{white-space:nowrap}
-  #day-label{max-width:none;flex-basis:100%}
+  .playbar{margin:8px 8px 0;padding:5px 8px;gap:6px 6px}
+  .playbar button,.zoom button{min-width:36px;height:36px;font-size:15px}
+  .zoom{right:8px;bottom:8px}
+  .zoom button[data-action=fit]{font-size:13px}
+  #day-label{max-width:none;flex-basis:100%;font-size:11.5px}
+  .app.map-small .playbar{display:none}
+  /* Bigger targets for fingers */
+  .stop-head{padding:13px 14px}
+  .things li .x{width:32px;height:32px;font-size:12px}
+  .bar.upload span:last-child{display:none}
+  .prop-actions{background:var(--paper);margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 12px var(--paper)}
+  .prop-actions button{flex:1;padding:12px 14px}
+  /* Ideas: filters scroll sideways instead of filling the screen */
+  .ideas{padding:14px 12px 32px}
+  .src-switch{flex-wrap:nowrap}
+  .src-switch button{flex:1 1 0;min-width:0;padding:8px 12px}
+  .ideas-bar input[type=search]{max-width:none}
+  .ideas .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px 2px}
+  .ideas .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;padding:7px 13px;font-size:13px}
+  .chip-lbl{flex:none;min-width:0}
+  .idea-grid{grid-template-columns:1fr}
+  /* Checklist: name gets the full row; who-does-it sits under the note */
+  .checklist{padding:18px 12px 32px}
+  .ck-item{grid-template-columns:auto minmax(0,1fr) auto;padding:12px}
+  .ck-item input[type=checkbox]{width:22px;height:22px}
+  .ck-item .x{grid-column:3;grid-row:1;width:32px;height:32px}
+  .ck-item .ck-note{grid-column:2/4}
+  .ck-item .ck-who{grid-column:2;grid-row:3;justify-self:start;max-width:none;margin-top:4px}
+  /* Budget */
+  .budget{padding:18px 12px 32px}
+  .bd-kpis{grid-template-columns:1fr 1fr}
+  .seg button{padding:8px 12px}
+  .bd-filters button{padding:6px 12px;font-size:13px}
+  .bl{padding:12px 4px}
+  /* Dialogs slide up from the bottom */
+  dialog{width:100%;max-width:none;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:92dvh;overflow-y:auto;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+  dialog button{min-height:40px}
+  #toast{bottom:calc(72px + env(safe-area-inset-bottom));max-width:calc(100vw - 24px)}
+}
+/* Embedded in another site (the Squarespace page): the frame's bottom edge can sit below the screen,
+   so on phones the tabs go under the header instead, where they're always visible */
+@media (max-width:860px){
+  html.embedded body{padding-bottom:0}
+  html.embedded header{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding-top:8px}
+  html.embedded #status{justify-self:end;max-width:100%}
+  html.embedded .tabs{position:static;order:5;grid-column:1/-1;padding:2px 0 0;background:none;box-shadow:none}
+  html.embedded .tabs .ti{width:40px;height:24px;padding:3px 10px}
+  html.embedded #toast{bottom:16px}
+  html.embedded .prop-actions{padding-bottom:10px}
+}
+/* Short screens and short embeds: playback bar on one row so the map keeps its room */
+@media (max-width:860px) and (max-height:760px){
+  .playbar{flex-wrap:nowrap;padding:4px 6px}
+  .playbar [data-action=step]{display:none}
+  #day-label{flex:0 1 50%;flex-basis:auto;font-size:11px}
+}
+/* Phones zoom the page when a text box under 16px gets focus — stop that */
+@media (max-width:860px) and (pointer:coarse){
+  input,select,textarea{font-size:16px!important}
 }
 </style>
 </head>
@@ -348,15 +434,16 @@ body[data-page=changes] .playbar{display:none}
 <header>
   <div class="logo">Japan trip<small>日本の旅</small></div>
   <nav class="tabs" aria-label="Pages">
-    <button data-action="page" data-v="plan" aria-pressed="true">Plan</button>
-    <button data-action="page" data-v="ideas" aria-pressed="false">Ideas<small id="ideas-count"></small></button>
-    <button data-action="page" data-v="changes" aria-pressed="false">Proposals<small id="prop-count"></small></button>
-    <button data-action="page" data-v="checklist" aria-pressed="false">Checklist<small id="ck-count"></small></button>
-    <button data-action="page" data-v="budget" aria-pressed="false">Budget<small id="bd-count"></small></button>
+    <button data-action="page" data-v="plan" aria-pressed="true"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>Plan</button>
+    <button data-action="page" data-v="ideas" aria-pressed="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>Ideas<small id="ideas-count"></small></button>
+    <button data-action="page" data-v="changes" aria-pressed="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v10a4 4 0 0 0 4 4h6"/><path d="m14 15 3 3-3 3"/><circle cx="7" cy="4" r="1.5"/></svg>Proposals<small id="prop-count"></small></button>
+    <button data-action="page" data-v="checklist" aria-pressed="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 2 2 4-4M4 16l2 2 4-4M13 7h7M13 16h7"/></svg>Checklist<small id="ck-count"></small></button>
+    <button data-action="page" data-v="budget" aria-pressed="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Budget<small id="bd-count"></small></button>
   </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
-  <div class="tools">
+  <button id="menu-btn" class="menu-btn" data-action="menu" aria-expanded="false" aria-controls="tools" aria-label="More actions">⋯</button>
+  <div class="tools" id="tools">
     <button id="edit-btn" data-action="toggle-edit" aria-pressed="false">Edit stops</button>
     <button id="checks-btn" data-action="checks">Checks</button>
     <button data-action="copy">Copy plan</button>
@@ -455,6 +542,7 @@ body[data-page=changes] .playbar{display:none}
     </div>
     <div id="tip"></div>
   </main>
+  <div class="grip" id="map-grip" role="button" tabindex="0" aria-label="Resize the map: drag, or tap to change size"><span></span><b>Show map</b></div>
 </div>
 
 <section class="checklist" id="checklist" aria-label="Pre-trip checklist"></section>
@@ -2000,7 +2088,7 @@ function setView(target) {
   target = clampView(target);
   const from = [...ui.view], t0 = performance.now();
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { ui.view = target; return renderOverlay(); }
-  const step = t => { const q = Math.min(1, (t - t0)/320), e = 1 - (1 - q)**3; ui.view = from.map((v, i) => v + (target[i] - v)*e); renderOverlay(); if (q < 1) requestAnimationFrame(step); };
+  const step = t => { const q = clamp((t - t0)/320, 0, 1), e = 1 - (1 - q)**3; ui.view = from.map((v, i) => v + (target[i] - v)*e); renderOverlay(); if (q < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
 function viewAround(points, minW = 170) {
@@ -2346,6 +2434,11 @@ const ACTIONS = {
     undoable(was ? `Showing ${idea.title} again.` : `Hid ${idea.title}.`, () => { trip.hiddenIdeas = was ? trip.hiddenIdeas.filter(x => x !== d.id) : [...trip.hiddenIdeas, d.id]; });
   },
 };
+// Phone header: the ⋯ button opens the tools; any tap elsewhere (or on a tool) closes them
+ACTIONS.menu = () => setMenu(!$('header').classList.contains('menu-open'));
+function setMenu(open) { $('header').classList.toggle('menu-open', open); $('#menu-btn').setAttribute('aria-expanded', open); }
+document.addEventListener('click', e => { if (!e.target.closest('#menu-btn') && $('header').classList.contains('menu-open')) setMenu(false); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el || el.tagName === 'SELECT') return;
@@ -2448,14 +2541,61 @@ svgEl.addEventListener('click', e => {
   document.querySelector(`.stop[data-sid="${sid}"]`)?.scrollIntoView({block:'nearest', behavior:'smooth'});
 });
 svgEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(e.deltaY < 0 ? 0.85 : 1.18, svgPoint(e)); }, {passive:false});
-svgEl.addEventListener('pointerdown', e => { if (e.target.closest('[data-sid]')) return; drag = {x: e.clientX, y: e.clientY, v: [...ui.view]}; svgEl.setPointerCapture(e.pointerId); svgEl.classList.add('dragging'); });
+svgEl.addEventListener('pointerdown', e => { if (e.target.closest('[data-sid]') || touches.size > 1) return; drag = {x: e.clientX, y: e.clientY, v: [...ui.view]}; svgEl.setPointerCapture(e.pointerId); svgEl.classList.add('dragging'); });
 svgEl.addEventListener('pointermove', e => {
   if (!drag) return;
   const u = Math.max(drag.v[2]/svgEl.clientWidth, drag.v[3]/svgEl.clientHeight);   // map units per screen pixel
   ui.view = clampView([drag.v[0] - (e.clientX - drag.x)*u, drag.v[1] - (e.clientY - drag.y)*u, drag.v[2], drag.v[3]]);
   renderOverlay();
 });
-['pointerup','pointercancel'].forEach(t => svgEl.addEventListener(t, () => { drag = null; svgEl.classList.remove('dragging'); }));
+['pointerup','pointercancel'].forEach(t => svgEl.addEventListener(t, e => { touches.delete(e.pointerId); pinch = null; drag = null; svgEl.classList.remove('dragging'); }));
+
+// Two fingers on the map: pinch to zoom, move both to pan
+const touches = new Map(); let pinch = null;
+const pinchState = () => { const [a, b] = [...touches.values()]; return {d: Math.hypot(a.x - b.x, a.y - b.y) || 1, x: (a.x + b.x)/2, y: (a.y + b.y)/2}; };
+svgEl.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (touches.size === 2) { drag = null; pinch = pinchState(); }
+}, true);
+svgEl.addEventListener('pointermove', e => {
+  if (!touches.has(e.pointerId)) return;
+  touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (!pinch || touches.size !== 2) return;
+  const now = pinchState(), u = Math.max(ui.view[2]/svgEl.clientWidth, ui.view[3]/svgEl.clientHeight);
+  ui.view = clampView([ui.view[0] - (now.x - pinch.x)*u, ui.view[1] - (now.y - pinch.y)*u, ui.view[2], ui.view[3]]);
+  zoomBy(pinch.d/now.d, svgPoint({clientX: now.x, clientY: now.y}));
+  pinch = now;
+});
+
+// Phone layout: drag the handle under the map to resize it; tap it to step through sizes
+const MAP_SIZES = [0, 0.4, 0.72];   // share of the screen height
+function applyMapSize(frac, keep = true) {
+  const app = $('.app'); frac = clamp(frac, 0, 0.8);
+  app.style.setProperty('--map-h', frac ? `${Math.round(frac*100)}dvh` : '0px');
+  app.classList.toggle('map-hidden', frac < 0.05);
+  app.classList.toggle('map-small', frac > 0 && frac < 0.3);
+  if (keep) { view.mapSize = frac; saveView(); }
+  requestAnimationFrame(() => setTimeout(renderOverlay, 240));
+}
+(() => {
+  const grip = $('#map-grip'); let g = null;
+  if (typeof view.mapSize === 'number') applyMapSize(view.mapSize, false);
+  grip.addEventListener('pointerdown', e => { g = {y: e.clientY, h: $('.map').getBoundingClientRect().height, moved: false}; grip.setPointerCapture(e.pointerId); $('.app').classList.add('resizing'); });
+  grip.addEventListener('pointermove', e => {
+    if (!g) return; const dy = e.clientY - g.y; if (Math.abs(dy) > 6) g.moved = true;
+    if (g.moved) $('.app').style.setProperty('--map-h', `${clamp(g.h + dy, 0, innerHeight*0.8)}px`);
+  });
+  const end = e => {
+    if (!g) return; $('.app').classList.remove('resizing');
+    const cur = view.mapSize ?? MAP_SIZES[1];
+    if (!g.moved) applyMapSize(cur < 0.05 ? MAP_SIZES[1] : cur < 0.55 ? MAP_SIZES[2] : MAP_SIZES[0]);   // tap: medium → large → hidden → medium
+    else { const f = $('.map').getBoundingClientRect().height / innerHeight; applyMapSize(MAP_SIZES.reduce((a, b) => Math.abs(b - f) < Math.abs(a - f) ? b : a)); }
+    g = null;
+  };
+  grip.addEventListener('pointerup', end); grip.addEventListener('pointercancel', end);
+  grip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); g = {moved: false}; end(); } });
+})();
 
 // Adds the Google Maps list to the plan once. Runs after the shared plan has loaded.
 function mergeSeeds() {
