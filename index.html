@@ -285,6 +285,25 @@ body[data-page=changes] .playbar{display:none}
 .prop-actions button{padding:9px 16px;border-radius:7px;border:1px solid var(--line2);background:#fff;font-weight:500}
 .prop-actions .primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .prop-actions .primary:hover{background:#163c66}
+.prop-vars{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prop-vars button{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line2);background:#fff;border-radius:9px;padding:9px 11px}
+.prop-vars button b{font:600 14px 'Shippori Mincho',serif}
+.prop-vars button small{font-size:11.5px;line-height:1.4;color:var(--muted)}
+.prop-vars button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.prop-vars button:disabled{opacity:.45}
+.prop-days{list-style:none;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--line);gap:1px}
+.prop-days li{display:grid;grid-template-columns:62px 1fr;gap:10px;padding:9px 11px;background:#fff}
+.pd-date{font:600 12px 'DM Sans',sans-serif;color:var(--muted);line-height:1.3;padding-top:1px}
+.pd-body{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12.5px}
+.pd-body b{font-weight:600}
+.pd-drive{align-self:flex-start;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;background:#f6edd6;color:#6b500f}
+.pd-body p{font-size:12.5px;line-height:1.45;color:#403a35}
+.pd-body small{font-size:11.5px;color:var(--muted)}
+.prop-archive{margin-top:28px;border-top:1px solid var(--line);padding-top:12px}
+.prop-archive summary{cursor:pointer;font:600 12px 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.prop-archive summary small{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px}
+.prop-archive-list{margin-top:14px;opacity:.85}
+@media (max-width:520px){.prop-vars{grid-template-columns:1fr}}
 .ideas-bar{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;max-width:1200px}
 .src-switch{display:flex;gap:6px;flex-wrap:wrap}
 .src-switch button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 14px;min-width:170px;text-align:left}
@@ -1760,8 +1779,77 @@ function renderIdeas() {
 const VID = 'From Vid’s pitch';
 const BOOKED = (o) => ({...leg(o.mode), ...o});
 const MEETING = 'From the 1 Nov call';
+// Proposals with `variants` share the summary; each variant has its own stop order and day plan.
+// `archived` ones sit in a collapsed list at the bottom of the tab (they can still be undone).
+const HOK = 'Hokkaidō road trip';
+const HOK_C = '#1a5a38';
+const hokStops = {
+  soya: mkStop('soya', 'Cape Sōya & Wakkanai', 'Hokkaidō: the northern tip', 45.5226, 141.9364, HOK_C, 0, ['JP01'],
+    leg('car', 'about 5h', 'Sapporo to Cape Sōya, about 330 km: Dō-ō Expressway north, then Route 40. Leave around 6:30, an hour before sunrise, to arrive near midday.'),
+    [{label: HOK, items: [it('Cape Sōya: the northernmost point of Japan, with Sakhalin on the horizon on a clear day', ['view'], true),
+      it('Wakkanai: lunch and the North Breakwater Dome by the port', ['eat', 'view'])]}],
+    'Late-December daylight up here is roughly 7:00 to 16:00, so the onward drive to Abashiri is mostly in the dark.'),
+  abashiri: mkStop('abashiri', 'Abashiri', 'Hokkaidō: Okhotsk coast', 44.0206, 144.2733, HOK_C, 1, ['JP01'],
+    leg('car', 'about 5h', 'Wakkanai to Abashiri along the Okhotsk coast (Route 238), about 320 km with no expressway. Most of it after dark.'),
+    [{label: HOK, items: [it('Abashiri Prison Museum: open 29–30 Dec, 9:00–17:00 (closed 31 Dec and 1 Jan)', ['culture'], true),
+      it('Okhotsk Ryū-hyō Museum: real drift ice in a sub-zero room. The sea ice itself doesn’t usually arrive until late January', ['nature'])]}]),
+  akan: mkStop('akan', 'Akanko Ainu Kotan', 'Hokkaidō: Lake Akan', 43.4337, 144.0893, HOK_C, 1, ['JP01'],
+    leg('car', 'under 2h', 'Abashiri to Lake Akan, about 110 km, over the Bihoro Pass or Route 240'),
+    [{label: HOK, items: [it('Stay in or right beside the Ainu Kotan at Akanko Onsen', ['culture'], true),
+      it('Winter Moon Dance at the Ikor theatre. Ainu traditional dance is on UNESCO’s intangible heritage list. Ikor closes over New Year, so check 30 Dec is a show night before booking', ['culture'], true),
+      it('Ainu craft shops and food along the Kotan street', ['shop', 'eat'])]}],
+    'Upopoy (the national Ainu museum) is closed 28 Dec – 4 Jan, so this is the Ainu night that’s actually on.'),
+  nosappu: mkStop('nosappu', 'Cape Nosappu', 'Hokkaidō: the eastern tip', 43.3853, 145.8169, HOK_C, 0, ['JP01'],
+    leg('car', 'about 3h', 'Lake Akan to Kushiro, then the coast road to Nemuro and the cape, about 170 km'),
+    [{label: HOK, items: [it('Cape Nosappu: the easternmost point you can reach, looking out to the islands Russia holds', ['view'], true),
+      it('Hanasaki crab in Nemuro', ['eat'])]}]),
+  nye: mkStop('sapporo-nye', 'Sapporo, New Year’s Eve', 'Hokkaidō', 43.0642, 141.3469, '#3a6e9a', 1, ['JP01'],
+    leg('car', 'about 7h', 'Cape Nosappu back to Sapporo, about 460 km: Nemuro to Kushiro, then the Dōtō Expressway via Obihiro and Tomamu. Mostly after dark, arriving in the evening.'),
+    [{label: HOK, items: [it('Midnight hatsumōde (first shrine visit of the year) at Hokkaidō Jingū', ['shrine', 'culture'], true),
+      it('1 Jan: drop the car at New Chitose before GK156 at 16:35', [])]}],
+    'Needs a bed for the night of 31 Dec.'),
+};
+const HOK_DAYS = {
+  28: {d: 'Mon 28 Dec', route: 'Haneda → Sapporo', drive: 'about 1h', text: 'JAL525 lands at New Chitose 19:10. Pick up the car at the airport (check the desk is open that late), then drive to Sapporo.', sleep: 'Sapporo (hostel booked)'},
+  29: {d: 'Tue 29 Dec', route: 'Sapporo → Cape Sōya → Abashiri', drive: 'about 10h', text: 'Leave around 6:30. A couple of hours at Cape Sōya and Wakkanai from about midday, then down the Okhotsk coast, arriving around 19:00.', sleep: 'Abashiri'},
+  30: {d: 'Wed 30 Dec', route: 'Abashiri → Lake Akan', drive: 'under 2h', text: 'Morning at the Prison Museum and the drift-ice museum, drive after lunch, Ainu Kotan and the Winter Moon Dance in the evening.', sleep: 'Akanko Ainu Kotan'},
+  1: {d: 'Fri 1 Jan', route: 'Sapporo → New Chitose', drive: 'about 1h', text: 'A slow New Year’s morning (most places are shut), return the car at the airport, GK156 to Kansai at 16:35.', sleep: 'Nara'},
+};
 const PROPOSALS = [{
-  id: 'meeting-2026-11-01', by: 'Group call', date: '1 Nov 2026',
+  id: 'hokkaido-loop-2026-11', by: 'Miguel', date: '4 Nov 2026',
+  title: 'Hokkaidō road trip: the northern and eastern capes, Abashiri and an Ainu night at Lake Akan',
+  summary: 'Swap three quiet New Year days in Sapporo for a loop by car: Japan’s northernmost point, Abashiri, a night in the Ainu village at Lake Akan, then back to Sapporo for New Year’s Eve. It means hitting the ground running with two long driving days, but otherwise it’s fairly chilled. Pick a version below to see it on the map.',
+  why: [
+    'Sapporo goes from 4 nights to 2: the night you land (28 Dec) and New Year’s Eve. The 1 Jan flight to Kansai doesn’t change.',
+    'Most of Japan shuts 29 Dec – 3 Jan, so this uses the closed days for driving and places that stay open. Upopoy is closed, so Lake Akan is where to see Ainu culture.',
+    'Two days of around 10 hours’ driving in snow, and daylight is only about 7:00 to 16:00. Hokkaido rentals come with winter tyres; share the driving and leave slack.',
+    'To check before booking: the Ikor theatre’s New Year closure dates, and that the car desk at New Chitose is open after a 19:10 landing.',
+  ],
+  remove: [],
+  variants: [{
+    id: 'nosappu', label: 'Both capes',
+    blurb: 'Cape Nosappu on the 31st, then about 7 hours back to Sapporo, arriving in the evening of New Year’s Eve.',
+    order: [{id: 'tokyo1'},
+      {id: 'sapporo', nights: 1, note: `${HOK}: just the first night now (28 Dec). Pick up the car on arrival.`},
+      {stop: hokStops.soya}, {stop: hokStops.abashiri}, {stop: hokStops.akan}, {stop: hokStops.nosappu}, {stop: hokStops.nye},
+      {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'}, {id: 'chubu'}, {id: 'lz551qjz'}, {id: 'tokyo2'}],
+    days: [HOK_DAYS[28], HOK_DAYS[29], HOK_DAYS[30],
+      {d: 'Thu 31 Dec', route: 'Lake Akan → Cape Nosappu → Sapporo', drive: 'about 10h', text: 'Leave around 7:00 for Cape Nosappu (about 3h), an hour there, then about 7 hours back to Sapporo, arriving around 19:00–20:00. Shrine at midnight.', sleep: 'Sapporo'},
+      HOK_DAYS[1]],
+  }, {
+    id: 'direct', label: 'Straight back to Sapporo',
+    blurb: 'Skip the eastern cape. Drive straight back from Lake Akan on the 31st (about 4h 30m) and have the afternoon and evening in Sapporo.',
+    order: [{id: 'tokyo1'},
+      {id: 'sapporo', nights: 1, note: `${HOK}: just the first night now (28 Dec). Pick up the car on arrival.`},
+      {stop: hokStops.soya}, {stop: hokStops.abashiri}, {stop: hokStops.akan},
+      {stop: {...hokStops.nye, leg: leg('car', 'about 4h 30m', 'Lake Akan back to Sapporo, about 330 km: down to the Dōtō Expressway at Ashoro, then via Obihiro and Tomamu. Arrive mid-afternoon in daylight.')}},
+      {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'}, {id: 'chubu'}, {id: 'lz551qjz'}, {id: 'tokyo2'}],
+    days: [HOK_DAYS[28], HOK_DAYS[29], HOK_DAYS[30],
+      {d: 'Thu 31 Dec', route: 'Lake Akan → Sapporo', drive: 'about 4h 30m', text: 'Easy morning by the lake, back in Sapporo by mid-afternoon: Susukino, a proper dinner, then the shrine at midnight.', sleep: 'Sapporo'},
+      HOK_DAYS[1]],
+  }],
+}, {
+  id: 'meeting-2026-11-01', by: 'Group call', date: '1 Nov 2026', archived: true,
   title: 'Decisions from the 1 Nov call: dates locked, ski at Shiga Kōgen',
   summary: 'What the three of you agreed on the 1 Nov call. Four nights in Sapporo over New Year, fly to Kansai on 1 Jan (GK156 is booked), Nara, Kyoto, Osaka, three nights in Kanazawa, two nights skiing at Shiga Kōgen with the snow monkeys, then four nights in Tokyo before the 16 Jan 23:30 flight home.',
   why: [
@@ -1803,7 +1891,7 @@ const PROPOSALS = [{
       note: `${MEETING}: 12 – 16 Jan. Flight home departs 16 Jan at 23:30.`},
   ],
 }, {
-  id: 'vid-route-2026-10', by: 'Vid', date: '22 Oct 2026',
+  id: 'vid-route-2026-10', by: 'Vid', date: '22 Oct 2026', archived: true,
   title: 'Vid’s route: Hokkaido, Kansai, the Alps, then Tokyo',
   summary: 'From Vid’s pitch for the trip. About a week in Hokkaido, fly south to Kansai, work back east through the Japanese Alps, and finish in Tokyo. It leaves out Tōhoku. The order follows Japanese history: the Ainu, the ancient capitals, the samurai towns, then modern Tokyo.',
   why: [
@@ -1929,55 +2017,77 @@ const dateRange = n => { const a = dateAt(0), b = dateAt(n); return a ? `${fmt(a
 const stopList = (t, other, cls) => `<ol>${t.stops.map(s => `<li class="${other.stops.some(o => o.id === s.id) ? '' : cls}" style="--c:${esc(s.color)}">
     <i></i><span title="${esc(s.name)}">${esc(s.name)}</span><em>${s.nights}</em></li>`).join('')}</ol>`;
 
+// The proposal as shown: for one with variants, the chosen (or accepted) variant merged in.
+const variantOf = P => {
+  if (!P.variants) return null;
+  const want = trip.proposals[P.id]?.variant || (view.propVar || {})[P.id];
+  return P.variants.find(v => v.id === want) || P.variants[0];
+};
+const resolveP = P => { const v = variantOf(P); return v ? {...P, order: v.order, days: v.days, variant: v} : P; };
+const activeProposals = () => PROPOSALS.filter(P => !P.archived);
+
+function proposalCard(P0) {
+  const P = resolveP(P0), st = proposalState(P), rec = trip.proposals[P.id] || {}, done = st === 'accepted';
+  const {t: next, warn} = done ? {t: trip, warn: []} : proposedTrip(P);
+  const a = done && rec.previous ? {stops: rec.previous.stops} : trip, b = done ? trip : next;
+  if (!done && st === 'open' && !P.archived && view.propShow !== 'now') ui.preview = next;
+  const na = sumNights(a), nb = sumNights(b), d = nb - na, when = rec.at ? fmt(new Date(rec.at)) : '';
+  const totals = `<div class="prop-totals"><span>${done ? 'Before' : 'Now'} <b>${nightsWord(na)}</b>${trip.startDate ? `, ${dateRange(na)}` : ''}</span>
+    <span>${done ? 'After' : 'Proposed'} <b>${nightsWord(nb)}</b>${trip.startDate ? `, ${dateRange(nb)}` : ''}</span>
+    ${d ? `<span class="delta${d < 0 ? ' down' : ''}">${d > 0 ? '+' : '−'}${nightsWord(Math.abs(d))}</span>` : ''}</div>`;
+  const rows = planChanges(a, b, warn);
+  const actions = st === 'open'
+    ? `<button class="primary" data-action="prop-accept" data-id="${P.id}">Accept${P.variant ? ` “${esc(P.variant.label)}”` : ''} and update the plan</button><button data-action="prop-dismiss" data-id="${P.id}">Not now</button>`
+    : st === 'dismissed' ? `<button data-action="prop-reopen" data-id="${P.id}">Review again</button>`
+    : rec.previous ? `<button data-action="prop-undo" data-id="${P.id}">Undo: go back to the plan from before</button>` : '';
+  const stateText = {open: 'To review', accepted: `Accepted ${when}${P.variant ? ` · ${P.variant.label}` : ''}`, dismissed: `Set aside ${when}`}[st];
+  const variants = P.variant ? `<div><h3>Versions</h3><div class="prop-vars" role="group" aria-label="Version of this proposal">${P0.variants.map(v =>
+      `<button data-action="prop-var" data-id="${P.id}" data-v="${v.id}" aria-pressed="${v === P.variant}"${done && v !== P.variant ? ' disabled' : ''}><b>${esc(v.label)}</b><small>${esc(v.blurb)}</small></button>`).join('')}</div></div>` : '';
+  const days = P.days ? `<div><h3>Day by day</h3><ol class="prop-days">${P.days.map(x => `<li>
+      <div class="pd-date">${esc(x.d)}</div>
+      <div class="pd-body"><b>${esc(x.route)}</b>${x.drive ? `<span class="pd-drive">🚗 ${esc(x.drive)}</span>` : ''}
+        <p>${esc(x.text)}</p>${x.sleep ? `<small>Sleep: ${esc(x.sleep)}</small>` : ''}</div></li>`).join('')}</ol></div>` : '';
+  return `<article class="prop">
+    <div class="prop-kicker">Proposal from ${esc(P.by)} · ${esc(P.date)}<span class="prop-state" data-s="${st}">${esc(stateText)}</span></div>
+    <h2>${esc(P.title)}</h2>
+    <p>${esc(P.summary)}</p>
+    ${variants}
+    <ul class="why">${P.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>
+    ${totals}
+    ${st === 'open' && !P.archived ? `<div class="prop-view" role="group" aria-label="What the map shows">
+      <button data-action="prop-show" data-v="proposed" aria-pressed="${view.propShow !== 'now'}">Map: proposed route</button>
+      <button data-action="prop-show" data-v="now" aria-pressed="${view.propShow === 'now'}">Current plan</button></div>` : ''}
+    ${days}
+    <div class="cmp"><div><h3>${done ? 'Before' : 'Current plan'}</h3>${stopList(a, b, 'gone')}</div><div><h3>${done ? 'Now' : 'Proposed'}</h3>${stopList(b, a, 'new')}</div></div>
+    <div><h3>${done ? 'What changed' : 'What would change'} (${rows.length})</h3>
+      <ul class="chg">${rows.map(r => `<li data-k="${r.k}"><b aria-hidden="true">${esc(r.icon)}</b><span>${esc(r.text)}</span>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</li>`).join('')}</ul></div>
+    <p class="prop-note">${done
+      ? 'The plan now follows this route. Undo puts back the stops from before accepting; anything changed in the stops since then is lost.'
+      : `Accepting updates the plan${REMOTE ? ' for everyone with the share link' : ''}. Saved places, notes and bookings stay with their stops. You can undo it here afterwards.`}</p>
+    <div class="prop-actions">${actions}</div>
+  </article>`;
+}
 function renderProposals() {
-  const open = PROPOSALS.filter(P => proposalState(P) === 'open').length;
+  const live = activeProposals(), old = PROPOSALS.filter(P => P.archived);
+  const open = live.filter(P => proposalState(P) === 'open').length;
   $('#prop-count').textContent = open ? ` ${open}` : '';
   ui.preview = null;
   if (view.page !== 'changes') return;
-  if (!PROPOSALS.length) { $('#prop-panel').innerHTML = '<p class="prop-empty">No proposals to review right now.</p>'; return; }
-  $('#prop-panel').innerHTML = PROPOSALS.map(P => {
-    const st = proposalState(P), rec = trip.proposals[P.id] || {}, done = st === 'accepted';
-    const {t: next, warn} = done ? {t: trip, warn: []} : proposedTrip(P);
-    const a = done && rec.previous ? {stops: rec.previous.stops} : trip, b = done ? trip : next;
-    if (!done && st === 'open' && view.propShow !== 'now') ui.preview = next;
-    const na = sumNights(a), nb = sumNights(b), d = nb - na, when = rec.at ? fmt(new Date(rec.at)) : '';
-    const totals = `<div class="prop-totals"><span>${done ? 'Before' : 'Now'} <b>${nightsWord(na)}</b>${trip.startDate ? `, ${dateRange(na)}` : ''}</span>
-      <span>${done ? 'After' : 'Proposed'} <b>${nightsWord(nb)}</b>${trip.startDate ? `, ${dateRange(nb)}` : ''}</span>
-      ${d ? `<span class="delta${d < 0 ? ' down' : ''}">${d > 0 ? '+' : '−'}${nightsWord(Math.abs(d))}</span>` : ''}</div>`;
-    const rows = planChanges(a, b, warn);
-    const actions = st === 'open'
-      ? `<button class="primary" data-action="prop-accept" data-id="${P.id}">Accept and update the plan</button><button data-action="prop-dismiss" data-id="${P.id}">Not now</button>`
-      : st === 'dismissed' ? `<button data-action="prop-reopen" data-id="${P.id}">Review again</button>`
-      : rec.previous ? `<button data-action="prop-undo" data-id="${P.id}">Undo: go back to the plan from before</button>` : '';
-    const stateText = {open: 'To review', accepted: `Accepted ${when}`, dismissed: `Set aside ${when}`}[st];
-    return `<article class="prop">
-      <div class="prop-kicker">Proposal from ${esc(P.by)} · ${esc(P.date)}<span class="prop-state" data-s="${st}">${esc(stateText)}</span></div>
-      <h2>${esc(P.title)}</h2>
-      <p>${esc(P.summary)}</p>
-      <ul class="why">${P.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>
-      ${totals}
-      ${st === 'open' ? `<div class="prop-view" role="group" aria-label="What the map shows">
-        <button data-action="prop-show" data-v="proposed" aria-pressed="${view.propShow !== 'now'}">Map: proposed route</button>
-        <button data-action="prop-show" data-v="now" aria-pressed="${view.propShow === 'now'}">Current plan</button></div>` : ''}
-      <div class="cmp"><div><h3>${done ? 'Before' : 'Current plan'}</h3>${stopList(a, b, 'gone')}</div><div><h3>${done ? 'Now' : 'Proposed'}</h3>${stopList(b, a, 'new')}</div></div>
-      <div><h3>${done ? 'What changed' : 'What would change'} (${rows.length})</h3>
-        <ul class="chg">${rows.map(r => `<li data-k="${r.k}"><b aria-hidden="true">${esc(r.icon)}</b><span>${esc(r.text)}</span>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</li>`).join('')}</ul></div>
-      <p class="prop-note">${done
-        ? 'The plan now follows this route. Undo puts back the stops from before accepting; anything changed in the stops since then is lost.'
-        : `Accepting updates the plan${REMOTE ? ' for everyone with the share link' : ''}. Saved places, notes and bookings stay with their stops. You can undo it here afterwards.`}</p>
-      <div class="prop-actions">${actions}</div>
-    </article>`;
-  }).join('<hr style="border:0;border-top:1px solid var(--line);margin:22px 0">');
+  const sep = '<hr style="border:0;border-top:1px solid var(--line);margin:22px 0">';
+  $('#prop-panel').innerHTML = (live.length ? live.map(proposalCard).join(sep) : '<p class="prop-empty">No proposals to review right now.</p>')
+    + (old.length ? `<details class="prop-archive"${view.propArchive ? ' open' : ''}><summary data-action="prop-archive">Archived (${old.length})<small>Earlier whole-trip route proposals</small></summary>
+      <div class="prop-archive-list">${old.map(proposalCard).join(sep)}</div></details>` : '');
 }
 function acceptProposal(id) {
-  const P = PROPOSALS.find(x => x.id === id); if (!P || proposalState(P) !== 'open') return;
-  if (!confirm(`Accept “${P.title}”?${REMOTE ? ' This changes the plan for everyone sharing it.' : ''} You can undo it from the Proposals tab.`)) return;
+  const P0 = PROPOSALS.find(x => x.id === id); if (!P0 || proposalState(P0) !== 'open') return;
+  const P = resolveP(P0), name = P.variant ? `${P.title} (${P.variant.label})` : P.title;
+  if (!confirm(`Accept “${name}”?${REMOTE ? ' This changes the plan for everyone sharing it.' : ''} You can undo it from the Proposals tab.`)) return;
   const before = JSON.stringify(trip), {t} = proposedTrip(P);
-  trip.proposals[P.id] = {status: 'accepted', at: new Date().toISOString(), previous: {stops: structuredClone(trip.stops), bookings: structuredClone(trip.bookings)}};
+  trip.proposals[P.id] = {status: 'accepted', at: new Date().toISOString(), ...(P.variant ? {variant: P.variant.id} : {}), previous: {stops: structuredClone(trip.stops), bookings: structuredClone(trip.bookings)}};
   trip.stops = t.stops; trip.bookings = t.bookings;
   ui.openStop = ui.openLeg = null; ui.showDay = false;
   save(); setPage('plan'); renderAll(); fitAll();
-  toast(`Accepted “${P.title}”.`, () => { trip = normalize(JSON.parse(before)); save(); renderAll(); fitAll(); toast('Restored.'); });
+  toast(`Accepted “${name}”.`, () => { trip = normalize(JSON.parse(before)); save(); renderAll(); fitAll(); toast('Restored.'); });
 }
 function undoProposal(id) {
   const rec = trip.proposals[id]; if (!rec?.previous) return;
@@ -2406,6 +2516,8 @@ const ACTIONS = {
   'ck-toggle': d => { const c = trip.checklist.find(x => x.id === d.id); c.done = !c.done; save(); renderChecklist(); },
   'ck-delete': d => { const c = trip.checklist.find(x => x.id === d.id); undoable(`Removed ${c.text || 'item'}.`, () => { trip.checklist = trip.checklist.filter(x => x !== c); }); },
   'prop-show': d => { view.propShow = d.v; saveView(); renderProposals(); renderMap(); fitShown(); },
+  'prop-var': d => { view.propVar = {...(view.propVar || {}), [d.id]: d.v}; view.propShow = 'proposed'; saveView(); renderProposals(); renderMap(); fitShown(); },
+  'prop-archive': () => { view.propArchive = !view.propArchive; saveView(); },
   'prop-accept': d => acceptProposal(d.id),
   'prop-dismiss': d => { const P = PROPOSALS.find(x => x.id === d.id); undoable(`Set aside “${P.title}”. It stays in the Proposals tab.`, () => { trip.proposals[P.id] = {status: 'dismissed', at: new Date().toISOString()}; }); },
   'prop-reopen': d => undoable('Back on the list to review.', () => { delete trip.proposals[d.id]; }),
