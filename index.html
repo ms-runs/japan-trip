@@ -14,7 +14,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('embedded'); } catch { document.documentElement.classList.add('embedded'); }
-if (matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone) document.documentElement.classList.add('app');</script>
+// Opened from the Home Screen icon. (Not 'display-mode: fullscreen': that also matches a browser in full screen.)
+if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.documentElement.classList.add('homescreen-app');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
@@ -373,7 +374,7 @@ body[data-page=changes] .playbar{display:none}
 #bk-dlg .grid .full{grid-column:1/-1}
 .menu-btn,.grip,.tabs .ti{display:none}
 /* Full screen / Home Screen app button: hidden once it's running as an app */
-html.app #fs-btn,.fs-icon{display:none}
+html.homescreen-app #fs-btn,.fs-icon{display:none}
 .fs-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .steps{display:flex;flex-direction:column;gap:10px;margin:2px 0 4px;padding:0;list-style:none;counter-reset:st}
 .steps li{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;font-size:14px}
@@ -715,7 +716,7 @@ const TRIP_KEY = (() => {
   const k = new URLSearchParams(location.hash.slice(1)).get('trip') || '';
   try {
     if (k) localStorage.setItem('jt-last-trip', k);
-    else if (document.documentElement.classList.contains('app')) { const last = localStorage.getItem('jt-last-trip') || ''; if (last) { history.replaceState(null, '', '#trip=' + encodeURIComponent(last)); return last; } }
+    else if (document.documentElement.classList.contains('homescreen-app')) { const last = localStorage.getItem('jt-last-trip') || ''; if (last) { history.replaceState(null, '', '#trip=' + encodeURIComponent(last)); return last; } }
   } catch {}
   return k;
 })();
@@ -2713,7 +2714,7 @@ document.addEventListener('fullscreenchange', labelFullscreen);
 labelFullscreen();
 if (new URLSearchParams(location.hash.slice(1)).has('install')) {
   history.replaceState(null, '', ownPageUrl());   // so the Home Screen icon keeps a clean link
-  if (!document.documentElement.classList.contains('app') && !EMBEDDED) setTimeout(showInstall, 600);
+  if (!document.documentElement.classList.contains('homescreen-app') && !EMBEDDED) setTimeout(showInstall, 600);
 }
 
 // Phone header: the ⋯ button opens the tools; any tap elsewhere (or on a tool) closes them
