@@ -111,6 +111,11 @@ header{display:flex;align-items:center;gap:14px;padding:9px 16px;background:var(
 .zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:4px}
 .zoom button{padding:0 9px;font-size:12px}
 .legend{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.95);border-radius:8px;padding:8px 11px;font-size:11px;display:flex;flex-direction:column;gap:3px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.legend-min{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
+.legend-min:hover{background:#efe9e1;color:var(--ink)}
+.legend:has(.legend-min){padding-right:32px}
+.legend.min{padding:0;gap:0}
+.legend.min button{position:static;width:auto;height:auto;padding:7px 11px;font-size:11.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
 .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
 .legend i.dot{width:8px;height:8px;border-radius:50%;margin:0 10px 0 4px;background:#888;border:1.5px solid #fff}
 #tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);padding:6px 10px;border-radius:6px;font-size:12px;transform:translate(-50%,calc(-100% - 14px));opacity:0;transition:opacity .1s;white-space:nowrap}
@@ -2135,7 +2140,10 @@ function renderLand() {
     p.style.fill = s ? `color-mix(in srgb, ${s.color} ${pct}%, var(--land))` : '';
   });
   const used = [...new Set(T.stops.slice(1).map(s => s.leg.mode))];
-  $('#legend').innerHTML = (preview ? '<span><b>Showing the proposed route</b></span>' : '')
+  const lg = $('#legend'); lg.classList.toggle('min', !!view.legendMin);
+  if (view.legendMin) { lg.innerHTML = `<button data-action="legend" aria-expanded="false" title="Show the map key">${preview ? 'Proposed route · ' : ''}Key ▴</button>`; return; }
+  lg.innerHTML = '<button class="legend-min" data-action="legend" aria-expanded="true" aria-label="Minimise the map key" title="Minimise">–</button>'
+    + (preview ? '<span><b>Showing the proposed route</b></span>' : '')
     + used.map(k => `<span><i style="background:${MODES[k].color}"></i>${MODES[k].icon} ${MODES[k].label}</span>`).join('')
     + (preview ? '<span><i style="background:repeating-linear-gradient(90deg,#7d746b 0 4px,transparent 4px 7px)"></i>Current route</span>'
                : '<span><i class="dot"></i>Saved place (ring: approximate)</span><span style="color:var(--muted)">Dashed lines: not booked yet</span>')
@@ -2581,6 +2589,7 @@ const ACTIONS = {
   'step': d => goToDay((ui.showDay ? ui.day : 0) + +d.d),
   'play': () => togglePlay(),
   'zoom': d => zoomBy(+d.f),
+  'legend': () => { view.legendMin = !view.legendMin; saveView(); renderLand(); renderOverlay(); },
   'fit': () => fitAll(),
   'copy': () => navigator.clipboard.writeText(JSON.stringify(trip, null, 1)).then(() => toast('Plan copied. Paste it into a chat with Claude to have the file updated.'), () => toast('Copy was blocked by the browser.')),
   'import': () => { $('#import-text').value = ''; openDlg('#import-dlg'); },
