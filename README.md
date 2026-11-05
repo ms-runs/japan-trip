@@ -65,9 +65,16 @@ Three options, simplest first:
 - **Your own address**, e.g. `trip.migsousa.com`: in Squarespace **Domains → your domain → DNS**, add a `CNAME` record with host `trip` pointing to `YOUR-USERNAME.github.io`. Then in GitHub **Settings → Pages → Custom domain**, enter `trip.migsousa.com` and tick *Enforce HTTPS* once it's offered.
 - **Embed it** in a page with an Embed or Code block (which one depends on your Squarespace plan):
   ```html
-  <iframe src="https://YOUR-USERNAME.github.io/japan-trip/#trip=YOUR-CODE" style="width:100%;height:85vh;border:0"></iframe>
+  <iframe src="https://YOUR-USERNAME.github.io/japan-trip/#trip=YOUR-CODE" allow="fullscreen" allowfullscreen style="width:100%;height:85vh;border:0"></iframe>
   ```
+  `allow="fullscreen"` lets the **Full screen** button fill a computer screen without leaving the page.
   Only do this on a password-protected page — the trip code would otherwise be visible to anyone viewing the page source.
+
+## Full screen and the phone app
+
+- **On a computer:** **Full screen** in the header fills the screen; Esc leaves it.
+- **On a phone, in the website:** the ⤢ button beside ⋯ opens the planner on its own page, then shows how to add it to the Home Screen. On an iPhone: Share → *Add to Home Screen* (Share is in the ⋯ menu on iOS 26). On Android: Chrome ⋮ → *Add to Home screen*.
+- The 旅 icon then opens the planner full screen with no browser bars, straight into the shared plan. The trip code is kept in the icon's link (there's deliberately no web manifest, which would drop it on iPhone).
 
 ## Everyday use
 

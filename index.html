@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1c1917">
 <title>Japan trip planner</title>
-<script>try { if (window.self !== window.top) document.documentElement.classList.add('embedded'); } catch { document.documentElement.classList.add('embedded'); }</script>
+<!-- Home Screen app: no web manifest on purpose. Without one, iPhone keeps the full address
+     (with #trip=…) when the page is added to the Home Screen, so the icon opens the shared plan. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Japan trip">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<script>try { if (window.self !== window.top) document.documentElement.classList.add('embedded'); } catch { document.documentElement.classList.add('embedded'); }
+if (matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone) document.documentElement.classList.add('app');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
@@ -18,7 +27,7 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 input,select,textarea{border:1px solid var(--line2);border-radius:5px;background:#fff;padding:6px 8px;font-size:12.5px}
 
-header{display:flex;align-items:center;gap:14px;padding:9px 16px;background:var(--ink);color:var(--paper);flex-wrap:wrap}
+header{display:flex;align-items:center;gap:14px;padding:9px 16px;padding-top:max(9px,env(safe-area-inset-top));background:var(--ink);color:var(--paper);flex-wrap:wrap}
 .logo{font:600 18px 'Shippori Mincho',serif;letter-spacing:.03em}
 .logo small{opacity:.45;font-size:12px;margin-left:6px}
 #trip-summary{font:600 15px 'Shippori Mincho',serif}
@@ -363,6 +372,13 @@ body[data-page=changes] .playbar{display:none}
 #bk-dlg .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #bk-dlg .grid .full{grid-column:1/-1}
 .menu-btn,.grip,.tabs .ti{display:none}
+/* Full screen / Home Screen app button: hidden once it's running as an app */
+html.app #fs-btn,.fs-icon{display:none}
+.fs-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.steps{display:flex;flex-direction:column;gap:10px;margin:2px 0 4px;padding:0;list-style:none;counter-reset:st}
+.steps li{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;font-size:14px}
+.steps li::before{counter-increment:st;content:counter(st);width:26px;height:26px;border-radius:99px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600}
+.steps svg{width:16px;height:16px;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 /* ── Phones and narrow windows ─────────────────────────────────────────────── */
 @media (max-width:860px){
   body{padding-bottom:calc(58px + env(safe-area-inset-bottom))}
@@ -440,8 +456,9 @@ body[data-page=changes] .playbar{display:none}
    so on phones the tabs go under the header instead, where they're always visible */
 @media (max-width:860px){
   html.embedded body{padding-bottom:0}
-  html.embedded header{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding-top:8px}
+  html.embedded header{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;align-items:center;gap:6px 10px;padding-top:8px}
   html.embedded #status{justify-self:end;max-width:100%}
+  html.embedded .fs-icon{display:flex;align-items:center;justify-content:center;width:40px;height:36px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:none;color:var(--paper)}
   html.embedded .tabs{position:static;order:5;grid-column:1/-1;padding:2px 0 0;background:none;box-shadow:none}
   html.embedded .tabs .ti{width:40px;height:24px;padding:3px 10px}
   html.embedded #toast{bottom:16px}
@@ -471,6 +488,7 @@ body[data-page=changes] .playbar{display:none}
   </nav>
   <div id="trip-summary"></div>
   <div id="status" data-kind="local" role="status"></div>
+  <button class="fs-icon" data-action="fullscreen" aria-label="Open full screen" title="Open full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button id="menu-btn" class="menu-btn" data-action="menu" aria-expanded="false" aria-controls="tools" aria-label="More actions">⋯</button>
   <div class="tools" id="tools">
     <button id="edit-btn" data-action="toggle-edit" aria-pressed="false">Edit stops</button>
@@ -478,6 +496,7 @@ body[data-page=changes] .playbar{display:none}
     <button data-action="copy">Copy plan</button>
     <button data-action="import">Load plan</button>
     <button data-action="reset">Reset</button>
+    <button id="fs-btn" data-action="fullscreen">Full screen</button>
   </div>
 </header>
 
@@ -673,6 +692,14 @@ body[data-page=changes] .playbar{display:none}
     <div class="actions"><button value="close" class="primary">Close</button></div>
   </form>
 </dialog>
+<dialog id="app-dlg">
+  <form method="dialog">
+    <h3>Put it on your Home Screen</h3>
+    <p class="muted">It then opens full screen like an app, straight into the shared plan.</p>
+    <ol class="steps" id="app-steps"></ol>
+    <div class="actions"><button value="close" class="primary">Done</button></div>
+  </form>
+</dialog>
 <div id="toast" role="status"></div>
 
 <script>
@@ -683,7 +710,15 @@ const CONFIG = {
   resolverUrl: '',   // optional: link-expander worker URL, e.g. 'https://maps-links.you.workers.dev'
 };
 // The shared trip is chosen by the link: https://…/#trip=some-long-secret
-const TRIP_KEY = new URLSearchParams(location.hash.slice(1)).get('trip') || '';
+// A Home Screen app that somehow opens without the code uses the last one this device opened.
+const TRIP_KEY = (() => {
+  const k = new URLSearchParams(location.hash.slice(1)).get('trip') || '';
+  try {
+    if (k) localStorage.setItem('jt-last-trip', k);
+    else if (document.documentElement.classList.contains('app')) { const last = localStorage.getItem('jt-last-trip') || ''; if (last) { history.replaceState(null, '', '#trip=' + encodeURIComponent(last)); return last; } }
+  } catch {}
+  return k;
+})();
 const REMOTE = Boolean(CONFIG.supabaseUrl && CONFIG.supabaseKey && TRIP_KEY.length >= 12);  // codes under 12 characters are refused by the database
 
 // ═══ 2. MAP PROJECTION ════════════════════════════════════════════════════════
@@ -2637,6 +2672,50 @@ const ACTIONS = {
     undoable(was ? `Showing ${idea.title} again.` : `Hid ${idea.title}.`, () => { trip.hiddenIdeas = was ? trip.hiddenIdeas.filter(x => x !== d.id) : [...trip.hiddenIdeas, d.id]; });
   },
 };
+// ── Full screen and the Home Screen app ──
+// Embedded in the website (Squarespace) on a phone: open the planner on its own page, where it can be
+// added to the Home Screen. On its own page on a phone: show how to add it. On a computer: real full screen.
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches && !matchMedia('(pointer:fine)').matches;
+const IS_IOS = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const EMBEDDED = document.documentElement.classList.contains('embedded');
+function ownPageUrl(extra) {
+  const h = new URLSearchParams(location.hash.slice(1)); h.delete('install');
+  if (extra) h.set(extra, '1');
+  return location.href.split('#')[0] + (h.toString() ? '#' + h : '');
+}
+function openOwnPage() {
+  const w = window.open(ownPageUrl(IS_TOUCH ? 'install' : ''), '_blank');
+  if (!w) try { window.top.location.href = ownPageUrl(IS_TOUCH ? 'install' : ''); } catch { toast('Your browser blocked the new tab. Open the planner link directly instead.'); }
+}
+const SHARE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg>';
+function showInstall() {
+  $('#app-steps').innerHTML = IS_IOS
+    ? `<li><span>In Safari, tap Share ${SHARE_SVG}. On iOS 26 it's in the <b>⋯</b> menu beside the address bar.</span></li>
+       <li><span>Scroll down and tap <b>Add to Home Screen</b>. Leave <b>Open as Web App</b> on.</span></li>
+       <li><span>Tap <b>Add</b>. The 旅 icon opens the planner without any browser bars.</span></li>`
+    : `<li><span>Open the browser menu <b>⋮</b> (top right in Chrome).</span></li>
+       <li><span>Tap <b>Add to Home screen</b>, then <b>Add</b> or <b>Install</b>.</span></li>
+       <li><span>The 旅 icon opens the planner straight from your Home Screen.</span></li>`;
+  openDlg('#app-dlg');
+}
+function labelFullscreen() {
+  const b = $('#fs-btn'); if (!b) return;
+  b.textContent = document.fullscreenElement ? 'Exit full screen' : IS_TOUCH && !EMBEDDED ? 'Add to Home Screen' : 'Full screen';
+}
+ACTIONS.fullscreen = () => {
+  setMenu(false);
+  if (document.fullscreenElement) return document.exitFullscreen();
+  if (IS_TOUCH) return EMBEDDED ? openOwnPage() : showInstall();
+  if (document.fullscreenEnabled) return document.documentElement.requestFullscreen().catch(openOwnPage);
+  openOwnPage();   // embedded without permission for full screen: open on its own page instead
+};
+document.addEventListener('fullscreenchange', labelFullscreen);
+labelFullscreen();
+if (new URLSearchParams(location.hash.slice(1)).has('install')) {
+  history.replaceState(null, '', ownPageUrl());   // so the Home Screen icon keeps a clean link
+  if (!document.documentElement.classList.contains('app') && !EMBEDDED) setTimeout(showInstall, 600);
+}
+
 // Phone header: the ⋯ button opens the tools; any tap elsewhere (or on a tool) closes them
 ACTIONS.menu = () => setMenu(!$('header').classList.contains('menu-open'));
 function setMenu(open) { $('header').classList.toggle('menu-open', open); $('#menu-btn').setAttribute('aria-expanded', open); }
