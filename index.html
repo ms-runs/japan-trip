@@ -2416,7 +2416,16 @@ function parts(l) {
   return z;
 }
 const spendLines = () => budget.lines.filter(l => l.cat !== 'repay');
-function sum(lines) { const z = {paid: 0, open: 0, expected: 0, idea: 0}; lines.forEach(l => { const p = parts(l); for (const k in z) z[k] += p[k]; }); z.committed = z.paid + z.open + z.expected; return z; }
+// Per-person view: who we're looking at (null = whole group) and how much of a line is theirs.
+const budgetWho = () => trip.budget.travellers.includes(view.budgetWho) ? view.budgetWho : null;
+function shareOf(l, who = budgetWho()) {
+  if (!who) return 1;
+  const people = trip.budget.travellers;
+  if (l.cat === 'repay') return l.payer === who || l.split === who ? 1 : 0;
+  return l.split && l.split !== 'all' && people.includes(l.split) ? (l.split === who ? 1 : 0) : 1 / (people.length || 1);
+}
+function partsFor(l, who) { const p = parts(l), f = shareOf(l, who); if (f !== 1) for (const k in p) p[k] *= f; return p; }
+function sum(lines, who = null) { const z = {paid: 0, open: 0, expected: 0, idea: 0}; lines.forEach(l => { const p = partsFor(l, who); for (const k in z) z[k] += p[k]; }); z.committed = z.paid + z.open + z.expected; return z; }
 const stopLabel = id => id === 'general' || !id ? 'Whole trip' : byId(id)?.name || 'Removed stop';
 function stopDates(id) {
   const i = trip.stops.findIndex(s => s.id === id); if (i < 0 || !trip.startDate) return '';
@@ -2458,38 +2467,47 @@ function renderBudget() {
   if (view.page !== 'budget') return;
   const keepFocus = document.activeElement?.closest?.('#budget') ? document.activeElement.id : null;
   const cur = view.budgetCur || 'GBP', target = +trip.budget.target || 0;
-  const stops = [{id: 'general'}, ...trip.stops], byStop = stops.map(s => ({s, z: sum(spendLines().filter(l => (l.stop || 'general') === s.id))}));
+  const who = budgetWho(), mine = sum(spendLines(), who), whoName = who ? esc(who) : '';
+  const paidOut = who ? spendLines().filter(l => l.payer === who).reduce((t, l) => t + parts(l).paid, 0) : 0;
+  const stops = [{id: 'general'}, ...trip.stops], byStop = stops.map(s => ({s, z: sum(spendLines().filter(l => (l.stop || 'general') === s.id), who)}));
   const orphan = spendLines().filter(l => l.stop && l.stop !== 'general' && !byId(l.stop));
-  if (orphan.length) byStop.push({s: {id: '__gone', name: 'Stops no longer in the plan'}, z: sum(orphan)});
+  if (orphan.length) byStop.push({s: {id: '__gone', name: 'Stops no longer in the plan'}, z: sum(orphan, who)});
   const maxStop = Math.max(1, ...byStop.map(r => r.z.committed));
-  const byCat = Object.keys(BCATS).filter(k => k !== 'repay').map(k => ({k, z: sum(spendLines().filter(l => l.cat === k))})).filter(r => r.z.committed || r.z.idea);
+  const byCat = Object.keys(BCATS).filter(k => k !== 'repay').map(k => ({k, z: sum(spendLines().filter(l => l.cat === k), who)})).filter(r => r.z.committed || r.z.idea);
   const maxCat = Math.max(1, ...byCat.map(r => r.z.committed));
-  const {moves, bal} = settleUp();
-  const due = budget.lines.filter(l => l.status === 'booked' && parts(l).open > 0.005).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  const settle = settleUp(), bal = settle.bal, moves = who ? settle.moves.filter(m => m.from === who || m.to === who) : settle.moves;
+  const due = budget.lines.filter(l => l.status === 'booked' && partsFor(l, who).open > 0.005).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
   const linked = new Set(budget.lines.map(l => l.booking).filter(Boolean));
   const unbudgeted = trip.bookings.filter(b => !linked.has(b.id));
-  const shown = budget.lines.filter(l => budget.filter === 'all' || (budget.filter === 'repay' ? l.cat === 'repay' : l.status === budget.filter && l.cat !== 'repay'));
+  const shown = budget.lines.filter(l => (budget.filter === 'all' || (budget.filter === 'repay' ? l.cat === 'repay' : l.status === budget.filter && l.cat !== 'repay')) && shareOf(l, who) > 0);
   const groups = [...stops.map(s => s.id), '__gone'].map(id => ({id, lines: shown.filter(l => id === '__gone' ? l.stop && l.stop !== 'general' && !byId(l.stop) : (l.stop || 'general') === id)})).filter(g => g.lines.length);
   const kpi = (label, val, sub, color) => `<div class="kpi"><small>${color ? `<i class="dot" style="background:${color}"></i>` : ''}${label}</small><b>${val}</b><span>${sub}</span></div>`;
   const brkRow = (name, sub, z, max) => `<div class="nm">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>${stack(z, max)}<div class="amt">${money(z.committed)}${z.idea ? `<small>+${money(z.idea)} ideas</small>` : ''}</div>`;
   const opt = (v, label, sel) => `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(label)}</option>`;
   $('#budget').innerHTML = `<div class="bd-wrap">
     <div class="bd-head">
-      <div><h2>Trip budget</h2><p class="muted">${budget.lines.length} lines${REMOTE ? ' · shared with the group' : ' · saved in this browser'}${budget.error ? ' · <b style="color:var(--bad)">couldn’t reach the shared budget, showing the last copy</b>' : ''}</p></div>
+      <div><h2>${who ? `${whoName}’s share` : 'Trip budget'}</h2><p class="muted">${who ? `split lines divided ${n} ways, lines marked “just” someone counted in full · ` : ''}${budget.lines.length} lines${REMOTE ? ' · shared with the group' : ' · saved in this browser'}${budget.error ? ' · <b style="color:var(--bad)">couldn’t reach the shared budget, showing the last copy</b>' : ''}</p></div>
       <div class="bd-settings">
+        <div class="seg" role="group" aria-label="Show the budget for">${[['', 'Group'], ...trip.budget.travellers.map(p => [p, p])].map(([v, t]) => `<button data-action="bd-who" data-v="${esc(v)}" aria-pressed="${(who || '') === v}">${esc(t)}</button>`).join('')}</div>
         <div class="seg" role="group" aria-label="Show amounts in">${['GBP', 'JPY'].map(c => `<button data-action="bd-cur" data-v="${c}" aria-pressed="${cur === c}">${c === 'GBP' ? '£' : '¥'}</button>`).join('')}</div>
         <label>£1 =<input id="bd-rate" type="number" min="1" step="0.1" value="${rate()}"> ¥</label>
         <label>Target per person £<input id="bd-target" type="number" min="0" step="50" value="${target || ''}" placeholder="none"></label>
         <label>Travellers<input id="bd-people" class="wide" value="${esc(trip.budget.travellers.join(', '))}"></label>
       </div>
     </div>
-    <div class="bd-kpis">
+    <div class="bd-kpis">${who ? `
+      ${kpi(`${whoName}’s share`, money(mine.committed), `of ${money(all.committed)} for the group`)}
+      ${kpi('Paid', money(mine.paid), `${whoName} has paid out ${money(paidOut)} so far`, BSTATUS.paid.color)}
+      ${kpi('Booked, still to pay', money(mine.open), `${due.length} open balance${due.length === 1 ? '' : 's'}`, BSTATUS.booked.color)}
+      ${kpi('Expected other costs', money(mine.expected), 'estimates, not booked yet', BSTATUS.expected.color)}
+      ${target ? kpi('Against target', money(target - mine.committed), `${mine.committed > target ? 'over' : 'left of'} ${money(target, 'GBP')}`, mine.committed > target ? 'var(--bad)' : 'var(--ok)')
+        : kpi('Ideas, not counted', money(mine.idea), 'prices seen, not in the total', BSTATUS.idea.color)}` : `
       ${kpi('Trip total', money(all.committed), `paid + booked + expected · ${money(all.committed / n)} each`)}
       ${kpi('Paid', money(all.paid), `${all.committed ? Math.round(all.paid / all.committed * 100) : 0}% of the total`, BSTATUS.paid.color)}
       ${kpi('Booked, still to pay', money(all.open), `${due.length} open balance${due.length === 1 ? '' : 's'}`, BSTATUS.booked.color)}
       ${kpi('Expected other costs', money(all.expected), 'estimates, not booked yet', BSTATUS.expected.color)}
       ${target ? kpi('Against target', money(target * n - all.committed), `${all.committed / n > target ? 'over' : 'left of'} ${money(target, 'GBP')} each`, all.committed / n > target ? 'var(--bad)' : 'var(--ok)')
-        : kpi('Ideas, not counted', money(all.idea), 'prices seen, not in the total', BSTATUS.idea.color)}
+        : kpi('Ideas, not counted', money(all.idea), 'prices seen, not in the total', BSTATUS.idea.color)}`}
     </div>
     <div class="card">
       <h3>Add a price<small>Things you’ve seen, booked or paid</small></h3>
@@ -2519,12 +2537,12 @@ function renderBudget() {
           <h3>Settle up<small>from money paid so far</small></h3>
           ${moves.length ? `<ul class="mini">${moves.map(m => `<li><span>${esc(m.from)} → ${esc(m.to)}</span><b>${money(m.amt)}</b></li>`).join('')}</ul>`
             : `<p class="empty">Everyone’s square.</p>`}
-          <p class="muted" style="margin-top:10px">${trip.budget.travellers.map(p => `${esc(p)} ${bal[p] >= 0 ? 'is owed' : 'owes'} ${money(Math.abs(bal[p]))}`).join(' · ')}</p>
+          <p class="muted" style="margin-top:10px">${(who ? [who] : trip.budget.travellers).map(p => `${esc(p)} ${bal[p] >= 0 ? 'is owed' : 'owes'} ${money(Math.abs(bal[p]))}`).join(' · ')}</p>
           <p class="muted" style="margin-top:6px">Record a repayment as a line in “${BCATS.repay.label}”: paid by the person sending, split = the person receiving.</p>
         </div>
         <div class="card">
-          <h3>Balances to pay<small>${money(all.open)}</small></h3>
-          ${due.length ? `<ul class="mini">${due.map(l => `<li><span>${esc(l.item)}<br><span class="sub">${l.due ? `due ${fmt(new Date(l.due + 'T00:00:00'))}` : 'no due date'}${l.payer ? ` · ${esc(l.payer)}` : ''}</span></span><b>${money(parts(l).open)}</b></li>`).join('')}</ul>` : '<p class="empty">Nothing booked with a balance open.</p>'}
+          <h3>Balances to pay<small>${money(who ? mine.open : all.open)}${who ? ' share' : ''}</small></h3>
+          ${due.length ? `<ul class="mini">${due.map(l => `<li><span>${esc(l.item)}<br><span class="sub">${l.due ? `due ${fmt(new Date(l.due + 'T00:00:00'))}` : 'no due date'}${l.payer ? ` · ${esc(l.payer)}` : ''}</span></span><b>${money(partsFor(l, who).open)}</b></li>`).join('')}</ul>` : '<p class="empty">Nothing booked with a balance open.</p>'}
         </div>
         ${unbudgeted.length ? `<div class="card"><h3>Bookings not in the budget</h3><ul class="mini">${unbudgeted.map(b => `<li><span>${esc(b.title)}<br><span class="sub">${esc(b.price || 'no price found')}</span></span><button data-action="bd-from-booking" data-id="${b.id}">Add</button></li>`).join('')}</ul></div>` : ''}
       </div>
@@ -2532,13 +2550,13 @@ function renderBudget() {
     <div class="card">
       <h3>All lines<small>tap a line to edit it</small></h3>
       <div class="bd-filters" role="group" aria-label="Filter lines">${[['all', 'All'], ['paid', 'Paid'], ['booked', 'Booked'], ['expected', 'Expected'], ['idea', 'Ideas'], ['repay', 'Paying back']].map(([k, l]) => `<button data-action="bd-filter" data-v="${k}" aria-pressed="${budget.filter === k}">${l}</button>`).join('')}</div>
-      ${groups.length ? groups.map(g => { const z = sum(g.lines.filter(l => l.cat !== 'repay')); return `<div class="bd-group"><span>${esc(g.id === '__gone' ? 'Stops no longer in the plan' : stopLabel(g.id))}</span><span>${z.committed ? money(z.committed) : ''}</span></div>`
+      ${groups.length ? groups.map(g => { const z = sum(g.lines.filter(l => l.cat !== 'repay'), who); return `<div class="bd-group"><span>${esc(g.id === '__gone' ? 'Stops no longer in the plan' : stopLabel(g.id))}</span><span>${z.committed ? money(z.committed) : ''}</span></div>`
         + g.lines.map(l => { const p = parts(l), st = BSTATUS[l.status] || BSTATUS.expected;
           return `<button class="bl${l.cat === 'repay' ? ' repay' : ''}" data-action="bd-edit" data-id="${l.id}">
             <span class="ic">${(BCATS[l.cat] || BCATS.other).icon}</span>
             <span class="t"><span class="pill" style="background:${st.color}">${l.cat === 'repay' ? 'Paid back' : st.label}</span>${esc(l.item)}</span>
             <span class="m">${[l.date && fmt(new Date(l.date + 'T00:00:00')), l.cat === 'repay' ? `${l.payer} → ${l.split}` : l.payer && `${l.payer}${l.split && l.split !== 'all' ? ` for ${l.split}` : ''}`, l.status === 'booked' && p.open > 0.005 && `${money(p.open)} still to pay`, l.notes].filter(Boolean).map(esc).join(' · ')}</span>
-            <span class="a">${money(p.total)}${l.cur !== cur ? `<small>${orig(l)}</small>` : ''}</span></button>`; }).join(''); }).join('')
+            <span class="a">${money(p.total * (l.cat === 'repay' ? 1 : shareOf(l, who)))}${who && l.cat !== 'repay' && shareOf(l, who) < 1 ? `<small>of ${money(p.total)}</small>` : l.cur !== cur ? `<small>${orig(l)}</small>` : ''}</span></button>`; }).join(''); }).join('')
         : '<p class="empty" style="margin-top:8px">No lines here yet.</p>'}
     </div>
   </div>`;
@@ -2633,6 +2651,7 @@ const ACTIONS = {
   'checks': () => showChecks(),
   'page': d => setPage(d.v),
   'bd-cur': d => { view.budgetCur = d.v; saveView(); renderBudget(); },
+  'bd-who': d => { view.budgetWho = d.v || null; saveView(); renderBudget(); },
   'bd-filter': d => { budget.filter = d.v; renderBudget(); },
   'bd-edit': d => openLine(structuredClone(budget.lines.find(x => x.id === d.id))),
   'bd-from-booking': d => {
