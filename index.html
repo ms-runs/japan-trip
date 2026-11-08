@@ -235,6 +235,7 @@ body[data-page=budget] .budget{display:block}
 .mini li{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .mini li b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .mini .sub{color:var(--muted);font-size:11.5px}
+.mini.settle li{align-items:center}
 .mini button{font-size:11.5px;border:1px solid var(--line2);background:#fff;border-radius:5px;padding:2px 8px}
 .empty{color:var(--muted);font-size:12.5px}
 .qx form{display:flex;flex-direction:column;gap:12px;margin-top:6px}
@@ -2737,10 +2738,10 @@ function renderBudget() {
       <div>
         <div class="card">
           <h3>Settle up<small>from money paid so far</small></h3>
-          ${moves.length ? `<ul class="mini">${moves.map(m => `<li><span>${esc(m.from)} → ${esc(m.to)}</span><b>${money(m.amt)}</b></li>`).join('')}</ul>`
+          ${moves.length ? `<ul class="mini settle">${moves.map(m => `<li><span>${esc(m.from)} pays ${esc(m.to)}</span><b>${money(m.amt)}</b><button data-action="bd-settle" data-from="${esc(m.from)}" data-to="${esc(m.to)}" data-amt="${m.amt.toFixed(2)}">Mark paid</button></li>`).join('')}</ul>`
             : `<p class="empty">Everyone’s square.</p>`}
           <p class="muted" style="margin-top:10px">${(who ? [who] : trip.budget.travellers).map(p => `${esc(p)} ${bal[p] >= 0 ? 'is owed' : 'owes'} ${money(Math.abs(bal[p]))}`).join(' · ')}</p>
-          <p class="muted" style="margin-top:6px">Record a repayment as a line in “${BCATS.repay.label}”: paid by the person sending, split = the person receiving.</p>
+          <p class="muted" style="margin-top:6px">${moves.length ? 'Paid each other back? Tap Mark paid and it’s recorded for everyone.' : 'Nothing to settle right now.'}</p>
         </div>
         <div class="card">
           <h3>Balances to pay<small>${money(who ? mine.open : all.open)}${who ? ' share' : ''}</small></h3>
@@ -2856,6 +2857,12 @@ const ACTIONS = {
   'bd-cur': d => { view.budgetCur = d.v; saveView(); renderBudget(); },
   'bd-who': d => { view.budgetWho = d.v || null; saveView(); renderBudget(); },
   'bd-filter': d => { budget.filter = d.v; renderBudget(); },
+  'bd-settle': d => {
+    const amt = Math.round(+d.amt * 100) / 100; if (!(amt > 0)) return;
+    const line = {id: uid(), item: `${d.from} paid ${d.to} back`, amount: amt, cur: 'GBP', stop: 'general', status: 'paid', cat: 'repay', payer: d.from, split: d.to, date: localISO(), notes: 'Marked paid from Settle up'};
+    putLine(line);
+    toast(`Recorded: ${d.from} paid ${d.to} £${amt.toLocaleString('en-GB', {maximumFractionDigits: 2})}.`, () => { budget.lines = budget.lines.filter(x => x.id !== line.id); budget.pending.add(line.id); writeBudget(); renderBudget(); flushBudget(); });
+  },
   'bd-edit': d => openLine(structuredClone(budget.lines.find(x => x.id === d.id))),
   'bd-from-booking': d => {
     const b = trip.bookings.find(x => x.id === d.id), pr = priceOf(b.price), at = b.attach?.split(':')[1];
