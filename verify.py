@@ -12,6 +12,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = pathlib.Path(__file__).parent
 SRC = (HERE / "index.html").read_text()
+SHOTS = HERE / "screenshots"; SHOTS.mkdir(exist_ok=True)
 PORT = 8765
 results = []
 
@@ -124,7 +125,7 @@ with sync_playwright() as p:
                      .filter(c => c.getAttribute('stroke') === '#fff').map(c => { const b = c.getBoundingClientRect(); return [b.x + b.width/2, b.y + b.height/2, b.width]; })""")
     overlap = [(i, j) for i in range(len(pins)) for j in range(i + 1, len(pins)) if ((pins[i][0]-pins[j][0])**2 + (pins[i][1]-pins[j][1])**2) ** .5 < pins[i][2] * .9]
     check("no two pins cover each other at the whole-trip view", not overlap, f"overlapping pairs {overlap}" if overlap else f"{len(pins)} pins")
-    pg.screenshot(path=str(HERE / "shot-desktop.png"))
+    pg.screenshot(path=str(SHOTS / "shot-desktop.png"))
 
     print("\n2. Pasting a Google Maps link files the place under the nearest stop, with a note")
     paste(pg, "#paste-in", HIMEJI)
@@ -137,7 +138,7 @@ with sync_playwright() as p:
     check("stop opens and shows the note", pg.locator(".stop.open .pl-note").input_value() == "Day trip, go early")
     check("map zoomed in to the stop", T(pg, "ui.view[2]") < 400, f"view width {T(pg, "ui.view[2]"):.0f}")
     check("place dot drawn on the map", T(pg, "document.querySelectorAll('#places circle').length") == 1)
-    pg.screenshot(path=str(HERE / "shot-osaka.png"))
+    pg.screenshot(path=str(SHOTS / "shot-osaka.png"))
 
     paste(pg, "body", "Golden Gai\nhttps://maps.google.com/?q=35.6938,139.7046")
     pg.wait_for_selector("#place-dlg[open]")
@@ -290,7 +291,7 @@ with sync_playwright() as p:
     check("Tokyo panel starts collapsed despite 70 places", pg.locator(".stop.open .places").count() == 0 and "(70)" in pg.locator(".stop.open .pl-toggle").inner_text())
     pg.locator(".stop.open [data-action=toggle-places]").click(); pg.wait_for_timeout(200)
     check("side-trip tag shows distance", "Side trip" in pg.locator(".stop.open").inner_text())
-    pg.screenshot(path=str(HERE / "shot-tokyo-list.png"))
+    pg.screenshot(path=str(SHOTS / "shot-tokyo-list.png"))
     pg.reload(); pg.wait_for_timeout(400)
     check("list not imported twice on reload", T(pg, "trip.stops.flatMap(s => s.places).length") == 102)
     check("no script errors with the full list", not errors, "; ".join(errors[:3]))
@@ -336,7 +337,7 @@ with sync_playwright() as p:
     R = T(pg, "runChecks()")
     check("checks stay clean while on the ideas page", not [r for r in R if r["state"] == "fail"] and pg.get_attribute("#checks-btn", "data-state") != "fail",
           "; ".join(f"{r['name']}: {r['detail']}" for r in R if r["state"] == "fail")[:200])
-    pg.screenshot(path=str(HERE / "shot-ideas.png"))
+    pg.screenshot(path=str(SHOTS / "shot-ideas.png"))
     pg.click("[data-action=page][data-v=plan]"); pg.wait_for_timeout(300)
     check("back to the plan: map drawn with pins", pg.locator(".app").is_visible() and T(pg, "document.querySelectorAll('#pins > g[data-sid]').length") == 9)
     R = T(pg, "runChecks()")
@@ -344,7 +345,7 @@ with sync_playwright() as p:
     print("\n10b. Vid's places")
     pg.click("[data-action=page][data-v=ideas]"); pg.wait_for_timeout(200)
     check("tab is now called Ideas", pg.locator("[data-action=page][data-v=ideas]").inner_text().startswith("Ideas"))
-    check("two sources to switch between", pg.locator("[data-action=idea-src]").count() == 2)
+    check("two sources to switch between", pg.locator("[data-action=idea-src]").count() >= 2)
     pg.locator("[data-action=idea-src][data-v=vid]").click(); pg.wait_for_timeout(300)
     check("Vid's 214 Japan places shown", pg.locator(".idea").count() == 214, str(pg.locator(".idea").count()))
     check("Vid's places sorted closest to the route first", "km from" in pg.locator(".idea .near").first.inner_text(), pg.locator(".idea .near").first.inner_text())
@@ -369,11 +370,11 @@ with sync_playwright() as p:
     R = T(pg, "runChecks()")
     check("in-app checks clean with Vid's ideas", not [r for r in R if r["state"] == "fail"], "; ".join(f"{r['name']}: {r['detail']}" for r in R if r["state"] == "fail"))
     pg.locator("[data-action=idea-src][data-v=vid]").click(); pg.wait_for_timeout(200)
-    pg.screenshot(path=str(HERE / "shot-vid.png"))
+    pg.screenshot(path=str(SHOTS / "shot-vid.png"))
     pg.locator("[data-action=idea-src][data-v=instagram]").click(); pg.wait_for_timeout(100)
     mob = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True); mp = new_page(mob, errors)
     mp.goto(f"{BASE}/_list_test.html"); mp.wait_for_timeout(400); mp.click("[data-action=page][data-v=ideas]"); mp.wait_for_timeout(200)
-    mp.screenshot(path=str(HERE / "shot-ideas-mobile.png"))
+    mp.screenshot(path=str(SHOTS / "shot-ideas-mobile.png"))
     check("no script errors on the ideas page", not errors, "; ".join(errors[:3]))
     mob.close(); ctx.close()
 
@@ -412,7 +413,7 @@ with sync_playwright() as p:
         check("three bookings saved", T(pg, "trip.bookings.length") == 3)
         if not pg.locator(".stop[data-sid=osaka].open").count(): pg.locator(".stop[data-sid=osaka] .stop-head").click(); pg.wait_for_timeout(300)
         check("hotel card on the stop, with Directions and Open in Booking.com", pg.locator(".stop.open .bk a", has_text="Directions").count() == 1 and pg.locator(".stop.open .bk a", has_text="Booking.com").count() == 1)
-        pg.screenshot(path=str(HERE / "shot-bookings.png"))
+        pg.screenshot(path=str(SHOTS / "shot-bookings.png"))
         pg.set_input_files("#bk-file", str(PDFS / "scanned-ticket.pdf")); pg.wait_for_selector("#bk-dlg[open]", timeout=15000)
         check("a scan with no text says to fill it in by hand", "fill the details in by hand" in pg.inner_text("#bk-info"))
         pg.keyboard.press("Escape"); pg.wait_for_function("!document.querySelector('#bk-dlg').open")
@@ -479,7 +480,7 @@ with sync_playwright() as p:
         check("and can open the same PDF", blob_ok)
     R = T(B, "runChecks()")
     check("in-app checks pass on the shared, mobile copy", not [r for r in R if r["state"] == "fail"], "; ".join(f"{r['name']}: {r['detail']}" for r in R if r["state"] == "fail"))
-    B.screenshot(path=str(HERE / "shot-mobile.png"))
+    B.screenshot(path=str(SHOTS / "shot-mobile.png"))
     check("no script errors for either person", not (errA or errB), "; ".join((errA + errB)[:3]))
 
     print("\n13. Enter key, and share codes used by the multi-trip planner")

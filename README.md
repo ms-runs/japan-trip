@@ -8,6 +8,7 @@ A single-page trip planner: map of Japan, stops, travel legs, saved places from 
 | `supabase-setup.sql` | One-time database setup so friends share one plan. |
 | `maps-link-expander.js` | Optional. Lets short `maps.app.goo.gl` links work. |
 | `verify.py` | Optional. Full automated test in a headless browser. |
+| `screenshots/` | Pictures verify.py takes of the planner. Safe to ignore. |
 
 ## Put it online and share it (all free)
 

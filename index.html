@@ -1913,6 +1913,8 @@ const skItems = [
   it('Snow monkeys on the way up on 10 Jan: park open 9:00–16:00, ¥800 (one source says ¥1,000, ¥880 online, from 1 Dec 2026). Book the advance QR ticket in peak season. There is no combined lift pass and monkey ticket', ['nature'], true),
   it('Mon 11 Jan is Coming of Age Day, a public holiday, so expect the busiest slopes then and a quieter Tuesday', ['sport'])];
 const nzArrive = {d: 'Sun 10 Jan', route: 'Kanazawa → snow monkeys → Nozawa Onsen', text: 'Courier the big bags to Tokyo and take a day bag. Leave Kanazawa on an early Hakutaka to Nagano (about 85 min), then the Nagaden express to Yudanaka (45 min) and the local bus to the park. Walk the 1.6 km trail and spend about 1.5 hours with the monkeys (book the QR ticket first). Head back by about 13:30: Nagano, the shinkansen to Iiyama, then the Nozawa Liner, arriving around 18:00. Check-in, bath, dinner. Pick up rentals the next morning, or ask the shop about collecting after 15:00 the day before.', sleep: 'Nozawa Onsen (ryokan)'};
+// Newest first. A proposal moves to "Decided" by itself once it is accepted or set aside (Undo still works there).
+// Only set `archived: true` on old whole-trip route proposals; they live in the "Archived" list at the bottom.
 const PROPOSALS = [{
   id: 'nozawa-ski-2026-11', by: 'Miguel', date: '8 Nov 2026',
   title: 'Where to ski on 10–12 Jan: Nozawa Onsen or Shiga Kōgen, with the snow monkeys on the way',
@@ -2225,13 +2227,16 @@ function proposalCard(P0) {
   </article>`;
 }
 function renderProposals() {
-  const live = activeProposals(), old = PROPOSALS.filter(P => P.archived);
-  const open = live.filter(P => proposalState(P) === 'open').length;
+  // Three groups: still to review (shown), decided (accepted or set aside, folded away but still undoable), and old route proposals.
+  const live = activeProposals().filter(P => proposalState(P) === 'open'), done = activeProposals().filter(P => proposalState(P) !== 'open'), old = PROPOSALS.filter(P => P.archived);
+  const open = live.length;
   $('#prop-count').textContent = open ? ` ${open}` : '';
   ui.preview = null;
   if (view.page !== 'changes') return;
   const sep = '<hr style="border:0;border-top:1px solid var(--line);margin:22px 0">';
   $('#prop-panel').innerHTML = (live.length ? live.map(proposalCard).join(sep) : '<p class="prop-empty">No proposals to review right now.</p>')
+    + (done.length ? `<details class="prop-archive"${view.propDecided ? ' open' : ''}><summary data-action="prop-decided">Decided (${done.length})<small>${esc(done.map(P => P.title.split(':')[0]).join(' · '))}</small></summary>
+      <div class="prop-archive-list">${done.map(proposalCard).join(sep)}</div></details>` : '')
     + (old.length ? `<details class="prop-archive"${view.propArchive ? ' open' : ''}><summary data-action="prop-archive">Archived (${old.length})<small>Earlier whole-trip route proposals</small></summary>
       <div class="prop-archive-list">${old.map(proposalCard).join(sep)}</div></details>` : '');
 }
@@ -2770,6 +2775,7 @@ const ACTIONS = {
   'prop-show': d => { view.propShow = d.v; saveView(); renderProposals(); renderMap(); fitShown(); },
   'prop-var': d => { view.propVar = {...(view.propVar || {}), [d.id]: d.v}; view.propShow = 'proposed'; saveView(); renderProposals(); renderMap(); fitShown(); },
   'prop-archive': () => { view.propArchive = !view.propArchive; saveView(); },
+  'prop-decided': () => { view.propDecided = !view.propDecided; saveView(); },
   'prop-accept': d => acceptProposal(d.id),
   'prop-dismiss': d => { const P = PROPOSALS.find(x => x.id === d.id); undoable(`Set aside “${P.title}”. It stays in the Proposals tab.`, () => { trip.proposals[P.id] = {status: 'dismissed', at: new Date().toISOString()}; }); },
   'prop-reopen': d => undoable('Back on the list to review.', () => { delete trip.proposals[d.id]; }),
