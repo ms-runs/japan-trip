@@ -237,6 +237,22 @@ body[data-page=budget] .budget{display:block}
 .mini .sub{color:var(--muted);font-size:11.5px}
 .mini button{font-size:11.5px;border:1px solid var(--line2);background:#fff;border-radius:5px;padding:2px 8px}
 .empty{color:var(--muted);font-size:12.5px}
+.qx form{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.qx-amt{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.qx-amt input{font:600 26px 'DM Sans',sans-serif;width:100%;max-width:210px;padding:8px 12px;font-variant-numeric:tabular-nums}
+.qx #qx-what{font-size:15px;padding:10px 12px}
+.qx-row{display:flex;gap:10px;align-items:center}
+.qx-lbl{font-size:12px;color:var(--muted);width:52px;flex:none}
+.qx-pills{display:flex;flex-wrap:wrap;gap:6px}
+.qx-pill{position:relative;display:inline-flex;cursor:pointer}
+.qx-pill input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.qx-pill span{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border:1px solid var(--line2);background:#fff;border-radius:99px;font-size:14px;white-space:nowrap}
+.qx-pill input:checked + span{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.qx-pill input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.qx-go{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:13px;font-size:16px;font-weight:600}
+.qx-hint{margin:0;min-height:1.2em;font-size:12.5px;color:var(--bad)}
+.qx-recent{margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+.qx-recent button{border:0;background:none;padding:0;text-align:left;font:inherit;font-size:12.5px;cursor:pointer}
 .bd-add{display:grid;grid-template-columns:minmax(140px,2fr) 100px 70px minmax(110px,1fr) minmax(110px,1fr) auto;gap:8px}
 .bd-add > *{min-width:0}
 .bd-add button{border:0;background:var(--accent);color:#fff;border-radius:6px;padding:6px 14px}
@@ -256,7 +272,7 @@ body[data-page=budget] .budget{display:block}
 #bl-dlg .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 #bl-dlg .actions{display:flex;gap:8px;justify-content:flex-end}
 #bl-dlg .actions .del{margin-right:auto;color:var(--bad)}
-@media (max-width:820px){.bd-grid{grid-template-columns:1fr}.bd-add{grid-template-columns:1fr 1fr}.bd-add input:first-child{grid-column:1/3}}
+@media (max-width:820px){.bd-wrap{display:flex;flex-direction:column}.bd-wrap>.qx{order:-1}.bd-grid{grid-template-columns:1fr}.bd-add{grid-template-columns:1fr 1fr}.bd-add input:first-child{grid-column:1/3}}
 
 .ck-add input{flex:1}
 /* Proposals: the map stays, the sidebar swaps for the review panel */
@@ -2602,11 +2618,55 @@ function stack(z, max) {
   const w = k => max ? (z[k] / max * 100).toFixed(2) : 0;
   return `<div class="stack" role="img" aria-label="${money(z.paid)} paid, ${money(z.open)} booked and open, ${money(z.expected)} expected">${['paid', 'open', 'expected'].map(k => z[k] > 0 ? `<i style="width:${w(k)}%;background:${BSTATUS[k === 'open' ? 'booked' : k].color}"></i>` : '').join('')}</div>`;
 }
+// "Spent something?": the quick way to log money as you spend it. Always a paid line, so settle-up picks it up straight away.
+const QX_CATS = {food: '🍜 Food', transport: '🚅 Travel', activity: '🎿 Activity', shopping: '🛍 Shopping', stay: '🏨 Stay', other: '📄 Other'};
+const localISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// The stop you are in today, if the trip has a start date and today falls inside it; otherwise "Whole trip".
+function stopForToday() {
+  if (!trip.startDate) return 'general';
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  for (let i = 0; i < trip.stops.length; i++) {
+    if (!trip.stops[i].nights) continue;
+    const a = dateAt(nightsBefore(i)), b = dateAt(nightsBefore(i + 1));
+    if (a && t >= a && t < b) return trip.stops[i].id;
+  }
+  return 'general';
+}
+// Keep half-typed text and chosen chips if the page redraws (for example when a friend's change arrives).
+function captureQx() {
+  const f = document.getElementById('qx-form');
+  if (!f || budget.qxClear) { budget.qxClear = false; return null; }
+  return {amount: f.querySelector('#qx-amount').value, what: f.querySelector('#qx-what').value, picks: [...f.querySelectorAll('input[type=radio]:checked')].map(r => [r.name, r.value])};
+}
+function restoreQx(q) {
+  const f = document.getElementById('qx-form'); if (!q || !f) return;
+  f.querySelector('#qx-amount').value = q.amount; f.querySelector('#qx-what').value = q.what;
+  q.picks.forEach(([n, v]) => { const r = [...f.querySelectorAll(`input[name="${n}"]`)].find(x => x.value === v); if (r) r.checked = true; });
+}
+function quickCard() {
+  const people = trip.budget.travellers, cur = view.qxCur || 'JPY', cat = QX_CATS[view.qxCat] ? view.qxCat : 'food', payer = people.includes(view.qxPayer) ? view.qxPayer : '';
+  const pill = (name, v, label, on) => `<label class="qx-pill"><input type="radio" name="${name}" value="${esc(v)}"${on ? ' checked' : ''}><span>${esc(label)}</span></label>`;
+  const recent = budget.lines.filter(l => l.quick).sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 3);
+  return `<div class="card qx">
+      <h3>Spent something?<small>Takes ten seconds. Everyone sees it.</small></h3>
+      <form id="qx-form" autocomplete="off" novalidate>
+        <div class="qx-amt"><input id="qx-amount" type="number" inputmode="decimal" min="0" step="any" placeholder="0" aria-label="Amount">
+          <div class="qx-pills" role="radiogroup" aria-label="Currency">${pill('qx-cur', 'JPY', '¥', cur === 'JPY')}${pill('qx-cur', 'GBP', '£', cur === 'GBP')}</div></div>
+        <input id="qx-what" placeholder="What for? (optional), e.g. ramen" aria-label="What for">
+        <div class="qx-row"><span class="qx-lbl">Paid by</span><div class="qx-pills" role="radiogroup" aria-label="Paid by">${people.map(n => pill('qx-payer', n, n, n === payer)).join('')}</div></div>
+        <div class="qx-row"><span class="qx-lbl">For</span><div class="qx-pills" role="radiogroup" aria-label="Split between">${pill('qx-split', 'all', 'Everyone', true)}${people.map(n => pill('qx-split', n, `Just ${n}`, false)).join('')}</div></div>
+        <div class="qx-row"><span class="qx-lbl">Type</span><div class="qx-pills" role="radiogroup" aria-label="Type of spend">${Object.entries(QX_CATS).map(([k, t]) => pill('qx-cat', k, t, k === cat)).join('')}</div></div>
+        <button class="qx-go" type="submit">Add expense</button>
+        <p class="qx-hint" id="qx-hint" role="status"></p>
+      </form>
+      ${recent.length ? `<ul class="mini qx-recent" aria-label="Latest expenses">${recent.map(l => `<li><button data-action="bd-edit" data-id="${l.id}">${esc(l.item)}<br><span class="sub">${esc(l.payer)} paid · ${l.split && l.split !== 'all' ? `just ${esc(l.split)}` : 'everyone'} · tap to edit</span></button><b>${orig(l)}</b></li>`).join('')}</ul>` : ''}
+    </div>`;
+}
 function renderBudget() {
   const all = sum(spendLines()), n = trip.budget.travellers.length || 1;
   $('#bd-count').textContent = all.committed ? (all.committed >= 1000 ? `£${(all.committed / 1000).toFixed(1)}k` : money(all.committed, 'GBP')) : '';
   if (view.page !== 'budget') return;
-  const keepFocus = document.activeElement?.closest?.('#budget') ? document.activeElement.id : null;
+  const keepFocus = document.activeElement?.closest?.('#budget') ? document.activeElement.id : null, qxKeep = captureQx();
   const cur = view.budgetCur || 'GBP', target = +trip.budget.target || 0;
   const who = budgetWho(), mine = sum(spendLines(), who), whoName = who ? esc(who) : '';
   const paidOut = who ? spendLines().filter(l => l.payer === who).reduce((t, l) => t + parts(l).paid, 0) : 0;
@@ -2636,6 +2696,7 @@ function renderBudget() {
         <label>Travellers<input id="bd-people" class="wide" value="${esc(trip.budget.travellers.join(', '))}"></label>
       </div>
     </div>
+    ${quickCard()}
     <div class="bd-kpis">${who ? `
       ${kpi(`${whoName}’s share`, money(mine.committed), `of ${money(all.committed)} for the group`)}
       ${kpi('Paid', money(mine.paid), `${whoName} has paid out ${money(paidOut)} so far`, BSTATUS.paid.color)}
@@ -2651,7 +2712,7 @@ function renderBudget() {
         : kpi('Ideas, not counted', money(all.idea), 'prices seen, not in the total', BSTATUS.idea.color)}`}
     </div>
     <div class="card">
-      <h3>Add a price<small>Things you’ve seen, booked or paid</small></h3>
+      <h3>Add a planned price<small>Things you’ve seen or booked, before you spend</small></h3>
       <form class="bd-add" id="bd-add">
         <input id="bq-item" placeholder="What is it? e.g. teamLab tickets" autocomplete="off" aria-label="What">
         <input id="bq-amount" type="number" step="0.01" min="0" placeholder="Amount" aria-label="Amount" inputmode="decimal">
@@ -2701,6 +2762,7 @@ function renderBudget() {
         : '<p class="empty" style="margin-top:8px">No lines here yet.</p>'}
     </div>
   </div>`;
+  restoreQx(qxKeep);
   if (keepFocus) document.getElementById(keepFocus)?.focus();
 }
 
@@ -2889,6 +2951,19 @@ document.addEventListener('click', e => {
   if (!el || el.tagName === 'SELECT') return;
   if (e.target.closest('input,select,textarea') && el !== e.target) return;   // typing in a field inside a clickable header
   ACTIONS[el.dataset.action]?.(el.dataset, el);
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'qx-form') return;
+  e.preventDefault();
+  const f = e.target, pick = n => f.querySelector(`input[name="${n}"]:checked`)?.value, hint = m => { $('#qx-hint').textContent = m; };
+  const amount = +$('#qx-amount').value, payer = pick('qx-payer');
+  if (!(amount > 0)) { hint('Enter how much it was.'); return $('#qx-amount').focus(); }
+  if (!payer) return hint('Pick who paid.');
+  const cat = pick('qx-cat') || 'other', cur = pick('qx-cur') || 'JPY', what = $('#qx-what').value.trim() || BCATS[cat].label;
+  Object.assign(view, {qxPayer: payer, qxCur: cur, qxCat: cat}); saveView();
+  const line = {id: uid(), item: what, amount, cur, stop: stopForToday(), status: 'paid', cat, payer, split: pick('qx-split') || 'all', date: localISO(), notes: '', quick: true};
+  budget.qxClear = true; putLine(line);
+  toast(`Added ${orig(line)} ${what}, paid by ${payer}.`, () => { budget.lines = budget.lines.filter(x => x.id !== line.id); budget.pending.add(line.id); writeBudget(); renderBudget(); flushBudget(); });
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'bd-add') return;
