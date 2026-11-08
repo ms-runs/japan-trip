@@ -194,7 +194,9 @@ body[data-page=checklist] .checklist{display:block}
 .ck-group{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
 .ck-item{grid-template-columns:auto 1fr auto auto}
 .ck-item .ck-note{grid-column:2/5}
-.ck-who{font-size:12px;padding:2px 4px;max-width:96px}
+.ck-meta{display:flex;gap:6px}
+.ck-who,.ck-cat{font-size:12px;padding:2px 4px;max-width:104px}
+.ck-group small{margin-left:8px;font-weight:400;letter-spacing:0;text-transform:none}
 /* Budget: full page, lines live in their own database table */
 .budget{display:none;flex:1;min-height:0;overflow-y:auto;padding:22px clamp(16px,3vw,32px) 56px}
 body[data-page=budget] .app{visibility:hidden;position:fixed;inset:0;z-index:-1;pointer-events:none}
@@ -325,11 +327,6 @@ body[data-page=changes] .playbar{display:none}
 .prop-archive-list{margin-top:14px;opacity:.85}
 @media (max-width:520px){.prop-vars{grid-template-columns:1fr}}
 .ideas-bar{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;max-width:1200px}
-.src-switch{display:flex;gap:6px;flex-wrap:wrap}
-.src-switch button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 14px;min-width:170px;text-align:left}
-.src-switch button b{font:600 14px 'Shippori Mincho',serif}
-.src-switch button small{font-size:11.5px;color:var(--muted)}
-.src-switch button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .idea .near{font-size:12px;color:var(--muted)}
 .ideas-bar input[type=search]{max-width:360px;font-size:13px;padding:7px 10px}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
@@ -342,6 +339,7 @@ body[data-page=changes] .playbar{display:none}
 .idea.is-hidden{opacity:.5}
 .idea-tags{display:flex;flex-wrap:wrap;gap:4px}
 .idea-tags span{font-size:10.5px;padding:1px 7px;border-radius:4px;background:var(--paper2);color:var(--muted)}
+.idea-tags .src-ig{margin-left:auto;display:inline-flex;align-items:center;color:var(--muted)}
 .idea-tags .where{background:#e3ecf6;color:var(--accent);font-weight:500}
 .idea h3{font:600 15px/1.3 'Shippori Mincho',serif}
 .idea p{font-size:12.5px;color:#403a35;line-height:1.45}
@@ -427,9 +425,7 @@ html.homescreen-app #fs-btn,.fs-icon{display:none}
   .prop-actions button{flex:1;padding:12px 14px}
   /* Ideas: filters scroll sideways instead of filling the screen */
   .ideas{padding:14px 12px 32px}
-  .src-switch{flex-wrap:nowrap}
-  .src-switch button{flex:1 1 0;min-width:0;padding:8px 12px}
-  .ideas-bar input[type=search]{max-width:none}
+      .ideas-bar input[type=search]{max-width:none}
   .ideas .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px 2px}
   .ideas .chips::-webkit-scrollbar{display:none}
   .chip{flex:none;padding:7px 13px;font-size:13px}
@@ -437,6 +433,9 @@ html.homescreen-app #fs-btn,.fs-icon{display:none}
   .idea-grid{grid-template-columns:1fr}
   /* Checklist: name gets the full row; who-does-it sits under the note */
   .checklist{padding:18px 12px 32px}
+  .ck-item{grid-template-columns:auto 1fr auto}
+  .ck-item .ck-meta{grid-column:2/4;grid-row:2}
+  .ck-item .ck-note{grid-column:2/4}
   .ck-item{grid-template-columns:auto minmax(0,1fr) auto;padding:12px}
   .ck-item input[type=checkbox]{width:22px;height:22px}
   .ck-item .x{grid-column:3;grid-row:1;width:32px;height:32px}
@@ -603,7 +602,6 @@ html.homescreen-app #fs-btn,.fs-icon{display:none}
 <section class="budget" id="budget" aria-label="Trip budget"></section>
 <section class="ideas" id="ideas" aria-label="Ideas to add to the trip">
   <div class="ideas-bar">
-    <div class="src-switch" id="idea-src" role="group" aria-label="Whose ideas"></div>
     <input type="search" id="idea-q" placeholder="Search ideas" aria-label="Search ideas">
     <div class="chips" id="idea-where"></div>
     <div class="chips" id="idea-what"></div>
@@ -1180,9 +1178,26 @@ const VID_IDEAS = [
   {"id":"vid-ee4272b1c22645f","src":"vid","url":"https://maps.google.com/?cid=1073025677330113631","where":"Kyoto","what":["Attractions"],"title":"Kinkaku-ji","summary":"Kyōto","items":[{"name":"Kinkaku-ji","cat":"see","lat":35.03937,"lng":135.72924}]},
   {"id":"vid-7b1aca1c753ae2e9","src":"vid","url":"https://maps.google.com/?cid=8870624639634301673","where":"Kyoto","what":["Attractions"],"title":"Fushimi Inari Taisha","summary":"Kyōto","items":[{"name":"Fushimi Inari Taisha","cat":"see","lat":34.96769,"lng":135.77919}]}
 ];
-const SOURCES = {instagram: {label: 'From Instagram', sub: 'Saved posts with tips'}, vid: {label: 'Vid’s places', sub: 'From Vid’s Google Maps list'}, ours: {label: 'Our picks', sub: 'Hotels and places we’ve found'}};
-// Added by hand. Prices are indicative “from” rates off hotel listings, not quotes for our dates.
+// Added by hand. Hotel prices are indicative “from” rates off listings, not quotes for our dates. Map positions marked approx are area-level.
 const OURS = [
+  {id: 'ours-jingu-golf-center', url: 'https://www.google.com/maps/search/?api=1&query=Jingu+Golf+Center+Shinjuku', by: 'Miguel', date: 'Nov 2026', where: 'Tokyo', what: ['Activities'],
+    title: 'Jingu Golf Center, Shinjuku', summary: 'A covered three-level driving range in Meiji Jingu Gaien, between the National Stadium and Jingu Baseball Stadium. Each stall has an automatic ball dispenser and tee-up unit, and the centre rents clubs. The main level costs more than the upper levels. I couldn’t find prices, so check them before going.',
+    items: [{name: 'Jingu Golf Center', cat: 'do', note: 'Covered three-level range with club rental. Prices not found.', lat: 35.6773, lng: 139.716, approx: true}]},
+  {id: 'ours-indoor-golf-shinjuku', url: 'https://www.expedia.ie/things-to-do/private-indoor-golf-shinjuku-trackman-4-and-rentals-included.a52777489.activity-details', by: 'Miguel', date: 'Nov 2026', where: 'Tokyo', what: ['Activities'],
+    title: 'Private indoor golf, Shinjuku', summary: 'A private simulator room with a Trackman 4 launch monitor and rental clubs included, bookable online as an activity. Good for a cold or wet day in Tokyo. Price not checked.',
+    items: [{name: 'Private indoor golf, Shinjuku (Trackman 4)', cat: 'do', note: 'Private room, clubs included, bookable online. Price not checked.', lat: 35.6938, lng: 139.7034, approx: true}]},
+  {id: 'ours-takanawa-tennis-golf', url: 'https://www.google.com/maps/search/?api=1&query=Takanawa+Tennis+Golf+Center+Shinagawa', by: 'Miguel', date: 'Nov 2026', where: 'Tokyo', what: ['Activities'],
+    title: 'Takanawa Tennis & Golf Center, Shinagawa', summary: 'A covered range with 14 stands, in front of Shinagawa Station on the Yamanote line. A 2015 guide gave ¥1,300–1,900 per 25 minutes, ¥800 for club hire, 8:00–22:00, and said to book at least two weeks ahead. Those details are old, so confirm it still runs.',
+    items: [{name: 'Takanawa Tennis & Golf Center', cat: 'do', note: 'Covered range, 14 stands, by Shinagawa Station. 2015 details: about ¥1,300–1,900 per 25 min, clubs ¥800. Book ahead.', lat: 35.629, lng: 139.7395, approx: true}]},
+  {id: 'ours-yodobashi-akiba-range', url: 'https://www.google.com/maps/search/?api=1&query=Yodobashi+Akiba+golf+range+Akihabara', by: 'Miguel', date: 'Nov 2026', where: 'Tokyo', what: ['Activities'],
+    title: 'Rooftop range at Yodobashi Akiba, Akihabara', summary: 'A semi-enclosed range on the top floor of the Yodobashi department store at Akihabara Station, with a camera at each bay to analyse your swing. A 2015 guide gave ¥2,060–2,570 a session and 11:00–22:00. I couldn’t confirm it is still open, so check first.',
+    items: [{name: 'Yodobashi Akiba golf range', cat: 'do', note: 'Top-floor range with a swing camera at each bay. 2015 details: about ¥2,060–2,570, 11:00–22:00. Confirm it is still open.', lat: 35.6988, lng: 139.7745, approx: true}]},
+  {id: 'ours-lotte-kasai-golf', url: 'https://www.google.com/maps/search/?api=1&query=Lotte+Kasai+Golf+Edogawa', by: 'Miguel', date: 'Nov 2026', where: 'Tokyo', what: ['Activities'],
+    title: 'Lotte Kasai Golf, Edogawa', summary: 'An outdoor range in east Tokyo that is open 24 hours, with an English page for fees and access on its website. A trek from central Tokyo, but good value if you want a long session. Rental and prices not checked.',
+    items: [{name: 'Lotte Kasai Golf', cat: 'do', note: 'Outdoor range, open 24 hours, English fees page. Rental and prices not checked.', lat: 35.66, lng: 139.875, approx: true}]},
+  {id: 'ours-funabori-golf', url: 'https://www.google.com/maps/search/?api=1&query=Funabori+Golf+Edogawa', by: 'Miguel', date: 'Nov 2026', where: 'Tokyo', what: ['Activities'],
+    title: 'Funabori Golf, Edogawa', summary: 'An outdoor range in Edogawa that welcomes visitors without their own clubs, with an English section on its website. Hours and prices not found.',
+    items: [{name: 'Funabori Golf', cat: 'do', note: 'Outdoor range, visitors without clubs welcome, English site. Hours and prices not found.', lat: 35.6893, lng: 139.8648, approx: true}]},
   {id: 'ours-kumu-kanazawa', url: 'https://www.google.com/maps/search/?api=1&query=KUMU+Kanazawa+by+The+Share+Hotels', by: 'Miguel', date: 'Nov 2026', where: 'Chubu', what: ['Hotels'],
     title: 'Kumu Kanazawa by The Share Hotels', summary: 'Kamitsutsumi-chō, about 1.4 km from Kanazawa Station. A room for three (2 single beds and a futon) from about £185 (≈ ¥39,000) a night, ≈ ¥78,000 for 7 and 9 Jan.',
     items: [{name: 'Kumu Kanazawa by The Share Hotels', cat: 'stay', note: 'About ¥39,000 a night for a room for three, ≈ ¥78,000 for 7 and 9 Jan (indicative).'}]},
@@ -1252,7 +1267,7 @@ const CHECKLIST_SHEET = [
 ].map(([id, cat, text, note]) => ({id, cat, text, note, who: '', done: false}));
 const LS_KEY = 'japanTripPlanV2', LS_OLD = 'japanTripPlanV1', LS_SYNC = `${LS_KEY}:sync:${TRIP_KEY}`;
 const UI_KEY = 'japanTripView';
-const view = {openPlaces: {}, page: 'plan', ideaSrc: 'instagram', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
+const view = {openPlaces: {}, page: 'plan', ideaWhere: '', ideaWhat: '', ...(readJSON(UI_KEY) || {})};   // your own view settings; never shared
 const saveView = () => { try { localStorage.setItem(UI_KEY, JSON.stringify(view)); } catch {} };
 const ui = {openStop:null, openLeg:null, edit:false, day:1, showDay:false, playing:null, view:[0,0,MAP_W,MAP_H], pending:null};
 
@@ -1277,6 +1292,10 @@ function normalize(t) {
     t.checklist.push(...structuredClone(CHECKLIST_SHEET.filter(c => !have.has(c.id))));
     t.checklist.forEach(c => { if (!c.cat) c.cat = {'ck-cash': 'Finances', 'ck-suica': 'Transit'}[c.id] || ''; });
     t.seeded.push('pretrip-sheet');
+  }
+  if (!t.seeded.includes('checklist-tidy')) {   // booking items added by hand under "Other" belong with Reservations; done once
+    t.checklist.forEach(c => { if ((c.cat || 'Other') === 'Other' && /hotel|ryokan|rental car|reservation|booking/i.test(c.text || '')) c.cat = 'Reservations'; });
+    t.seeded.push('checklist-tidy');
   }
   t.checklist.forEach(c => { c.id ||= uid(); c.text ??= ''; c.note ??= ''; c.cat ??= ''; c.who ??= ''; c.done = Boolean(c.done); });
   t.budget = {rate: 210, travellers: ['Miguel', 'Vid', 'Sam'], target: 0, ...(t.budget || {})};
@@ -1780,16 +1799,15 @@ function nearest(d) {
   const r = rankStops(it.lat, it.lng)[0]; return r ? {s: r.s, km: r.km} : null;
 }
 const NEAR_KM = 60;
+// A small camera mark on ideas that came from a saved Instagram post (a plain camera glyph, not Instagram's own logo).
+const IG_MARK = '<i class="src-ig" title="From a saved Instagram post" role="img" aria-label="From a saved Instagram post"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></i>';
 function renderIdeas() {
   const hidden = new Set(trip.hiddenIdeas);
-  if (!SOURCES[view.ideaSrc]) view.ideaSrc = 'instagram';
-  const base = ALL_IDEAS.filter(d => d.src === view.ideaSrc), hiddenHere = base.filter(d => hidden.has(d.id)).length;
+  const base = ALL_IDEAS, hiddenHere = base.filter(d => hidden.has(d.id)).length;
   if (view.ideaWhat === '__hidden' && !hiddenHere) view.ideaWhat = '';   // nothing left to show under Hidden
-  const showHidden = view.ideaWhat === '__hidden', isVid = view.ideaSrc === 'vid';
+  const showHidden = view.ideaWhat === '__hidden';
   $('#ideas-count').textContent = ` ${ALL_IDEAS.filter(d => !hidden.has(d.id)).length}`;
   if (view.page !== 'ideas') return;
-  $('#idea-src').innerHTML = Object.entries(SOURCES).map(([k, v]) => `<button data-action="idea-src" data-v="${k}" aria-pressed="${k === view.ideaSrc}">
-      <b>${esc(v.label)} (${ALL_IDEAS.filter(d => d.src === k && !hidden.has(d.id)).length})</b><small>${esc(v.sub)}</small></button>`).join('');
   const near = new Map(base.map(d => [d.id, nearest(d)]));
   const ORDER = ['Hokkaido', 'Tohoku', 'Tokyo', 'Around Tokyo', 'Mt Fuji', 'Chubu', 'Japanese Alps', 'Kyoto', 'Kyoto–Osaka', 'Osaka', 'Nara', 'Kansai', 'Hiroshima', 'Chugoku', 'Shikoku', 'Kyushu', 'Okinawa', 'Remote islands', 'Anywhere'];
   const wheres = [...new Set(base.map(d => d.where))].sort((x, y) => ORDER.indexOf(x) - ORDER.indexOf(y)), whats = [...new Set(base.flatMap(d => d.what))].sort();
@@ -1797,7 +1815,7 @@ function renderIdeas() {
   if (view.ideaWhat && view.ideaWhat !== '__hidden' && !whats.includes(view.ideaWhat)) view.ideaWhat = '';
   const chip = (group, v, label, on) => `<button class="chip" data-action="idea-filter" data-g="${group}" data-v="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
   $('#idea-where').innerHTML = '<span class="chip-lbl">Where</span>' + chip('where', '', 'All', !view.ideaWhere)
-    + (isVid ? chip('where', '__near', `Near our stops (${base.filter(d => !hidden.has(d.id) && near.get(d.id)?.km <= NEAR_KM).length})`, view.ideaWhere === '__near') : '')
+    + chip('where', '__near', `Near our stops (${base.filter(d => !hidden.has(d.id) && near.get(d.id)?.km <= NEAR_KM).length})`, view.ideaWhere === '__near')
     + wheres.map(w => chip('where', w, w === 'Anywhere' ? 'Anywhere in Japan' : w, view.ideaWhere === w)).join('');
   $('#idea-what').innerHTML = '<span class="chip-lbl">What</span>' + chip('what', '', 'All', !view.ideaWhat) + whats.map(w => chip('what', w, w, view.ideaWhat === w)).join('')
     + (hiddenHere ? chip('what', '__hidden', `Hidden (${hiddenHere})`, showHidden) : '');
@@ -1806,16 +1824,19 @@ function renderIdeas() {
     && (!view.ideaWhere || (view.ideaWhere === '__near' ? near.get(d.id)?.km <= NEAR_KM : d.where === view.ideaWhere))
     && (!view.ideaWhat || showHidden || d.what.includes(view.ideaWhat))
     && (!q || normName([d.title, d.summary, d.user, d.where, ...d.what, ...d.items.map(i => i.name)].join(' ')).includes(q)));
-  if (isVid) list.sort((x, y) => (near.get(x.id)?.km ?? 1e9) - (near.get(y.id)?.km ?? 1e9));   // closest to the route first
+  // One list: by region along the route, then our own picks, Instagram tips and Vid's places; Vid's by distance from our stops.
+  // With "Near our stops" on, everything is simply closest first.
+  const SRC_RANK = {ours: 0, instagram: 1, vid: 2}, km = d => near.get(d.id)?.km ?? 1e9, wr = d => { const i = ORDER.indexOf(d.where); return i < 0 ? 99 : i; };
+  list.sort(view.ideaWhere === '__near' ? (x, y) => km(x) - km(y) : (x, y) => wr(x) - wr(y) || SRC_RANK[x.src] - SRC_RANK[y.src] || (x.src === 'vid' ? km(x) - km(y) : 0));
   const added = list.reduce((n, d) => n + ideaItems(d).filter(it => inPlan(d, it)).length, 0);
-  const from = isVid ? 'from Vid’s list, closest to your stops first' : view.ideaSrc === 'ours' ? 'we’ve picked' : 'from saved Instagram posts';
+  const from = 'from saved Instagram posts, Vid’s list and our own picks';
   $('#ideas-sum').textContent = list.length
     ? `${list.length} idea${list.length > 1 ? 's' : ''} ${from}${added ? `, ${added} already in the plan` : ''}. Press + to add one to a stop.`
     : showHidden ? 'No hidden ideas.' : 'No ideas match. Try another filter.';
   const plusOrIn = (d, it, j) => inPlan(d, it) ? '<span class="inplan">In plan ✓</span>'
     : `<button class="plus" data-action="idea-add" data-id="${d.id}" data-j="${j}" aria-label="Add ${esc(it.name)} to the plan">+</button>`;
   $('#idea-grid').innerHTML = list.map(d => {
-    const n = near.get(d.id), tags = `<div class="idea-tags"><span class="where">📍 ${esc(d.where === 'Anywhere' ? 'Anywhere in Japan' : d.where)}</span>${d.what.map(w => `<span>${esc(w)}</span>`).join('')}</div>`;
+    const n = near.get(d.id), tags = `<div class="idea-tags"><span class="where">📍 ${esc(d.where === 'Anywhere' ? 'Anywhere in Japan' : d.where)}</span>${d.what.map(w => `<span>${esc(w)}</span>`).join('')}${d.src === 'instagram' ? IG_MARK : ''}</div>`;
     const hideBtn = `<button class="hide" data-action="idea-hide" data-id="${d.id}">${hidden.has(d.id) ? 'Unhide' : 'Hide'}</button>`;
     if (d.src === 'vid') return `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">${tags}
       <h3>${catOf(d.items[0].cat).icon} ${esc(d.title)}</h3>
@@ -1826,7 +1847,7 @@ function renderIdeas() {
       <h3>${esc(d.title)}</h3>
       <p>${esc(d.summary)}</p>
       <ul class="idea-items">${ideaItems(d).map((it, j) => `<li><span>${catOf(it.cat).icon} ${esc(it.name)}</span>${plusOrIn(d, it, j)}</li>`).join('')}</ul>
-      <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${/booking\.com/.test(d.url) ? 'Open on Booking.com' : 'Open in Google Maps'}</a><span>Added by ${esc(d.by)}</span>${hideBtn}</footer>
+      <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${/booking\.com/.test(d.url) ? 'Open on Booking.com' : /expedia\./.test(d.url) ? 'Open on Expedia' : 'Open in Google Maps'}</a><span>Added by ${esc(d.by)}</span>${hideBtn}</footer>
     </article>`;
     return `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">${tags}
       <h3>${esc(d.title)}</h3>
@@ -2478,23 +2499,32 @@ function togglePlay() {
 }
 
 // ═══ 12. ACTIONS AND EVENTS ═══════════════════════════════════════════════════
+const CK_ORDER = ['Reservations', 'Bureaucracy', 'Documents', 'Finances', 'Connectivity', 'Transit', 'Gear and packing', 'Other'];   // most urgent first
 function renderChecklist() {
   const L = trip.checklist, done = L.filter(c => c.done).length;
   $('#ck-count').textContent = L.length ? `${done}/${L.length}` : '';
   if (view.page !== 'checklist') return;
   const keep = document.activeElement?.closest?.('#checklist') ? document.activeElement.dataset.bind : null;
+  const rank = g => { const k = CK_ORDER.indexOf(g); return k < 0 ? CK_ORDER.length - 1.5 : k; };
+  const groups = [...new Set(L.map(c => c.cat || 'Other'))].sort((a, b) => rank(a) - rank(b));
+  const cats = [...new Set([...CK_ORDER, ...L.map(c => c.cat || 'Other')])];
   $('#checklist').innerHTML = `<div class="ck-wrap">
     <h2>Before we go</h2>
     <p class="ck-sub">${L.length ? `${done} of ${L.length} done` : 'Nothing on the list yet'}${REMOTE ? ' · shared with everyone on the plan' : ''}</p>
     <div class="ck-progress"><span style="width:${L.length ? done / L.length * 100 : 0}%"></span></div>
-    ${[...new Set(L.map(c => c.cat || 'Other'))].map(g => `<h3 class="ck-group">${esc(g)}</h3>
-    <ul class="ck-list">${L.map((c, i) => [c, i]).filter(([c]) => (c.cat || 'Other') === g).map(([c, i]) => `<li class="ck-item${c.done ? ' done' : ''}">
+    ${groups.map(g => {
+      const items = L.map((c, i) => [c, i]).filter(([c]) => (c.cat || 'Other') === g).sort((a, b) => a[0].done - b[0].done);   // finished ones sink to the bottom
+      return `<h3 class="ck-group">${esc(g)}<small>${items.filter(([c]) => c.done).length}/${items.length}</small></h3>
+    <ul class="ck-list">${items.map(([c, i]) => `<li class="ck-item${c.done ? ' done' : ''}">
       <input type="checkbox" data-action="ck-toggle" data-id="${c.id}"${c.done ? ' checked' : ''} aria-label="Done: ${esc(c.text)}">
       <input class="ck-text" data-bind="checklist.${i}.text" value="${esc(c.text)}" aria-label="Item">
-      <select class="ck-who" data-bind="checklist.${i}.who" aria-label="Who is doing ${esc(c.text)}"><option value="">Everyone</option>${trip.budget.travellers.map(n => `<option${n === c.who ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+      <div class="ck-meta">
+        <select class="ck-who" data-bind="checklist.${i}.who" aria-label="Who is doing ${esc(c.text)}"><option value="">Everyone</option>${trip.budget.travellers.map(n => `<option${n === c.who ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+        <select class="ck-cat" data-bind="checklist.${i}.cat" aria-label="Group for ${esc(c.text)}">${cats.map(n => `<option${n === (c.cat || 'Other') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+      </div>
       <button class="x" data-action="ck-delete" data-id="${c.id}" aria-label="Remove ${esc(c.text)}" title="Remove">✕</button>
       <textarea class="ck-note" rows="2" data-bind="checklist.${i}.note" placeholder="Add a note" aria-label="Note for ${esc(c.text)}">${esc(c.note)}</textarea>
-    </li>`).join('')}</ul>`).join('')}
+    </li>`).join('')}</ul>`; }).join('')}
     <form class="ck-add" id="ck-add"><input id="ck-new" placeholder="Add something to do before the trip" autocomplete="off"><button class="btn" type="submit">Add</button></form>
   </div>`;
   if (keep) document.querySelector(`#checklist [data-bind="${keep}"]`)?.focus();
@@ -2790,7 +2820,6 @@ const ACTIONS = {
     setTimeout(() => { if (!trip.bookings.some(x => x.fileId === b.fileId)) FILES.del(b.fileId).catch(e => console.warn(e)); }, 9000);
   },
   'idea-filter': d => { view[d.g === 'where' ? 'ideaWhere' : 'ideaWhat'] = d.v; saveView(); renderIdeas(); },
-  'idea-src': d => { if (view.ideaSrc !== d.v) { view.ideaSrc = d.v; view.ideaWhere = view.ideaWhat = ''; $('#idea-q').value = ''; saveView(); } renderIdeas(); },
   'idea-add': d => {
     const idea = ALL_IDEAS.find(x => x.id === d.id), it = ideaItems(idea)[+d.j];
     const place = {name: it.name, url: idea.url, lat: it.lat ?? null, lng: it.lng ?? null, approx: it.approx, side: it.side};
@@ -2896,6 +2925,7 @@ document.addEventListener('input', e => {
   if ('int' in t.dataset) { v = parseInt(v); if (!(v >= 0)) return; v = Math.min(v, 30); }
   setPath(t.dataset.bind, v); save();
   if (t.dataset.bind === 'startDate') renderAll();
+  if (/^checklist\.\d+\.cat$/.test(t.dataset.bind)) renderChecklist();
 });
 document.addEventListener('change', e => {
   const t = e.target;
@@ -3068,7 +3098,7 @@ async function runChecks() {
   const miss = CAT_SAMPLES.filter(([n, c]) => classify(n, '') !== c);
   add(miss.length ? 'fail' : 'pass', 'Places are sorted into categories correctly', miss.length ? miss.map(([n, c]) => `${n}: got ${classify(n, '')}, expected ${c}`).join('; ') : `${CAT_SAMPLES.length} examples tested`);
   const placed = it => it.lat != null && inJapan(it.lat, it.lng);
-  const badIdeas = ALL_IDEAS.filter(d => !SOURCES[d.src] || !d.where || (!WHERE_STOP[d.where] && !ideaItems(d).every(placed)) || ideaItems(d).some(it => !CATS.some(c => c.id === it.cat)));
+  const badIdeas = ALL_IDEAS.filter(d => !d.where || (!WHERE_STOP[d.where] && !ideaItems(d).every(placed)) || ideaItems(d).some(it => !CATS.some(c => c.id === it.cat)));
   add(badIdeas.length ? 'fail' : 'pass', 'Ideas are tagged and filed', badIdeas.length ? badIdeas.map(d => d.title).join(', ') : `${IDEAS.length} from Instagram, ${VID_IDEAS.length} from Vid`);
   add(new Set(ALL_IDEAS.map(d => d.id)).size === ALL_IDEAS.length ? 'pass' : 'fail', 'Every idea has its own id');
   const homeless = [...new Set(IDEAS.filter(d => !ideaItems(d).every(placed)).map(d => d.where))].filter(w => !stopForWhere(w));
