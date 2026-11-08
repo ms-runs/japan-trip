@@ -1314,6 +1314,27 @@ function normalize(t) {
     t.checklist.forEach(c => { if ((c.cat || 'Other') === 'Other' && /hotel|ryokan|rental car|reservation|booking/i.test(c.text || '')) c.cat = 'Reservations'; });
     t.seeded.push('checklist-tidy');
   }
+  if (!t.seeded.includes('call-2026-11-08')) {   // owners and new items from the 8 Nov call; done once
+    const by = new Map(t.checklist.map(c => [c.id, c]));
+    const note = (id, who, text) => { const c = by.get(id); if (!c) return; if (who && !c.who) c.who = who; if (text && !(c.note || '').trim()) c.note = text; };
+    const call = 'Agreed 8 Nov: the group books it.';
+    note('fi7421pw', '', `${call} Check the New Chitose desk is open after the 19:10 landing on 28 Dec.`);
+    note('ivlgetm0', '', `The night of 31 Dec. ${call}`);
+    note('ivi9xxds', 'Vid', 'The night of 12 Jan, out on the 13th. Vid sends options, then books it. Miguel asked for it to be booked soon.');
+    note('w9e7nf34', '', 'The nights of 10 and 11 Jan.');
+    note('xi4zqlht', '', 'The nights of 7 and 9 Jan. 8 Jan is the Hōshi ryokan. Options are in the Kanazawa hotels proposal.');
+    note('05tx3tn2', '', 'Now 13 – 16 Jan, three nights, after the Atami night.');
+    note('eptr6tvk', '', 'Agreed 8 Nov: everyone looks up the local specialities for each region. A first list is in each stop of the plan.');
+    const tr = by.get('ck-trains');
+    if (tr && !(tr.note || '').includes('Atami')) tr.note = `${(tr.note || '').trim()}${(tr.note || '').trim() ? ' ' : ''}Agreed 8 Nov: the group finalises the trains, including Nagano to Atami on 12 Jan.`.trim();
+    [['ck-c8-abashiri', 'Reservations', 'Book the Abashiri hotel', call, ''],
+     ['ck-c8-soya', 'Reservations', 'Book a hotel near Cape Sōya or Wakkanai', call, ''],
+     ['ck-c8-kaiseki', 'Reservations', 'Book the kaiseki dinner', 'In Kyoto, about ¥10,000 each. Vid is asking about it and booking it.', 'Vid'],
+     ['ck-c8-sumo', 'Reservations', 'Decide on sumo tickets', 'The January tournament runs 10 – 24 Jan in Tokyo. Public sale opens 5 Dec and the first day often sells out. Arena seats from about ¥3,500. Check prices on the official ticket site.', ''],
+     ['ck-c8-rugby', 'Reservations', 'Check for a rugby fixture on Sat 16 Jan', 'Wanted for the last day. The League One season runs from 12 Dec, but no fixture for that date was published when this was added: check league-one.jp. Kick-off must leave time to reach Haneda for the 01:00 flight.', '']]
+      .forEach(([id, cat, text, n, who]) => { if (!by.has(id)) t.checklist.push({id, cat, text, note: n, who, done: false}); });
+    t.seeded.push('call-2026-11-08');
+  }
   t.checklist.forEach(c => { c.id ||= uid(); c.text ??= ''; c.note ??= ''; c.cat ??= ''; c.who ??= ''; c.done = Boolean(c.done); });
   t.budget = {rate: 210, travellers: ['Miguel', 'Vid', 'Sam'], target: 0, ...(t.budget || {})};
   if (!t.proposals || typeof t.proposals !== 'object' || Array.isArray(t.proposals)) t.proposals = {};   // {id: {status, at, previous}}
@@ -1953,7 +1974,69 @@ const skItems = [
 const nzArrive = {d: 'Sun 10 Jan', route: 'Kanazawa → snow monkeys → Nozawa Onsen', text: 'Courier the big bags to Tokyo and take a day bag. Leave Kanazawa on an early Hakutaka to Nagano (about 85 min), then the Nagaden express to Yudanaka (45 min) and the local bus to the park. Walk the 1.6 km trail and spend about 1.5 hours with the monkeys (book the QR ticket first). Head back by about 13:30: Nagano, the shinkansen to Iiyama, then the Nozawa Liner, arriving around 18:00. Check-in, bath, dinner. Pick up rentals the next morning, or ask the shop about collecting after 15:00 the day before.', sleep: 'Nozawa Onsen (ryokan)'};
 // Newest first. A proposal moves to "Decided" by itself once it is accepted or set aside (Undo still works there).
 // Only set `archived: true` on old whole-trip route proposals; they live in the "Archived" list at the bottom.
+const CALL8 = 'From the 8 Nov call';
+const SPEC = 'Local specialities (meibutsu), first pass to check';
 const PROPOSALS = [{
+  id: 'call-2026-11-08', by: 'Group call', date: '8 Nov 2026',
+  title: 'From the 8 Nov call: fill in the Atami night and Tokyo, and a first list of local specialities',
+  summary: 'The group agreed to go straight from skiing to Atami for a night in an onsen ryokan, then on to Tokyo. The Atami stop is already in the plan, so this adds what is missing: the journey there, the ryokan night, what to do, and the new Tokyo plans (golf range, running, sport). It also starts the specialities list for every stop. Nothing is removed and no nights change.',
+  why: [
+    'Atami: ski to Tue 12 Jan, then the express bus down to Nagano and the shinkansen on to Atami (about 2h 15m from Nagano, via Tokyo). Ryokan with an onsen on the night of the 12th, out on the 13th. Vid is sending options and booking it.',
+    'Tokyo is then 13 – 16 Jan, three nights, so the Tokyo hotel starts on the 13th. The Atami to Tokyo hop is about 45 minutes on the Kodama.',
+    'Sumo: the January tournament (Hatsu Basho) runs 10 – 24 Jan at Ryōgoku Kokugikan, so it is on while you are in Tokyo. Public sale opens 5 Dec and the New Year tournament often sells out on the first day. Arena seats start around ¥3,500 and are realistically ¥5,000 – 10,000. Check the official ticket site before buying, as prices vary by day.',
+    'Baseball was suggested, but the pro season runs from spring to autumn, so there is no game in January. Rugby on the last day, Sat 16 Jan, is possible: the League One season runs from 12 Dec to June. No fixture for that date had been published when this was added, so check league-one.jp, and note that the flight home leaves at 01:00 on 17 Jan.',
+    'Food: Vid wants local specialities (meibutsu) in every region, Kobe beef in Kobe and Hida beef in Takayama (9 Jan tour). Sam wants to try uni, sea urchin. Miguel remembers a 12-course Wagyu, Yamagata and Kobe beef dinner in Tokyo for about £140 and would like a similar one. Each stop now has a starter list to check.',
+    'Everyone files the Visit Japan Web form, the group finalises the trains and the Hokkaidō rental car, and the group books hotels in Sapporo (31 Dec), Abashiri and near Cape Sōya or Wakkanai. These are on the Checklist with owners.',
+  ],
+  remove: [],
+  days: [
+    {d: 'Tue 12 Jan', route: 'Shiga Kōgen → Atami', text: 'Ski until early afternoon and return any rental gear. Express bus down to Nagano (70 – 90 min), then the shinkansen to Atami (about 2h 15m, changing at Tokyo). Onsen and dinner at the ryokan.', sleep: 'Atami (ryokan)'},
+    {d: 'Wed 13 Jan', route: 'Atami → Tokyo', text: 'A slow morning and another soak, check out, then the Kodama to Tokyo (about 45 min) and into the Tokyo hotel.', sleep: 'Tokyo'},
+  ],
+  order: [
+    {id: 'sapporo', add: [{label: SPEC, items: [
+      it('Jingisukan, grilled lamb, a Sapporo classic', ['eat'], true),
+      it('Sapporo miso ramen, a style that started here', ['ramen']),
+      it('Uni (sea urchin) is a Hokkaidō classic and Sam wants to try it. Summer is the main season, so ask what is in season in winter. Vid plans to tell Sam what part of the urchin it is afterwards', ['eat'], true)]}]},
+    {id: 'soya', add: [{label: SPEC, items: [it('Wakkanai seafood: crab, scallops and octopus (tako-shabu is the local hot pot)', ['eat'])]}]},
+    {id: 'abashiri', add: [{label: SPEC, items: [it('Okhotsk coast seafood: scallops and hairy crab', ['eat'])]}]},
+    {id: 'akan', add: [{label: SPEC, items: [it('Ainu dishes at the Kotan restaurants. Ask what is on the menu', ['eat', 'culture'])]}]},
+    {id: 'sapporo-nye', add: [{label: SPEC, items: [it('Toshikoshi soba, the New Year’s Eve noodles eaten before midnight', ['eat', 'culture'])]}]},
+    {id: 'nara', add: [{label: SPEC, items: [
+      it('Kakinoha-zushi, sushi wrapped in persimmon leaves, a Nara speciality', ['eat']),
+      it('Nakatanidō’s yomogi mochi, pounded at high speed in front of you', ['eat'])]}]},
+    {id: 'kyoto', add: [{label: SPEC, items: [it('Yudōfu (simmered tofu) and obanzai, Kyoto home-style small dishes. The kaiseki dinner is on the Checklist', ['eat'])]}]},
+    {id: 'osaka', add: [{label: SPEC, items: [
+      it('Takoyaki, okonomiyaki and kushikatsu around Dōtonbori', ['eat'], true),
+      it('Kobe beef in Kobe itself, one of Vid’s two must-eats. The other is Hida beef in Takayama on 9 Jan', ['beef', 'eat'], true)]}]},
+    {id: 'chubu', add: [{label: SPEC, items: [
+      it('Hida beef in Takayama on the 9 Jan day tour', ['beef', 'eat'], true),
+      it('Kanazawa seafood: nodoguro (blackthroat seaperch) and snow crab, which is in season in January', ['eat'], true),
+      it('Jibu-ni, the Kaga duck stew', ['eat'])]}]},
+    {id: 'lz551qjz', add: [{label: SPEC, items: [it('Shinshū soba and oyaki (stuffed dumplings), Nagano specialities', ['eat'])]}]},
+    {id: 'g4remiup',
+      note: `${CALL8}: the group agreed to go straight from skiing to Atami for a night in an onsen ryokan before Tokyo. Ryokan on the night of 12 Jan, out on the 13th. Vid is booking it.`,
+      leg: leg('shinkansen', 'about 4h', 'From Shiga Kōgen: the express bus down to Nagano (70 – 90 min, ¥3,000), then the shinkansen to Atami, about 2h 15m (the Hokuriku Shinkansen to Tokyo, then the Tokaido line). Check the Atami stops on the train you pick: Kodama trains all stop there.'),
+      add: [{label: CALL8, items: [
+        it('Ryokan with an onsen, night of 12 Jan, out on the 13th. Vid is booking it', ['stay'], true),
+        it('A soak and a long dinner at the ryokan are the point of the stop. Ask whether the baths are private or shared when booking', ['culture']),
+        it('Atami Plum Garden’s festival runs from early January to early March, but mid-January is early for the main bloom. Check the bloom report on the day', ['nature']),
+        it('MOA Museum of Art, and Kinomiya Shrine with its huge camphor tree (ideas to check)', ['culture', 'shrine'])]},
+        {label: SPEC, items: [it('Atami himono (dried fish), fresh seafood from the bay and Atami pudding', ['eat'])]}]},
+    {id: 'tokyo2',
+      note: `${CALL8}: now 13 – 16 Jan, three nights, after the Atami night on the 12th.`,
+      leg: leg('shinkansen', 'about 45m', 'Tokaido Shinkansen (Kodama) from Atami to Tokyo Station, about 45 minutes, on the morning of 13 Jan after checking out.'),
+      add: [{label: CALL8, items: [
+        it('Sumo: the January tournament runs 10 – 24 Jan at Ryōgoku Kokugikan. Tickets go on public sale 5 Dec and often sell out on the first day. Arena seats from about ¥3,500', ['sport', 'culture'], true),
+        it('Golf driving range one evening, Sam’s request. Six options are in the Ideas tab', ['golf', 'sport'], true),
+        it('Run in a famous running park with rented gear. Runtrip BASE at Yoyogi Park is saved (lockers, shower, cafe). The Imperial Palace loop, about 5 km, is the other classic. Check what they rent', ['sport', 'park'], true),
+        it('Rugby on the last day, Sat 16 Jan, if there is a fixture. Check league-one.jp. The flight home leaves at 01:00 on 17 Jan', ['rugby', 'sport']),
+        it('No pro baseball in January. A batting centre is the closest thing', ['sport'])]},
+        {label: SPEC, items: [
+          it('A Wagyu course dinner like the 12-course Wagyu, Yamagata and Kobe beef one Miguel remembers for about £140. Find a similar one for Sam', ['beef', 'eat'], true),
+          it('Edomae sushi, and monjayaki, Tokyo’s own pan-fried batter', ['eat'])]}]},
+  ],
+}, {
   id: 'nozawa-ski-2026-11', by: 'Miguel', date: '8 Nov 2026',
   title: 'Where to ski on 10–12 Jan: Nozawa Onsen or Shiga Kōgen, with the snow monkeys on the way',
   summary: 'Two options for the ski block, with the snow monkeys at Jigokudani on the arrival day, 10 Jan, in each. Nozawa Onsen is a walkable ski village with free public hot springs. Shiga Kōgen (the current plan) is Japan’s biggest ski area and sits right behind the monkey park. Pick a version below to see it on the map. Prices are 2026–27 resort rates and indicative hotel rates, so check them before booking.',
@@ -2002,6 +2085,7 @@ const PROPOSALS = [{
   why: [
     'Kumu Kanazawa by The Share Hotels (Kamitsutsumi-chō, about 1.4 km from the station). A room that sleeps three, such as the Moderate (2 single beds and a futon, 27 m²), means one room for the three of you. From about £185 (≈ ¥39,000) a night, so ≈ ¥78,000 for 2 nights, about ¥26,000 each.',
     'Korinkyo (Katamachi 1-1-31, on the edge of Kanazawa Castle Park). Only 18 rooms, mostly for two, so three people means two rooms. From about US$149 (≈ ¥23,000) a room a night, so ≈ ¥46,000 a night and ≈ ¥92,000 for 2 nights, about ¥31,000 each.',
+    'Budget direction from the 8 Nov call: Vid prefers to keep accommodation cheap to balance the pricier nights. Budget options seen cost about £65 a night for the three of you in a bunk room, or slightly more for a private room with futon beds and its own bathroom. At the other end, one hotel with a rooftop onsen and massages was about ¥53,000 for a single night. The hotel names were not in the notes, so add them here when you have them.',
     'Kumu works out cheaper for three people (≈ ¥78,000 against ≈ ¥92,000 for the two nights), but you share one room. Korinkyo gives you two rooms. Both prices are before breakfast and any winter surcharge.',
     'Kurumiya (黒梅屋, Owari-chō 1-9-14, between Higashi Chaya and Kenrokuen, about 1.6 km from Hokutetsu-Kanazawa Station). Just 5 rooms, 4-star, rated 9.8 on Booking.com, with a hot spring and breakfast available. Rooms have 2 small double beds, so check it can take three, or plan on two rooms. The listing shows a “from” rate of about US$462 (≈ ¥72,000) a room a night, so ≈ ¥144,000 for 2 nights in one room, about ¥48,000 each. It is by far the dearest of the three, and it isn’t clear that rate is per night, so confirm on Booking.com.',
   ],
