@@ -1320,7 +1320,7 @@ function normalize(t) {
     const call = 'Agreed 8 Nov: the group books it.';
     note('fi7421pw', '', `${call} Check the New Chitose desk is open after the 19:10 landing on 28 Dec.`);
     note('ivlgetm0', '', `The night of 31 Dec. ${call}`);
-    note('ivi9xxds', 'Vid', 'The night of 12 Jan, out on the 13th. Vid sends options, then books it. Miguel asked for it to be booked soon.');
+    note('ivi9xxds', 'Vid', 'The night of 12 Jan, out on the 13th. Vid sent four options on 8 Nov (see the Atami stop): Atami Onsen Sakuraya has 1 room left, so decide soon. Vid books it.');
     note('w9e7nf34', '', 'The nights of 10 and 11 Jan.');
     note('xi4zqlht', '', 'The nights of 7 and 9 Jan. 8 Jan is the Hōshi ryokan. Options are in the Kanazawa hotels proposal.');
     note('05tx3tn2', '', 'Now 13 – 16 Jan, three nights, after the Atami night.');
@@ -1329,6 +1329,7 @@ function normalize(t) {
     if (tr && !(tr.note || '').includes('Atami')) tr.note = `${(tr.note || '').trim()}${(tr.note || '').trim() ? ' ' : ''}Agreed 8 Nov: the group finalises the trains, including Nagano to Atami on 12 Jan.`.trim();
     [['ck-c8-abashiri', 'Reservations', 'Book the Abashiri hotel', call, ''],
      ['ck-c8-soya', 'Reservations', 'Book a hotel near Cape Sōya or Wakkanai', call, ''],
+     ['ck-c8-ryokan', 'Reservations', 'Choose the ryokan for 12 Jan', 'Options are in the Atami stop. Sakuraya (Atami) has 1 room left. Check: sleeps three, price per person or per room, dinner and breakfast included, baths. The other three are around Hakone and Shuzenji, so they would move the stop.', ''],
      ['ck-c8-kaiseki', 'Reservations', 'Book the kaiseki dinner', 'In Kyoto, about ¥10,000 each. Vid is asking about it and booking it.', 'Vid'],
      ['ck-c8-sumo', 'Reservations', 'Decide on sumo tickets', 'The January tournament runs 10 – 24 Jan in Tokyo. Public sale opens 5 Dec and the first day often sells out. Arena seats from about ¥3,500. Check prices on the official ticket site.', ''],
      ['ck-c8-rugby', 'Reservations', 'Check for a rugby fixture on Sat 16 Jan', 'Wanted for the last day. The League One season runs from 12 Dec, but no fixture for that date was published when this was added: check league-one.jp. Kick-off must leave time to reach Haneda for the 01:00 flight.', '']]
@@ -1981,7 +1982,7 @@ const PROPOSALS = [{
   title: 'From the 8 Nov call: fill in the Atami night and Tokyo, and a first list of local specialities',
   summary: 'The group agreed to go straight from skiing to Atami for a night in an onsen ryokan, then on to Tokyo. The Atami stop is already in the plan, so this adds what is missing: the journey there, the ryokan night, what to do, and the new Tokyo plans (golf range, running, sport). It also starts the specialities list for every stop. Nothing is removed and no nights change.',
   why: [
-    'Atami: ski to Tue 12 Jan, then the express bus down to Nagano and the shinkansen on to Atami (about 2h 15m from Nagano, via Tokyo). Ryokan with an onsen on the night of the 12th, out on the 13th. Vid is sending options and booking it.',
+    'Atami: ski to Tue 12 Jan, then the express bus down to Nagano and the shinkansen on to Atami (about 2h 15m from Nagano, via Tokyo). Ryokan with an onsen on the night of the 12th, out on the 13th. Vid sent four options on 8 Nov (one in Atami with 1 room left, three around Hakone and Shuzenji) and is booking it.',
     'Tokyo is then 13 – 16 Jan, three nights, so the Tokyo hotel starts on the 13th. The Atami to Tokyo hop is about 45 minutes on the Kodama.',
     'Sumo: the January tournament (Hatsu Basho) runs 10 – 24 Jan at Ryōgoku Kokugikan, so it is on while you are in Tokyo. Public sale opens 5 Dec and the New Year tournament often sells out on the first day. Arena seats start around ¥3,500 and are realistically ¥5,000 – 10,000. Check the official ticket site before buying, as prices vary by day.',
     'Baseball was suggested, but the pro season runs from spring to autumn, so there is no game in January. Rugby on the last day, Sat 16 Jan, is possible: the League One season runs from 12 Dec to June. No fixture for that date had been published when this was added, so check league-one.jp, and note that the flight home leaves at 01:00 on 17 Jan.',
@@ -2022,6 +2023,14 @@ const PROPOSALS = [{
         it('A soak and a long dinner at the ryokan are the point of the stop. Ask whether the baths are private or shared when booking', ['culture']),
         it('Atami Plum Garden’s festival runs from early January to early March, but mid-January is early for the main bloom. Check the bloom report on the day', ['nature']),
         it('MOA Museum of Art, and Kinomiya Shrine with its huge camphor tree (ideas to check)', ['culture', 'shrine'])]},
+        {label: 'Ryokan options (Vid, 8 Nov)', items: [
+          it('Atami Onsen Sakuraya, in Atami: https://www.booking.com/Share-HVeZy0L. Vid says there is 1 room left, so look soon. Price not noted here yet, add it when you have it', ['stay'], true),
+          it('Hakone Kowakien Mikawaya, in Hakone: https://www.booking.com/Share-yxY9k8', ['stay']),
+          it('Gora Kansuiro, in Hakone (Gora): https://www.booking.com/Share-AlV0Bq', ['stay']),
+          it('Arai Ryokan, in Shuzenji on the Izu peninsula: https://www.booking.com/Share-9qYtCt', ['stay']),
+          it('Vid also found a more expensive option at about £1,000 for one night for the three of you, but it seems to have no Japanese-style rooms. That is about ¥70,000 each at ¥210 = £1', ['stay']),
+          it('Only Sakuraya is in Atami. The Hakone and Shuzenji ones would mean moving this stop and a longer trip on both days, so decide the place first, then the ryokan', ['stay']),
+          it('What to check on each: a room that sleeps three on futons, whether the price is per person or per room (ryokan usually quote per person for two), dinner and breakfast included, and private or shared baths. A typical ryokan night includes a kaiseki dinner and breakfast: arrive 3 – 4 pm, bath, dinner 6 – 7 pm, breakfast 7:30 – 8:30, out by 10', ['stay', 'culture'])]},
         {label: SPEC, items: [it('Atami himono (dried fish), fresh seafood from the bay and Atami pudding', ['eat'])]}]},
     {id: 'tokyo2',
       note: `${CALL8}: now 13 – 16 Jan, three nights, after the Atami night on the 12th.`,
