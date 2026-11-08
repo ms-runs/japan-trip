@@ -1888,10 +1888,13 @@ const KZ = 'Kanazawa hotel options';
 const NZ = 'Nozawa Onsen ski plan';
 const NZ_C = '#2a7a8c';
 const nozawaStop = (nights) => mkStop('nozawa', 'Nozawa Onsen', 'Nagano: ski village with public hot springs', 36.9217, 138.4467, NZ_C, nights, ['JP20'],
-  leg('shinkansen', 'about 1h 45m + wait', 'Hakutaka shinkansen from Kanazawa straight to Iiyama (no change, about 75 min, about ¥6,710), then the Nozawa Onsen Liner bus to the village (about 25 min, ¥600 paid to the driver). Take a morning train on 10 Jan. The 2026–27 bus timetable isn’t out yet, so check it before fixing the day.'),
+  leg('shinkansen', 'full day with the monkey park', 'Early Hakutaka from Kanazawa to Nagano (about 85 min), Nagaden express to Yudanaka (about 45 min, ¥1,290), local bus to the monkey park (¥310). After the monkeys go back to Nagano, take the shinkansen to Iiyama (11 min, ¥1,390) and the Nozawa Onsen Liner bus to the village (about 25 min, ¥600–700). Without the monkeys it is one direct Hakutaka to Iiyama (about 75 min) plus the bus. The 2026–27 bus timetables aren’t out yet, so check them before fixing the day.'),
   [{label: NZ, items: [
     it('Stay in Nagasaka, the central village, near the Nagasaka Gondola. Ryokan to compare: Kawaichiya (about US$160–180 a night for two, open-air bath, Japanese dinner), Oyado Nozawaya (rated 9.7, 5 min to the gondola, limited English), Tanuki Nozawa (about US$115–127), Hatoguruma Kawabata (about US$94), Sunrise Meiji-ya (ski-gear drying room). Booking.com “from” rates, not quotes for these dates; January will cost more', ['stay'], true),
     it('Ask for dinner and breakfast included: the village is small and many places close early', ['stay', 'eat']),
+    it('Snow monkeys at Jigokudani on arrival day, Sun 10 Jan: open 9:00–16:00, ¥800. In peak season (Dec–Mar) you need an advance online ticket with a QR code, so book it first. 10 Jan is a holiday weekend, so expect crowds', ['nature'], true),
+    it('The trail from Kanbayashi Onsen is 1.6 km, 25–30 min each way, over snow and ice. Boots with grip or crampons can be rented or bought at the trail start', ['nature']),
+    it('The Snow Monkey Pass bundles transport and park entry; I couldn’t find its price, so compare it with paying separately (the “combined pricing” action from the call)', ['nature']),
     it('Lift tickets 2026–27, adult: ¥7,800 for 1 day, ¥14,500 for 2 days. Lifts run about 8:30 to 17:00', ['sport'], true),
     it('Rental at the resort shop (Salomon Station, Nagasaka Center House): ski set ¥10,600 for 2 days, full set with jacket, pants and helmet ¥16,900. Book online or walk in; opens 8:15. Skip the clothes if you have your own, which saves about ¥6,300', ['sport'], true),
     it('Nozawa Holidays rental shop has a free overnight ski locker below the gondola and next-day delivery to your lodging, but at peak times it only takes advance bookings of 3+ days, so for 2 days walk in', ['sport']),
@@ -1900,22 +1903,25 @@ const nozawaStop = (nights) => mkStop('nozawa', 'Nozawa Onsen', 'Nagano: ski vil
     it('The Dosojin fire festival runs 13–15 Jan, just after you would leave', ['culture'])]}],
   'Send the big bags by courier from Kanazawa to the Tokyo hotel and take only a day bag. Iiyama station’s tourist office also stores and forwards luggage (08:30–18:00).');
 const nzBack = leg('shinkansen', 'about 2h 30m', 'Nozawa Onsen Liner bus to Iiyama (about 25 min, ¥600), then the Hakutaka shinkansen to Tokyo (100–110 min, about ¥8,250).');
-const nzArrive = {d: 'Sun 10 Jan', route: 'Kanazawa → Nozawa Onsen', text: 'Morning Hakutaka from Kanazawa straight to Iiyama (about 75 min), then the Nozawa Onsen Liner (25 min), arriving late morning. Leave the big bags to be couriered to Tokyo and take a day bag. Drop bags at the ryokan, pick up rental gear, soak in the public baths.', sleep: 'Nozawa Onsen (ryokan)'};
+const nzArrive = {d: 'Sun 10 Jan', route: 'Kanazawa → snow monkeys → Nozawa Onsen', text: 'Courier the big bags to Tokyo and take a day bag. Leave Kanazawa on an early Hakutaka to Nagano (about 85 min), then the Nagaden express to Yudanaka (45 min) and the local bus to the park. Walk the 1.6 km trail and spend about 1.5 hours with the monkeys (book the QR ticket first). Head back by about 13:30: Nagano, the shinkansen to Iiyama, then the Nozawa Liner, arriving around 18:00. Check-in, bath, dinner. Pick up rentals the next morning, or ask the shop about collecting after 15:00 the day before.', sleep: 'Nozawa Onsen (ryokan)'};
 const PROPOSALS = [{
   id: 'nozawa-ski-2026-11', by: 'Miguel', date: '8 Nov 2026',
-  title: 'Skiing at Nozawa Onsen instead of Shiga Kōgen, 10–12 Jan',
-  summary: 'Swap the Shiga Kōgen ski block for Nozawa Onsen, a walkable ski village with free public hot springs. From Kanazawa it is one direct shinkansen to Iiyama plus a 25-minute bus, and Iiyama is also on the line to Tokyo. Pick one or two ski days below. Prices are 2026–27 resort rates and indicative hotel rates, so check them before booking.',
+  title: 'Skiing at Nozawa Onsen instead of Shiga Kōgen, 10–12 Jan, with the snow monkeys on the way',
+  summary: 'Swap the Shiga Kōgen ski block for Nozawa Onsen, a walkable ski village with free public hot springs. The snow monkeys at Jigokudani fit on the arrival day, 10 Jan, by going Kanazawa → Nagano → Yudanaka → monkey park and then back through Nagano to Nozawa. Pick one or two ski days below. Prices are 2026–27 resort rates and indicative hotel rates, so check them before booking.',
   why: [
-    'Getting there from Kanazawa is about 75 min by shinkansen (about ¥6,710) plus a 25 min bus (¥600). Getting out to Tokyo is the bus plus about 100–110 min on the shinkansen (about ¥8,250).',
+    'Without the monkeys, Kanazawa to Nozawa is one direct Hakutaka to Iiyama (about 75 min, about ¥6,710) plus a 25 min bus. Getting out to Tokyo is the bus plus about 100–110 min on the shinkansen (about ¥8,250).',
+    'Nozawa to the monkey park is a long way on its own: about 2 hours each way by bus and train, or one winter-only direct bus a day (¥2,000, journey time not stated). So the monkeys go on the way in, on 10 Jan, not as a trip from Nozawa. It makes 10 Jan a full day, getting to Nozawa around 18:00.',
+    'Extra cost for the monkeys is roughly ¥6,800 each (≈ £32): park ¥800, Nagaden train and bus both ways about ¥3,200, and the extra shinkansen hops through Nagano about ¥2,800. Approximate; check the Snow Monkey Pass too.',
+    'The park is open 9:00–16:00 and needs an advance online ticket in peak season. If 10 Jan gets too tight you could swap the monkeys for the morning of 12 Jan instead, at the cost of the second ski day.',
     'Per person for two ski days: lift tickets ¥14,500 plus rental ¥10,600 (ski set) or ¥16,900 (with clothes), so about ¥25,000–31,000 (≈ £120–150), before lodging.',
     'Mon 11 Jan is a public holiday (Coming of Age Day), so expect the busiest slopes then and a quiet Tuesday. Lodging and rentals are best booked soon.',
-    'Trade-off: Nozawa has the better village and evenings, but the snow monkeys at Jigokudani become a separate trip. If you still want ski plus monkeys on one pass, Shiga Kōgen is the easier base. Accepting this drops Shiga Kōgen and its monkey-park item; its saved places move to Nozawa.',
+    'Trade-off: Nozawa has the better village and evenings, but Shiga Kōgen is much closer to the monkeys and would make the whole thing easier. Accepting this drops Shiga Kōgen; its saved places and plans move to Nozawa, and you can delete the old duplicate monkey and ski items.',
     'Still to confirm: skiing level and group size, the 2026–27 Iiyama–Nozawa bus timetable, and ryokan availability and prices for these dates.',
   ],
   remove: ['lz551qjz'],
   variants: [{
     id: 'two', label: 'Two ski days',
-    blurb: 'Arrive Sun 10 Jan, ski Mon 11 and Tue 12 until early afternoon, then on to Tokyo for 4 nights.',
+    blurb: 'Snow monkeys on the way in Sun 10 Jan, ski Mon 11 and Tue 12 until early afternoon, then on to Tokyo for 4 nights.',
     order: [{id: 'tokyo1'}, {id: 'sapporo'}, {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'}, {id: 'chubu'},
       {stop: nozawaStop(2), absorb: ['lz551qjz']},
       {id: 'tokyo2', leg: nzBack}],
@@ -1924,7 +1930,7 @@ const PROPOSALS = [{
       {d: 'Tue 12 Jan', route: 'Ski morning, then Nozawa Onsen → Tokyo', text: 'Ski until early afternoon and return the rental gear. Bus to Iiyama, then the Hakutaka shinkansen to Tokyo, arriving early evening.', sleep: 'Tokyo'}],
   }, {
     id: 'one', label: 'One ski day',
-    blurb: 'Arrive Sun 10 Jan, ski Mon 11, then to Tokyo that evening for 5 nights.',
+    blurb: 'Snow monkeys on the way in Sun 10 Jan, ski Mon 11, then to Tokyo that evening for 5 nights.',
     order: [{id: 'tokyo1'}, {id: 'sapporo'}, {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'}, {id: 'chubu'},
       {stop: nozawaStop(1), absorb: ['lz551qjz']},
       {id: 'tokyo2', nights: 5, leg: nzBack}],
