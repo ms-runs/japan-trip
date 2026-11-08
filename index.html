@@ -1180,8 +1180,20 @@ const VID_IDEAS = [
   {"id":"vid-ee4272b1c22645f","src":"vid","url":"https://maps.google.com/?cid=1073025677330113631","where":"Kyoto","what":["Attractions"],"title":"Kinkaku-ji","summary":"Kyōto","items":[{"name":"Kinkaku-ji","cat":"see","lat":35.03937,"lng":135.72924}]},
   {"id":"vid-7b1aca1c753ae2e9","src":"vid","url":"https://maps.google.com/?cid=8870624639634301673","where":"Kyoto","what":["Attractions"],"title":"Fushimi Inari Taisha","summary":"Kyōto","items":[{"name":"Fushimi Inari Taisha","cat":"see","lat":34.96769,"lng":135.77919}]}
 ];
-const SOURCES = {instagram: {label: 'From Instagram', sub: 'Saved posts with tips'}, vid: {label: 'Vid’s places', sub: 'From Vid’s Google Maps list'}};
-const ALL_IDEAS = [...IDEAS.map(d => ({src: 'instagram', ...d})), ...VID_IDEAS];
+const SOURCES = {instagram: {label: 'From Instagram', sub: 'Saved posts with tips'}, vid: {label: 'Vid’s places', sub: 'From Vid’s Google Maps list'}, ours: {label: 'Our picks', sub: 'Hotels and places we’ve found'}};
+// Added by hand. Prices are indicative “from” rates off hotel listings, not quotes for our dates.
+const OURS = [
+  {id: 'ours-kumu-kanazawa', url: 'https://www.google.com/maps/search/?api=1&query=KUMU+Kanazawa+by+The+Share+Hotels', by: 'Miguel', date: 'Nov 2026', where: 'Chubu', what: ['Hotels'],
+    title: 'Kumu Kanazawa by The Share Hotels', summary: 'Kamitsutsumi-chō, about 1.4 km from Kanazawa Station. A room for three (2 single beds and a futon) from about £185 (≈ ¥39,000) a night, ≈ ¥78,000 for 7 and 9 Jan.',
+    items: [{name: 'Kumu Kanazawa by The Share Hotels', cat: 'stay', note: 'About ¥39,000 a night for a room for three, ≈ ¥78,000 for 7 and 9 Jan (indicative).'}]},
+  {id: 'ours-korinkyo', url: 'https://www.google.com/maps/search/?api=1&query=Korinkyo+Kanazawa+Katamachi', by: 'Miguel', date: 'Nov 2026', where: 'Chubu', what: ['Hotels'],
+    title: 'Korinkyo', summary: 'Katamachi, on the edge of Kanazawa Castle Park. 18 rooms, mostly for two, so two rooms for three of us. From about US$149 (≈ ¥23,000) a room a night, ≈ ¥92,000 for two rooms on 7 and 9 Jan.',
+    items: [{name: 'Korinkyo', cat: 'stay', note: 'About ¥23,000 a room a night, two rooms ≈ ¥92,000 for 7 and 9 Jan (indicative).'}]},
+  {id: 'ours-kurumiya', url: 'https://www.booking.com/hotel/jp/kanazawa-kurumiya.en-gb.html', by: 'Miguel', date: 'Nov 2026', where: 'Chubu', what: ['Hotels'],
+    title: 'Kurumiya (黒梅屋), Owari-chō', summary: '5 rooms between Higashi Chaya and Kenrokuen, rated 9.8 on Booking.com, hot spring, breakfast available. Rooms have 2 small double beds. From about US$462 (≈ ¥72,000) a room a night, ≈ ¥144,000 for 7 and 9 Jan in one room.',
+    items: [{name: 'Kurumiya (黒梅屋), Owari-chō', cat: 'stay', note: 'About ¥72,000 a room a night, ≈ ¥144,000 for 7 and 9 Jan in one room (indicative; check the rate and that it sleeps three).'}]},
+];
+const ALL_IDEAS = [...IDEAS.map(d => ({src: 'instagram', ...d})), ...VID_IDEAS, ...OURS.map(d => ({src: 'ours', ...d}))];
 
 // ═══ 5. SMALL HELPERS ═════════════════════════════════════════════════════════
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
@@ -1796,7 +1808,7 @@ function renderIdeas() {
     && (!q || normName([d.title, d.summary, d.user, d.where, ...d.what, ...d.items.map(i => i.name)].join(' ')).includes(q)));
   if (isVid) list.sort((x, y) => (near.get(x.id)?.km ?? 1e9) - (near.get(y.id)?.km ?? 1e9));   // closest to the route first
   const added = list.reduce((n, d) => n + ideaItems(d).filter(it => inPlan(d, it)).length, 0);
-  const from = isVid ? 'from Vid’s list, closest to your stops first' : 'from saved Instagram posts';
+  const from = isVid ? 'from Vid’s list, closest to your stops first' : view.ideaSrc === 'ours' ? 'we’ve picked' : 'from saved Instagram posts';
   $('#ideas-sum').textContent = list.length
     ? `${list.length} idea${list.length > 1 ? 's' : ''} ${from}${added ? `, ${added} already in the plan` : ''}. Press + to add one to a stop.`
     : showHidden ? 'No hidden ideas.' : 'No ideas match. Try another filter.';
@@ -1809,6 +1821,12 @@ function renderIdeas() {
       <h3>${catOf(d.items[0].cat).icon} ${esc(d.title)}</h3>
       <ul class="idea-items"><li><span class="near">${esc(d.summary)}${n ? ` · ${n.km < 1 ? 'under 1' : Math.round(n.km)} km from ${esc(n.s.name)}` : ''}</span>${plusOrIn(d, d.items[0], 0)}</li></ul>
       <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">Open in Google Maps</a><span>Vid’s list</span>${hideBtn}</footer>
+    </article>`;
+    if (d.src === 'ours') return `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">${tags}
+      <h3>${esc(d.title)}</h3>
+      <p>${esc(d.summary)}</p>
+      <ul class="idea-items">${ideaItems(d).map((it, j) => `<li><span>${catOf(it.cat).icon} ${esc(it.name)}</span>${plusOrIn(d, it, j)}</li>`).join('')}</ul>
+      <footer><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">${/booking\.com/.test(d.url) ? 'Open on Booking.com' : 'Open in Google Maps'}</a><span>Added by ${esc(d.by)}</span>${hideBtn}</footer>
     </article>`;
     return `<article class="idea${hidden.has(d.id) ? ' is-hidden' : ''}">${tags}
       <h3>${esc(d.title)}</h3>
@@ -1866,7 +1884,25 @@ const HOK_DAYS = {
   30: {d: 'Wed 30 Dec', route: 'Abashiri → Lake Akan', drive: 'under 2h', text: 'Morning at the Prison Museum and the drift-ice museum, drive after lunch, Ainu Kotan and the Winter Moon Dance in the evening.', sleep: 'Akanko Ainu Kotan'},
   1: {d: 'Fri 1 Jan', route: 'Sapporo → New Chitose', drive: 'about 1h', text: 'A slow New Year’s morning (most places are shut), return the car at the airport, GK156 to Kansai at 16:35.', sleep: 'Nara'},
 };
+const KZ = 'Kanazawa hotel options';
 const PROPOSALS = [{
+  id: 'kanazawa-hotels-2026-11', by: 'Miguel', date: '8 Nov 2026',
+  title: 'Kanazawa hotels: Kumu, Korinkyo or Kurumiya for the nights of 7 and 9 Jan',
+  summary: 'Three hotels to pick between for Kanazawa. The night of 8 Jan is the Hōshi ryokan, so the hotel is needed for two nights, 7 Jan and 9 Jan. Prices are indicative “from” rates taken from hotel listings, not quotes for those dates, so check them before booking.',
+  why: [
+    'Kumu Kanazawa by The Share Hotels (Kamitsutsumi-chō, about 1.4 km from the station). A room that sleeps three, such as the Moderate (2 single beds and a futon, 27 m²), means one room for the three of you. From about £185 (≈ ¥39,000) a night, so ≈ ¥78,000 for 2 nights, about ¥26,000 each.',
+    'Korinkyo (Katamachi 1-1-31, on the edge of Kanazawa Castle Park). Only 18 rooms, mostly for two, so three people means two rooms. From about US$149 (≈ ¥23,000) a room a night, so ≈ ¥46,000 a night and ≈ ¥92,000 for 2 nights, about ¥31,000 each.',
+    'Kumu works out cheaper for three people (≈ ¥78,000 against ≈ ¥92,000 for the two nights), but you share one room. Korinkyo gives you two rooms. Both prices are before breakfast and any winter surcharge.',
+    'Kurumiya (黒梅屋, Owari-chō 1-9-14, between Higashi Chaya and Kenrokuen, about 1.6 km from Hokutetsu-Kanazawa Station). Just 5 rooms, 4-star, rated 9.8 on Booking.com, with a hot spring and breakfast available. Rooms have 2 small double beds, so check it can take three, or plan on two rooms. The listing shows a “from” rate of about US$462 (≈ ¥72,000) a room a night, so ≈ ¥144,000 for 2 nights in one room, about ¥48,000 each. It is by far the dearest of the three, and it isn’t clear that rate is per night, so confirm on Booking.com.',
+  ],
+  remove: [],
+  order: [{id: 'tokyo1'}, {id: 'sapporo'}, {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'},
+    {id: 'chubu', add: [{label: KZ, items: [
+      it('Kumu Kanazawa by The Share Hotels: about ¥39,000 a night for a room for three, ≈ ¥78,000 for 7 and 9 Jan (indicative, not quoted)', ['stay'], true),
+      it('Korinkyo: about ¥23,000 a room a night, two rooms ≈ ¥46,000 a night, ≈ ¥92,000 for 7 and 9 Jan (indicative, not quoted)', ['stay'], true),
+      it('Kurumiya (黒梅屋), Owari-chō: about ¥72,000 a room a night, ≈ ¥144,000 for 7 and 9 Jan in one room (indicative, not quoted; check the rate and that it sleeps three)', ['stay'], true)]}]},
+    {id: 'lz551qjz'}, {id: 'tokyo2'}],
+}, {
   id: 'hokkaido-loop-2026-11', by: 'Miguel', date: '4 Nov 2026',
   title: 'Hokkaidō road trip: the northern and eastern capes, Abashiri and an Ainu night at Lake Akan',
   summary: 'Swap three quiet New Year days in Sapporo for a loop by car: Japan’s northernmost point, Abashiri, a night in the Ainu village at Lake Akan, then back to Sapporo for New Year’s Eve. It means hitting the ground running with two long driving days, but otherwise it’s fairly chilled. Pick a version below to see it on the map.',
@@ -2684,6 +2720,8 @@ const ACTIONS = {
     const place = {name: it.name, url: idea.url, lat: it.lat ?? null, lng: it.lng ?? null, approx: it.approx, side: it.side};
     if (idea.src === 'vid') return fillPlaceDialog(place, {cat: it.cat, note: 'Recommended by Vid'});   // exact position: nearest stop is suggested
     const stopId = stopForWhere(it.where || idea.where);
+    if (idea.src === 'ours') return fillPlaceDialog(place, {stop: stopId, cat: it.cat, note: it.note || idea.summary,
+      info: `${byId(stopId) ? `Filed under ${byId(stopId).name}` : 'Pick a stop for it'}: change it if needed.`});
     fillPlaceDialog(place, {stop: stopId, cat: it.cat, note: `${it.note || idea.summary} (via @${idea.user})`,
        info: `From @${idea.user}. ${byId(stopId) ? `Filed under ${byId(stopId).name}` : 'Pick a stop for it'} — change it if needed.`});
   },
