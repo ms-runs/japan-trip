@@ -1885,7 +1885,53 @@ const HOK_DAYS = {
   1: {d: 'Fri 1 Jan', route: 'Sapporo → New Chitose', drive: 'about 1h', text: 'A slow New Year’s morning (most places are shut), return the car at the airport, GK156 to Kansai at 16:35.', sleep: 'Nara'},
 };
 const KZ = 'Kanazawa hotel options';
+const NZ = 'Nozawa Onsen ski plan';
+const NZ_C = '#2a7a8c';
+const nozawaStop = (nights) => mkStop('nozawa', 'Nozawa Onsen', 'Nagano: ski village with public hot springs', 36.9217, 138.4467, NZ_C, nights, ['JP20'],
+  leg('shinkansen', 'about 1h 45m + wait', 'Hakutaka shinkansen from Kanazawa straight to Iiyama (no change, about 75 min, about ¥6,710), then the Nozawa Onsen Liner bus to the village (about 25 min, ¥600 paid to the driver). Take a morning train on 10 Jan. The 2026–27 bus timetable isn’t out yet, so check it before fixing the day.'),
+  [{label: NZ, items: [
+    it('Stay in Nagasaka, the central village, near the Nagasaka Gondola. Ryokan to compare: Kawaichiya (about US$160–180 a night for two, open-air bath, Japanese dinner), Oyado Nozawaya (rated 9.7, 5 min to the gondola, limited English), Tanuki Nozawa (about US$115–127), Hatoguruma Kawabata (about US$94), Sunrise Meiji-ya (ski-gear drying room). Booking.com “from” rates, not quotes for these dates; January will cost more', ['stay'], true),
+    it('Ask for dinner and breakfast included: the village is small and many places close early', ['stay', 'eat']),
+    it('Lift tickets 2026–27, adult: ¥7,800 for 1 day, ¥14,500 for 2 days. Lifts run about 8:30 to 17:00', ['sport'], true),
+    it('Rental at the resort shop (Salomon Station, Nagasaka Center House): ski set ¥10,600 for 2 days, full set with jacket, pants and helmet ¥16,900. Book online or walk in; opens 8:15. Skip the clothes if you have your own, which saves about ¥6,300', ['sport'], true),
+    it('Nozawa Holidays rental shop has a free overnight ski locker below the gondola and next-day delivery to your lodging, but at peak times it only takes advance bookings of 3+ days, so for 2 days walk in', ['sport']),
+    it('Mon 11 Jan is Coming of Age Day, a public holiday: be at the gondola for 8:30 to beat the queues', ['sport']),
+    it('Soak in the free public baths in the village after skiing', ['culture']),
+    it('The Dosojin fire festival runs 13–15 Jan, just after you would leave', ['culture'])]}],
+  'Send the big bags by courier from Kanazawa to the Tokyo hotel and take only a day bag. Iiyama station’s tourist office also stores and forwards luggage (08:30–18:00).');
+const nzBack = leg('shinkansen', 'about 2h 30m', 'Nozawa Onsen Liner bus to Iiyama (about 25 min, ¥600), then the Hakutaka shinkansen to Tokyo (100–110 min, about ¥8,250).');
+const nzArrive = {d: 'Sun 10 Jan', route: 'Kanazawa → Nozawa Onsen', text: 'Morning Hakutaka from Kanazawa straight to Iiyama (about 75 min), then the Nozawa Onsen Liner (25 min), arriving late morning. Leave the big bags to be couriered to Tokyo and take a day bag. Drop bags at the ryokan, pick up rental gear, soak in the public baths.', sleep: 'Nozawa Onsen (ryokan)'};
 const PROPOSALS = [{
+  id: 'nozawa-ski-2026-11', by: 'Miguel', date: '8 Nov 2026',
+  title: 'Skiing at Nozawa Onsen instead of Shiga Kōgen, 10–12 Jan',
+  summary: 'Swap the Shiga Kōgen ski block for Nozawa Onsen, a walkable ski village with free public hot springs. From Kanazawa it is one direct shinkansen to Iiyama plus a 25-minute bus, and Iiyama is also on the line to Tokyo. Pick one or two ski days below. Prices are 2026–27 resort rates and indicative hotel rates, so check them before booking.',
+  why: [
+    'Getting there from Kanazawa is about 75 min by shinkansen (about ¥6,710) plus a 25 min bus (¥600). Getting out to Tokyo is the bus plus about 100–110 min on the shinkansen (about ¥8,250).',
+    'Per person for two ski days: lift tickets ¥14,500 plus rental ¥10,600 (ski set) or ¥16,900 (with clothes), so about ¥25,000–31,000 (≈ £120–150), before lodging.',
+    'Mon 11 Jan is a public holiday (Coming of Age Day), so expect the busiest slopes then and a quiet Tuesday. Lodging and rentals are best booked soon.',
+    'Trade-off: Nozawa has the better village and evenings, but the snow monkeys at Jigokudani become a separate trip. If you still want ski plus monkeys on one pass, Shiga Kōgen is the easier base. Accepting this drops Shiga Kōgen and its monkey-park item; its saved places move to Nozawa.',
+    'Still to confirm: skiing level and group size, the 2026–27 Iiyama–Nozawa bus timetable, and ryokan availability and prices for these dates.',
+  ],
+  remove: ['lz551qjz'],
+  variants: [{
+    id: 'two', label: 'Two ski days',
+    blurb: 'Arrive Sun 10 Jan, ski Mon 11 and Tue 12 until early afternoon, then on to Tokyo for 4 nights.',
+    order: [{id: 'tokyo1'}, {id: 'sapporo'}, {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'}, {id: 'chubu'},
+      {stop: nozawaStop(2), absorb: ['lz551qjz']},
+      {id: 'tokyo2', leg: nzBack}],
+    days: [nzArrive,
+      {d: 'Mon 11 Jan', route: 'Ski day 1 (public holiday)', text: 'Be at the Nagasaka Gondola for 8:30. Lunch on the mountain, then the public baths and a ryokan dinner.', sleep: 'Nozawa Onsen (ryokan)'},
+      {d: 'Tue 12 Jan', route: 'Ski morning, then Nozawa Onsen → Tokyo', text: 'Ski until early afternoon and return the rental gear. Bus to Iiyama, then the Hakutaka shinkansen to Tokyo, arriving early evening.', sleep: 'Tokyo'}],
+  }, {
+    id: 'one', label: 'One ski day',
+    blurb: 'Arrive Sun 10 Jan, ski Mon 11, then to Tokyo that evening for 5 nights.',
+    order: [{id: 'tokyo1'}, {id: 'sapporo'}, {id: 'nara'}, {id: 'kyoto'}, {id: 'osaka'}, {id: 'chubu'},
+      {stop: nozawaStop(1), absorb: ['lz551qjz']},
+      {id: 'tokyo2', nights: 5, leg: nzBack}],
+    days: [nzArrive,
+      {d: 'Mon 11 Jan', route: 'Ski day, then Nozawa Onsen → Tokyo', text: 'Be at the Nagasaka Gondola for 8:30 on the public holiday, ski the day and return the gear. Bus to Iiyama in the late afternoon and the Hakutaka shinkansen to Tokyo, arriving in the evening.', sleep: 'Tokyo'}],
+  }],
+}, {
   id: 'kanazawa-hotels-2026-11', by: 'Miguel', date: '8 Nov 2026',
   title: 'Kanazawa hotels: Kumu, Korinkyo or Kurumiya for the nights of 7 and 9 Jan',
   summary: 'Three hotels to pick between for Kanazawa. The night of 8 Jan is the Hōshi ryokan, so the hotel is needed for two nights, 7 Jan and 9 Jan. Prices are indicative “from” rates taken from hotel listings, not quotes for those dates, so check them before booking.',
